@@ -1,0 +1,23 @@
+:root { color-scheme: dark; --bg: #1c1c1e; --panel: #232326; --line: #333; --fg: #ddd; --dim: #888; --accent: #4ea1ff; }
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font: 12px -apple-system, ui-sans-serif, sans-serif; color: var(--fg); background: var(--bg); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+.drag { -webkit-app-region: drag; }
+.nodrag { -webkit-app-region: no-drag; }
+.tabstrip { height: 38px; display: flex; align-items: flex-end; padding: 0 8px 0 78px; gap: 2px; background: #161618; }
+.tab { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px 0 10px; min-width: 90px; max-width: 200px; border-radius: 7px 7px 0 0; background: #232326; color: var(--dim); cursor: default; }
+.tab.active { background: var(--bg); color: var(--fg); }
+.tab span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.tab button { border: 0; background: none; color: var(--dim); cursor: pointer; padding: 0 2px; border-radius: 3px; }
+.tab button:hover { background: #444; color: #fff; }
+.toolbar { height: 46px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid var(--line); }
+.toolbar button { background: none; border: 0; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+.toolbar button:hover:not(:disabled) { background: #333; }
+.toolbar button:disabled { opacity: 0.3; cursor: default; }
+.addr { flex: 1; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: #121214; outline: none; }
+.addr:focus { border-color: var(--accent); }
+.chip { display: inline-flex; gap: 4px; align-items: center; padding: 2px 8px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: none; font-size: 11px; }
+.chip:hover { border-color: var(--accent); }
+.panel { position: absolute; border-left: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.empty { position: absolute; display: flex; align-items: center; justify-content: center; color: var(--dim); }
