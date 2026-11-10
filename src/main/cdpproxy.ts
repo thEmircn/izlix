@@ -8,19 +8,19 @@ export const ALLOWED_METHODS = new Set([
   'DOM.getDocument', 'DOM.requestChildNodes', 'DOM.describeNode', 'DOM.getBoxModel', 'DOM.resolveNode', 'DOM.pushNodesByBackendIdsToFrontend', 'DOM.getOuterHTML',
   'DOM.setAttributeValue', 'DOM.removeAttribute', 'DOM.removeNode', 'DOM.setNodeValue', 'DOM.setOuterHTML', 'DOM.querySelector', 'DOM.getAttributes',
   'CSS.getComputedStyleForNode', 'CSS.getMatchedStylesForNode', 'CSS.getInlineStylesForNode',
-  'Accessibility.getFullAXTree', 'Overlay.highlightNode', 'Overlay.hideHighlight', 'Overlay.setInspectMode',
+  'Accessibility.getFullAXTree', 'Page.getAppManifest', 'ServiceWorker.unregister', 'ServiceWorker.updateRegistration', 'ServiceWorker.skipWaiting', 'ServiceWorker.stopAllWorkers', 'ServiceWorker.setForceUpdateOnPageLoad', 'Overlay.highlightNode', 'Overlay.hideHighlight', 'Overlay.setInspectMode',
   'Performance.getMetrics', 'Profiler.startPreciseCoverage', 'Profiler.takePreciseCoverage', 'Profiler.stopPreciseCoverage', 'Profiler.start', 'Profiler.stop', 'Profiler.setSamplingInterval', 'CSS.startRuleUsageTracking', 'CSS.stopRuleUsageTracking', 'CSS.getStyleSheetText', 'DOMStorage.getDOMStorageItems', 'DOMStorage.setDOMStorageItem', 'DOMStorage.removeDOMStorageItem', 'DOMStorage.clear',
   'Network.getCookies', 'Network.setCookie', 'Network.deleteCookies',
   'Storage.getStorageKeyForFrame', 'Page.getFrameTree', 'IndexedDB.requestDatabaseNames', 'IndexedDB.requestDatabase', 'IndexedDB.deleteDatabase',
   'CacheStorage.requestCacheNames', 'CacheStorage.requestEntries', 'CacheStorage.deleteCache', 'CacheStorage.deleteEntry'
 ])
 
-export type Feature = 'elements' | 'storage' | 'perf' | 'coverage' | 'profile'
-const ENABLE: Record<Feature, string[]> = { elements: ['DOM.enable', 'CSS.enable', 'Overlay.enable'], storage: ['DOMStorage.enable', 'IndexedDB.enable'], perf: ['Performance.enable'], coverage: ['Profiler.enable', 'DOM.enable', 'CSS.enable'], profile: ['Profiler.enable'] }
-const DISABLE: Record<Feature, string[]> = { elements: ['Overlay.setInspectMode', 'Overlay.disable', 'CSS.disable', 'DOM.disable'], storage: ['IndexedDB.disable', 'DOMStorage.disable'], perf: ['Performance.disable'], coverage: ['CSS.disable', 'DOM.disable', 'Profiler.disable'], profile: ['Profiler.disable'] }
+export type Feature = 'elements' | 'storage' | 'perf' | 'coverage' | 'profile' | 'sw'
+const ENABLE: Record<Feature, string[]> = { elements: ['DOM.enable', 'CSS.enable', 'Overlay.enable'], storage: ['DOMStorage.enable', 'IndexedDB.enable'], perf: ['Performance.enable'], coverage: ['Profiler.enable', 'DOM.enable', 'CSS.enable'], profile: ['Profiler.enable'], sw: ['ServiceWorker.enable'] }
+const DISABLE: Record<Feature, string[]> = { elements: ['Overlay.setInspectMode', 'Overlay.disable', 'CSS.disable', 'DOM.disable'], storage: ['IndexedDB.disable', 'DOMStorage.disable'], perf: ['Performance.disable'], coverage: ['CSS.disable', 'DOM.disable', 'Profiler.disable'], profile: ['Profiler.disable'], sw: ['ServiceWorker.disable'] }
 
 /** Panel acikken shell'e aktarilan olaylar */
-export const FORWARDED_EVENTS = /^(DOM\.(documentUpdated|childNodeInserted|childNodeRemoved|attributeModified|attributeRemoved|characterDataModified|childNodeCountUpdated|setChildNodes)|Overlay\.inspectNodeRequested|DOMStorage\.domStorageItem(Added|Removed|Updated)|DOMStorage\.domStorageItemsCleared)$/
+export const FORWARDED_EVENTS = /^(ServiceWorker\.(workerRegistrationUpdated|workerVersionUpdated)|DOM\.(documentUpdated|childNodeInserted|childNodeRemoved|attributeModified|attributeRemoved|characterDataModified|childNodeCountUpdated|setChildNodes)|Overlay\.inspectNodeRequested|DOMStorage\.domStorageItem(Added|Removed|Updated)|DOMStorage\.domStorageItemsCleared)$/
 
 export const isAllowedMethod = (m: string): boolean => ALLOWED_METHODS.has(m)
 

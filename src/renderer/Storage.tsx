@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast, useStore, useT } from './store'
 import { Seg } from './ui'
 import { JwtList } from './Jwt'
+import { AppInfo } from './AppInfo'
 import { findJwts } from '../shared/jwt'
 
-type STab = 'cookies' | 'local' | 'session' | 'idb' | 'cache'
+type STab = 'cookies' | 'local' | 'session' | 'idb' | 'cache' | 'app'
 type Dt = (m: string, p?: Record<string, unknown>) => Promise<any>
 
 /** Storage paneli: cookie, localStorage, sessionStorage, IndexedDB ve Cache Storage. Duzenle / ekle / sil / temizle. */
@@ -28,12 +29,13 @@ export function Storage() {
   if (!origin) return <div className="empty-hint">{t('st.noOrigin')}</div>
   return (
     <div className="st">
-      <div className="net-bar"><Seg<STab> small value={tab} onChange={setTab} items={[{ key: 'cookies', label: t('st.cookies') }, { key: 'local', label: 'localStorage' }, { key: 'session', label: 'sessionStorage' }, { key: 'idb', label: 'IndexedDB' }, { key: 'cache', label: 'Cache' }]} />
+      <div className="net-bar"><Seg<STab> small value={tab} onChange={setTab} items={[{ key: 'cookies', label: t('st.cookies') }, { key: 'local', label: 'localStorage' }, { key: 'session', label: 'sessionStorage' }, { key: 'idb', label: 'IndexedDB' }, { key: 'cache', label: 'Cache' }, { key: 'app', label: t('st.app') }]} />
         <span style={{ flex: 1 }} /><span className="origin">{origin}</span><button className="btn" onClick={refresh}>{t('insp.refresh')}</button></div>
       <div className="st-body" key={tab}>
         {tab === 'cookies' && <Cookies dt={dt} url={url} rev={rev} refresh={refresh} />}
         {(tab === 'local' || tab === 'session') && <KeyValues dt={dt} origin={origin} local={tab === 'local'} rev={rev} refresh={refresh} />}
         {tab === 'idb' && <Idb dt={dt} origin={origin} rev={rev} refresh={refresh} />}
+        {tab === 'app' && <AppInfo dt={dt} rev={rev} />}
         {tab === 'cache' && <Caches dt={dt} origin={origin} rev={rev} refresh={refresh} />}
       </div>
     </div>

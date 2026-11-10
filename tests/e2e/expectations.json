@@ -2178,5 +2178,42 @@
       "eq",
       "“Save”"
     ]
+  ],
+  "pwa": [
+    [
+      "manifestName",
+      "eq",
+      "PWA Demo"
+    ],
+    [
+      "display",
+      "eq",
+      "standalone"
+    ],
+    [
+      "installable",
+      "eq",
+      "installable"
+    ],
+    [
+      "checksOk",
+      "eq",
+      7
+    ],
+    [
+      "swCards",
+      "eq",
+      1
+    ],
+    [
+      "swStatus",
+      "contains",
+      "activated"
+    ],
+    [
+      "swAfter",
+      "eq",
+      0
+    ]
   ]
 }
