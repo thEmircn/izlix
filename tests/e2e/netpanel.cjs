@@ -16,7 +16,7 @@ module.exports = async ({ tabs, sleep, click, shellEval, pageEval }) => {
   out.drawer = await shellEval(`!!document.querySelector('.drawer')`)
   out.headersShown = await shellEval(`document.querySelector('.drawer-b').innerText.includes('Content-Length')`)
   await shellEval(`[...document.querySelectorAll('.drawer .seg2 button')].find(b=>b.textContent==='Response').click()`); await sleep(800)
-  out.body = await shellEval(`document.querySelector('.drawer-b pre')?.innerText`)
+  out.body = await shellEval(`document.querySelector('.drawer-b pre, .drawer-b .jtree')?.innerText`)
   await shellEval(`document.querySelector('.drawer .icon-btn').click()`); await sleep(300)
   out.drawerClosed = await shellEval(`!document.querySelector('.drawer')`)
   await shellEval(`[...document.querySelectorAll('.fchip')].find(b=>b.textContent.startsWith('js')).click()`); await sleep(300)
