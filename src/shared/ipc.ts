@@ -65,6 +65,7 @@ export const schemas = {
   srcPos: z.object({ id: z.string().max(64), url: z.string().max(4096), line: z.number().int().min(1), col: z.number().int().min(1) }),
   dbgBp: z.object({ id: z.string().max(64), action: z.enum(['set', 'remove']), bpId: z.string().max(200).optional(), url: z.string().max(4096).optional(), file: z.string().max(4096).optional(), line: z.number().int().min(1).optional(), condition: z.string().max(2000).optional() }),
   dbgCtl: z.object({ id: z.string().max(64), cmd: z.enum(['resume', 'stepOver', 'stepInto', 'stepOut', 'pause']) }),
+  dbgEvBp: z.object({ id: z.string().max(64), kind: z.enum(['event', 'xhr']), name: z.string().max(500), on: z.boolean() }),
   dbgExc: z.object({ id: z.string().max(64), state: z.enum(['none', 'uncaught', 'all']) }),
   dbgScope: z.object({ id: z.string().max(64), objectId: z.string().max(500) }),
   dbgEval: z.object({ id: z.string().max(64), frameId: z.string().max(500), expression: z.string().min(1).max(20000) }),

@@ -1973,5 +1973,47 @@
       "eq",
       "padding:4px;color:#333"
     ]
+  ],
+  "sources2": [
+    [
+      "hitCount",
+      "gte",
+      1
+    ],
+    [
+      "hitText",
+      "contains",
+      "secretNeedle"
+    ],
+    [
+      "opened",
+      "eq",
+      true
+    ],
+    [
+      "evPaused",
+      "contains",
+      "EventListener: click"
+    ],
+    [
+      "afterResume1",
+      "eq",
+      true
+    ],
+    [
+      "xhrRows[0]",
+      "eq",
+      "/api/data"
+    ],
+    [
+      "xhrPaused",
+      "contains",
+      "XHR: http://localhost:5194/api/data"
+    ],
+    [
+      "resumed",
+      "eq",
+      true
+    ]
   ]
 }

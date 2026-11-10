@@ -4,7 +4,7 @@ import { formatEval, preview } from './evalformat'
 
 export interface DbgFrame { id: string; fn: string; url: string; line: number; col: number; orig?: { file: string; line: number }; scopes: { type: string; name?: string; objectId?: string }[] }
 export type DbgEvent =
-  | { type: 'paused'; reason: string; frames: DbgFrame[]; hit: string[] }
+  | { type: 'paused'; reason: string; frames: DbgFrame[]; hit: string[]; detail?: string }
   | { type: 'resumed' }
 export interface ScopeVar { name: string; text: string; type: string; objectId?: string }
 
@@ -54,7 +54,15 @@ export class DebuggerService {
   private async onPaused(tabId: string, p: any): Promise<void> {
     const t = this.getTab(tabId)
     const frames: DbgFrame[] = []
-    for (const f of (p.callFrames ?? []).slice(0, 40)) {
+    let callFrames: any[] = p.callFrames ?? []
+    // Olay/XHR duraklamalari kendi enjekte ettigimiz betiklerde (girdi izleme, fetch sarmalayici; URL'siz) de tetiklenir: o cerceveleri atla,
+    // geriye kullanici kodu kalmazsa sessizce surdur.
+    if (p.reason === 'EventListener' || p.reason === 'XHR') {
+      const urlOf = (f: any): string => f.url || this.scriptUrls.get(tabId)?.get(f.location.scriptId) || ''
+      while (callFrames.length && !urlOf(callFrames[0])) callFrames = callFrames.slice(1)
+      if (!callFrames.length) { await this.wc(tabId)?.debugger.sendCommand('Debugger.resume').catch(() => {}); return }
+    }
+    for (const f of callFrames.slice(0, 40)) {
       const loc = f.location
       const url: string = f.url || this.scriptUrls.get(tabId)?.get(loc.scriptId) || ''
       const orig = t?.resolver ? await t.resolver.resolveFrame(loc.scriptId, loc.lineNumber, loc.columnNumber ?? 0, url).catch(() => null) : null
@@ -65,7 +73,9 @@ export class DebuggerService {
       })
     }
     const hit: string[] = p.hitBreakpoints ?? []
-    this.emit(tabId, { type: 'paused', reason: hit.length ? 'breakpoint' : String(p.reason ?? 'other'), frames, hit })
+    const reason = hit.length ? 'breakpoint' : String(p.reason ?? 'other')
+    const detail = reason === 'EventListener' ? String(p.data?.eventName ?? '').replace(/^listener:/, '') : reason === 'XHR' ? String(p.data?.url ?? '') : undefined
+    this.emit(tabId, { type: 'paused', reason, frames, hit, detail })
   }
 
   /** Kesme noktasi: `url` (uretilen betik) veya `file` (orijinal kaynak; source map ile cevrilir). line 1-bazli. */
@@ -89,6 +99,18 @@ export class DebuggerService {
   async control(tabId: string, cmd: 'resume' | 'stepOver' | 'stepInto' | 'stepOut' | 'pause'): Promise<void> {
     const m = { resume: 'Debugger.resume', stepOver: 'Debugger.stepOver', stepInto: 'Debugger.stepInto', stepOut: 'Debugger.stepOut', pause: 'Debugger.pause' }[cmd]
     await this.wc(tabId)?.debugger.sendCommand(m).catch(() => {})
+  }
+  /** Olay dinleyici kesme noktasi (ornek: 'click'): sayfada o olay islenirken dinleyicinin ilk satirinda durur. */
+  async setEventBreakpoint(tabId: string, eventName: string, on: boolean): Promise<boolean> {
+    if (!/^[a-z]{2,24}$/.test(eventName)) return false
+    await this.wc(tabId)?.debugger.sendCommand(on ? 'DOMDebugger.setEventListenerBreakpoint' : 'DOMDebugger.removeEventListenerBreakpoint', { eventName }).catch(() => {})
+    return true
+  }
+  /** XHR/fetch kesme noktasi: URL'si verilen dizeyi iceren her istekte, istek gonderilirken durur (bos dize = hepsi). */
+  async setXhrBreakpoint(tabId: string, url: string, on: boolean): Promise<boolean> {
+    if (url.length > 500) return false
+    await this.wc(tabId)?.debugger.sendCommand(on ? 'DOMDebugger.setXHRBreakpoint' : 'DOMDebugger.removeXHRBreakpoint', { url }).catch(() => {})
+    return true
   }
   async setExceptions(tabId: string, state: 'none' | 'uncaught' | 'all'): Promise<void> { await this.wc(tabId)?.debugger.sendCommand('Debugger.setPauseOnExceptions', { state }).catch(() => {}) }
 

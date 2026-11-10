@@ -4,6 +4,7 @@ import { highlightLine, initState, langOf, type HlState } from '../shared/highli
 import { buildNetworkRows } from '../shared/network'
 import { toast, useStore, useT } from './store'
 import { Seg } from './ui'
+import { groupHits, searchFiles, type SearchHit } from '../shared/srcsearch'
 
 interface OrigSource { name: string; content: string | null }
 interface Bundle { url: string; code: string; mapUrl?: string; sources: OrigSource[]; truncated: boolean }
@@ -28,6 +29,12 @@ export function Sources({ events }: { events: BusEvent[] }) {
   const paused = useStore((s) => s.paused)
   const [exc, setExc] = useState<'none' | 'uncaught' | 'all'>('none')
   const [cond, setCond] = useState<{ line: number; text: string } | null>(null)
+  const [mode, setMode] = useState<'files' | 'search' | 'bps'>('files')
+  const [sq, setSq] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [hits, setHits] = useState<(SearchHit & { url: string; orig?: string })[] | null>(null)
+  const evBps = useStore((s) => s.evBps), xhrBps = useStore((s) => s.xhrBps)
+  const [xq, setXq] = useState('')
 
   // Debugger alani yalnizca bu panel aciksa etkindir (sayfa yukleme maliyeti); kapaninca duraklama surdurulur
   useEffect(() => {
@@ -35,6 +42,8 @@ export function Sources({ events }: { events: BusEvent[] }) {
     let live = true
     void window.izlix.dbgEnable(tabId).then(async () => {
       if (!live) return
+      for (const n of useStore.getState().evBps) void window.izlix.dbgEventBp(tabId, 'event', n, true)
+      for (const n of useStore.getState().xhrBps) void window.izlix.dbgEventBp(tabId, 'xhr', n, true)
       for (const b of useStore.getState().bps.filter((x) => x.tabId === tabId)) { // onceki kesme noktalarini yeniden uygula
         const r: any = await window.izlix.dbgSetBp(tabId, b.kind === 'file' ? { file: b.target, line: b.line, condition: b.condition } : { url: b.target, line: b.line, condition: b.condition })
         if (r?.id) useStore.setState((st) => ({ bps: st.bps.map((x) => (x === b ? { ...x, bpId: r.id } : x)) }))
@@ -42,7 +51,7 @@ export function Sources({ events }: { events: BusEvent[] }) {
     })
     const off = window.izlix.onDbg((e: any) => {
       if (e.id !== useStore.getState().activeTabId) return
-      if (e.type === 'paused') useStore.setState({ paused: { tabId: e.id, reason: e.reason, frames: e.frames, sel: 0 } })
+      if (e.type === 'paused') useStore.setState({ paused: { tabId: e.id, reason: e.reason, detail: e.detail, frames: e.frames, sel: 0 } })
       else useStore.setState({ paused: null })
     })
     return () => { live = false; off(); useStore.setState({ paused: null }); void window.izlix.dbgDisable(tabId) }
@@ -113,12 +122,74 @@ export function Sources({ events }: { events: BusEvent[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target])
 
+  const runSearch = async (): Promise<void> => {
+    if (!tabId || sq.trim().length < 2) { setHits(null); return }
+    setSearching(true)
+    const files: { name: string; text: string; url: string; orig?: string }[] = []
+    for (const r of scripts.filter((x) => x.type === 'js').slice(0, 40)) {
+      const bb = await load(r.url); if (!bb) continue
+      for (const o of bb.sources) if (o.content != null && isApp(o.name)) files.push({ name: o.name, text: o.content, url: r.url, orig: o.name })
+      if (!bb.sources.some((o) => o.content != null && isApp(o.name))) files.push({ name: `${r.name.replace(/\?.*$/, '')} (bundle)`, text: bb.code, url: r.url })
+    }
+    const meta = new Map(files.map((f) => [f.name, f]))
+    setHits(searchFiles(files, sq).map((h) => ({ ...h, url: meta.get(h.file)!.url, orig: meta.get(h.file)!.orig })))
+    setSearching(false)
+  }
+  const openHit = async (h: SearchHit & { url: string; orig?: string }): Promise<void> => {
+    if (h.orig) await pickScript(h.url, h.line, h.orig)
+    else { setOpen(h.url); const bb = await load(h.url); if (bb) { setFile({ name: h.file, text: bb.code }); setJump(h.line) } }
+  }
+  const toggleEv = (name: string): void => {
+    if (!tabId) return
+    const on = !evBps.includes(name)
+    void window.izlix.dbgEventBp(tabId, 'event', name, on)
+    useStore.setState((st) => ({ evBps: on ? [...st.evBps, name] : st.evBps.filter((x) => x !== name) }))
+  }
+  const addXhr = (): void => {
+    if (!tabId) return
+    const u = xq.trim(); if (xhrBps.includes(u)) return
+    void window.izlix.dbgEventBp(tabId, 'xhr', u, true); setXq('')
+    useStore.setState((st) => ({ xhrBps: [...st.xhrBps, u] }))
+  }
+  const rmXhr = (u: string): void => { if (tabId) void window.izlix.dbgEventBp(tabId, 'xhr', u, false); useStore.setState((st) => ({ xhrBps: st.xhrBps.filter((x) => x !== u) })) }
+  const EVENT_GROUPS: [string, string[]][] = [['dbg.evMouse', ['click', 'dblclick', 'mousedown', 'mouseup', 'contextmenu']], ['dbg.evKey', ['keydown', 'keyup', 'keypress']], ['dbg.evForm', ['input', 'change', 'submit', 'focus', 'blur']], ['dbg.evPage', ['scroll', 'resize', 'load', 'popstate', 'hashchange']]]
+
   const b = open ? bundles[open] : null
   return (
     <div className="sources">
       <div className="srcside">
-        <input className="search" placeholder={t('src.filter')} value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="srclist">
+        <Seg<'files' | 'search' | 'bps'> small value={mode} onChange={setMode} items={[{ key: 'files', label: t('src.files') }, { key: 'search', label: t('src.search') }, { key: 'bps', label: `${t('src.bps')}${bps.length + evBps.length + xhrBps.length ? ` ${bps.filter((x) => x.tabId === tabId).length + evBps.length + xhrBps.length}` : ''}` }]} />
+        {mode === 'files' && <input className="search" placeholder={t('src.filter')} value={q} onChange={(e) => setQ(e.target.value)} />}
+        {mode === 'search' && <input className="search" autoFocus placeholder={t('src.searchPh')} value={sq} onChange={(e) => setSq(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void runSearch() }} />}
+        {mode === 'search' && (
+          <div className="srclist">
+            {searching && <div className="skeleton" style={{ height: 40, margin: 8 }} />}
+            {!searching && hits && !hits.length && <div className="empty-hint">{t('src.noHits')}</div>}
+            {!searching && hits && groupHits(hits).map((g) => (
+              <div key={g.file}><div className="srchit-file">{g.file.split('/').slice(-2).join('/')}<em>{g.hits.length}</em></div>
+                {g.hits.map((h) => <div key={`${h.line}:${h.col}`} className="srchit" onClick={() => void openHit(h as any)}><code>{h.line}</code><span>{h.snippet}</span></div>)}</div>
+            ))}
+            {!hits && !searching && <div className="empty-hint">{t('src.searchHint')}</div>}
+          </div>
+        )}
+        {mode === 'bps' && (
+          <div className="srclist bpsec">
+            <div className="mlabel">{t('src.lineBps')}</div>
+            {bps.filter((x) => x.tabId === tabId).map((x, i) => (
+              <div key={i} className="bprow"><i /><span onClick={() => x.kind === 'url' ? void pickScript(x.target, x.line) : void pickScript(scripts.find((r) => r.type === 'js')?.url ?? '', x.line, x.target)}>{x.target.split('/').slice(-2).join('/')}:{x.line}{x.condition ? ` · ${x.condition}` : ''}</span>
+                <button onClick={() => void toggleBp(x.kind, x.target, x.line)}>×</button></div>
+            ))}
+            {!bps.some((x) => x.tabId === tabId) && <div className="tsub">{t('src.noLineBps')}</div>}
+            <div className="mlabel" style={{ marginTop: 12 }}>{t('src.eventBps')}</div>
+            {EVENT_GROUPS.map(([g, names]) => (
+              <div key={g} className="evgroup"><small>{t(g as any)}</small><div>{names.map((n) => <button key={n} className={`fchip ${evBps.includes(n) ? 'on' : ''}`} onClick={() => toggleEv(n)}>{n}</button>)}</div></div>
+            ))}
+            <div className="mlabel" style={{ marginTop: 12 }}>{t('src.xhrBps')}</div>
+            <div className="xhr-add"><input className="search" placeholder={t('src.xhrPh')} value={xq} onChange={(e) => setXq(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addXhr() }} /><button className="btn sm" onClick={addXhr}>+</button></div>
+            {xhrBps.map((u) => <div key={u || '*'} className="bprow"><i style={{ background: 'var(--warn)' }} /><span>{u || t('src.xhrAll')}</span><button onClick={() => rmXhr(u)}>×</button></div>)}
+          </div>
+        )}
+        {mode === 'files' && <div className="srclist">
           {shown.map((r) => {
             const k = r.url, bb = bundles[k]
             return (
@@ -134,7 +205,7 @@ export function Sources({ events }: { events: BusEvent[] }) {
             )
           })}
           {!shown.length && <div className="empty-hint">{t('net.empty')}</div>}
-        </div>
+        </div>}
       </div>
       <div className="srcview">
         {!open && <div className="empty-hint">{t('src.pick')}</div>}
@@ -144,7 +215,7 @@ export function Sources({ events }: { events: BusEvent[] }) {
           <div className="dbgbar">
             {paused && paused.tabId === tabId ? (
               <>
-                <span className="pausedbadge">{t('dbg.paused')} · {paused.reason}</span>
+                <span className="pausedbadge">{t('dbg.paused')} · {paused.reason}{paused.detail ? `: ${paused.detail}` : ''}</span>
                 <button className="btn sm" title="F8" onClick={() => void window.izlix.dbgControl(tabId, 'resume')}>{t('dbg.resume')}</button>
                 <button className="btn sm" title="F10" onClick={() => void window.izlix.dbgControl(tabId, 'stepOver')}>{t('dbg.over')}</button>
                 <button className="btn sm" title="F11" onClick={() => void window.izlix.dbgControl(tabId, 'stepInto')}>{t('dbg.into')}</button>

@@ -556,3 +556,12 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .lab-code { display: grid; gap: 6px; } .lab-code pre { margin: 0; padding: 9px 11px; border-radius: 9px; background: var(--bg2); border: 1px solid var(--line); font: 11.5px/1.6 var(--mono); white-space: pre-wrap; word-break: break-all; color: #e4e4e7; } .lab-code small { color: var(--dim); font: 10.5px var(--mono); } .lab-code .btn { justify-self: start; }
 
 .el.lab-mode .el-tree { flex: 0 0 26%; min-height: 110px; } .el.lab-mode .el-detail { height: auto; flex: 1; min-height: 0; } .el.lab-mode .el-pane { overflow: auto; flex: 1; }
+
+/* Sources v2: arama + kesme noktalari */
+.srcside .seg2 { margin: 0 8px 6px; align-self: flex-start; }
+.srchit-file { display: flex; justify-content: space-between; padding: 6px 10px 3px; font: 11px var(--mono); color: var(--fg); position: sticky; top: 0; background: var(--panel); } .srchit-file em { font-style: normal; color: var(--dim); }
+.srchit { display: grid; grid-template-columns: 34px 1fr; gap: 8px; padding: 3px 10px; font: 11px var(--mono); cursor: pointer; color: var(--dim); } .srchit:hover { background: var(--hover); color: var(--fg); } .srchit code { background: none; padding: 0; text-align: right; color: var(--ac); } .srchit span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bpsec { padding: 6px 10px 14px; } .bpsec .mlabel { margin: 4px 0 6px; }
+.bprow { display: grid; grid-template-columns: 8px 1fr 18px; gap: 8px; align-items: center; padding: 4px 4px; border-radius: 7px; font: 11px var(--mono); } .bprow:hover { background: var(--hover); } .bprow i { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); } .bprow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; } .bprow button { border: 0; background: none; color: var(--dim); cursor: pointer; } .bprow button:hover { color: var(--bad); }
+.evgroup { margin-bottom: 8px; } .evgroup small { display: block; font: 10px var(--mono); color: var(--dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .06em; } .evgroup div { display: flex; flex-wrap: wrap; gap: 5px; }
+.xhr-add { display: flex; gap: 6px; margin-bottom: 6px; } .xhr-add .search { margin: 0 !important; flex: 1; }
