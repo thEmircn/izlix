@@ -13,6 +13,7 @@ import { Downloads, uniquePath } from './downloads'
 import { parseLaunch, type Launch } from './launch'
 import { registerAppScheme, serveApp, lockPermissions, lockShell, isInsideAny, trustLoopbackCerts } from './security'
 import { SettingsStore } from './settings'
+import { SessionStore } from './sessions'
 import { translate, type Key } from '../shared/i18n'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
@@ -44,6 +45,7 @@ let tabs: TabManager
 let workspaces: WorkspaceStore
 let rules: RuleStore
 let library: Library
+let sessions: SessionStore
 let settings: SettingsStore
 const tr = (k: Key, v?: Record<string, string | number>): string => translate(settings?.get().language ?? 'tr', k, v)
 let perms: PermissionStore
@@ -69,6 +71,7 @@ const send = (channel: string, payload: unknown): void => { if (win && !win.isDe
 const pushTabs = (): void => send(Ch.tabsState, { ...tabs.list(), dock: tabs.dock })
 const pushSettings = (): void => send(Ch.settingsState, settings.get())
 const pushRules = (): void => send(Ch.rulesState, rules.all())
+const pushSessions = (): void => send(Ch.sessState, sessions.all())
 const pushLibrary = (): void => send(Ch.libState, { bookmarks: Object.fromEntries(workspaces.list().map((w) => [w.id, library.bookmarks(w.id)])), downloads: downloads.list() })
 const pushWorkspaces = (): void => send(Ch.wsState, { workspaces: workspaces.list(), activeId: activeWorkspaceId, detected })
 
@@ -323,6 +326,24 @@ function registerIpc(): void {
   handle(Ch.dbgCtl, schemas.dbgCtl, ({ id, cmd }) => dbg.control(id, cmd))
   handle(Ch.dbgEvBp, schemas.dbgEvBp, ({ id, kind, name, on }) => kind === 'event' ? dbg.setEventBreakpoint(id, name, on) : dbg.setXhrBreakpoint(id, name, on))
   handle(Ch.tabSplit, schemas.tabSplit, ({ other }) => tabs.setSplit(other))
+  // Oturumlar: etkin Workspace'in sekmelerini adlandirip kaydet / ac / sil
+  handle(Ch.sessSave, schemas.sessSave, ({ name }) => {
+    const mine = tabs.list().tabs.filter((x) => x.workspaceId === activeWorkspaceId && /^https?:\/\//.test(x.url)) // indisler yalnizca saklanan (http/https) sekmelere gore
+    const act = tabs.list().activeId
+    const li = mine.findIndex((x) => x.split === 'left'), ri = mine.findIndex((x) => x.split === 'right')
+    const s = sessions.add(activeWorkspaceId, name, mine.map((x) => ({ url: x.url, title: x.title })), Math.max(0, mine.findIndex((x) => x.id === act)), li >= 0 && ri >= 0 ? [li, ri] : null)
+    pushSessions(); return s ? s.id : null
+  })
+  handle(Ch.sessOpen, schemas.sessOpen, async ({ id, replace }) => {
+    const s = sessions.get(activeWorkspaceId, id); if (!s) return 0
+    if (replace) for (const x of tabs.list().tabs.filter((y) => y.workspaceId === activeWorkspaceId)) { proxy.drop(x.id); dbg.drop(x.id); tabs.close(x.id) }
+    const ids: string[] = []
+    for (const t of s.tabs) ids.push(await tabs.create({ url: t.url, workspaceId: activeWorkspaceId, activate: false }))
+    tabs.activate(ids[s.active] ?? ids[0])
+    if (s.split && ids[s.split[0]] && ids[s.split[1]]) { tabs.activate(ids[s.split[0]]); tabs.setSplit(ids[s.split[1]]); tabs.activate(ids[s.active] ?? ids[s.split[0]]) }
+    pushTabs(); return ids.length
+  })
+  handle(Ch.sessDelete, schemas.sessDelete, ({ id }) => { const ok = sessions.remove(activeWorkspaceId, id); pushSessions(); return ok })
   handle(Ch.dbgExc, schemas.dbgExc, ({ id, state }) => dbg.setExceptions(id, state))
   handle(Ch.dbgScope, schemas.dbgScope, ({ id, objectId }) => dbg.scope(id, objectId))
   handle(Ch.dbgEval, schemas.dbgEval, ({ id, frameId, expression }) => dbg.evalOnFrame(id, frameId, expression))
@@ -410,6 +431,7 @@ async function createWindow(): Promise<void> {
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
+  sessions = new SessionStore()
   perms = new PermissionStore()
   settings = new SettingsStore()
   if (process.env.DB_SCRIPT) settings.set({ language: (process.env.DB_LANG as 'en' | 'tr') ?? 'en' }) // testler Ingilizce metinlere bakar
@@ -439,7 +461,7 @@ async function createWindow(): Promise<void> {
   const restored = process.env.DB_SCRIPT && !process.env.DB_RESTORE ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
   void pollServers(); setInterval(pollServers, 1500)
-  pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSettings()
+  pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSessions(); pushSettings()
   telemetry.track('app.start')
 
   // Otomatik test modu: DB_SCRIPT = ({ctx}) => Promise<any>; sonuc ve olaylar DB_DUMP'a yazilir

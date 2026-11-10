@@ -2109,5 +2109,42 @@
       "eq",
       "b"
     ]
+  ],
+  "sessions": [
+    [
+      "tabsAfter",
+      "eq",
+      5
+    ],
+    [
+      "hasAll",
+      "eq",
+      true
+    ],
+    [
+      "splitRestored",
+      "eq",
+      true
+    ],
+    [
+      "opened",
+      "eq",
+      3
+    ],
+    [
+      "afterReplace",
+      "eq",
+      3
+    ],
+    [
+      "deleted",
+      "eq",
+      true
+    ],
+    [
+      "gone",
+      "eq",
+      0
+    ]
   ]
 }

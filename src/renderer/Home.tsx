@@ -8,6 +8,7 @@ export function Home({ style }: { style: React.CSSProperties }) {
   const s = useStore()
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
   const marks = s.bookmarks[s.activeWorkspaceId] ?? []
+  const sess = s.sessions[s.activeWorkspaceId] ?? []
   const api = window.izlix
   const [recent, setRecent] = useState<{ url: string; title: string; ts: number }[]>([])
   useEffect(() => { void api.history().then((h: { url: string; title: string; ts: number }[]) => setRecent((h ?? []).slice(0, 6))).catch(() => {}) }, [])
@@ -41,6 +42,13 @@ export function Home({ style }: { style: React.CSSProperties }) {
             {([['⌘T', 'menu.newTab'], ['⌘K', 'menu.palette'], ['⌘L', 'menu.openLoc'], ['⌥⌘1', 'tl.overview'], ['⌘D', 'menu.bookmark'], ['⇧⌘M', 'menu.marker']] as [string, any][]).map(([k, l]) => (
               <div key={k} className="act" style={{ cursor: 'default' }}><i style={{ background: 'var(--ac)' }} /><code>{k}</code><span>{t(l)}</span><em /></div>
             ))}
+          </div>
+          <div className="tile full">
+            <div className="mlabel">{t('sess.title')} <button className="btn sm" style={{ marginLeft: 10 }} onClick={() => s.set({ overlay: 'session' })}>{t('sess.save')}</button></div>
+            {sess.length ? sess.slice(0, 6).map((x) => (
+              <div key={x.id} className="act sessrow" style={{ cursor: 'default' }}><i style={{ background: 'var(--ac)' }} /><code>{t('sess.tabs', { n: x.tabs.length })}</code><span>{x.name}</span>
+                <em><button className="link" onClick={() => void api.openSession(x.id)}>{t('sess.open')}</button> · <button className="link" onClick={() => void api.deleteSession(x.id)}>{t('sess.del')}</button></em></div>
+            )) : <div className="tsub">{t('sess.empty')}</div>}
           </div>
           <div className="tile full row">
             <button className="btn primary" onClick={() => api.createTab()}><Plus />{t('tab.new')}</button>

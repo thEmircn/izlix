@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { computeLayout, padRect } from '../shared/layout'
 import { Home } from './Home'
+import { SessionPrompt } from './SessionPrompt'
 import type { DevToolsDock } from '../shared/events'
 import { useStore, writePref, useT, toast, PANEL_TABS, wsName } from './store'
 import { Welcome } from './Welcome'
@@ -50,6 +51,7 @@ export function App() {
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
       api.onSettings((st: any) => { s.set({ settings: st }); if (!st.onboarded && useStore.getState().overlay === null) s.set({ overlay: 'welcome' }) }),
       api.onLibrary((l: any) => s.set({ bookmarks: l.bookmarks, downloads: l.downloads })),
+      api.onSessions((x: any) => s.set({ sessions: x })),
       api.onCommand((cmd: string) => {
         const st = useStore.getState(); const act = st.tabs.find((t) => t.id === st.activeTabId)
         switch (cmd) {
@@ -199,6 +201,7 @@ export function App() {
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       <Toasts />
       <PermissionPrompt />
+      {s.overlay === 'session' && <SessionPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}

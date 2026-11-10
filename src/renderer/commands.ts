@@ -105,6 +105,13 @@ export function buildCommands(): Command[] {
   for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId)) {
     cmds.push({ id: `tab:${tb.id}`, title: t('cmd.tab', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.activateTab(tb.id) })
   }
+  // Oturumlar
+  cmds.push({ id: 'session.save', title: t('cmd.sessSave'), run: () => s.set({ overlay: 'session' }) })
+  for (const x of s.sessions[s.activeWorkspaceId] ?? []) {
+    cmds.push({ id: `sess.open.${x.id}`, title: t('cmd.sessOpen', { n: x.name }), hint: t('sess.tabs', { n: x.tabs.length }), run: () => void api.openSession(x.id) })
+    cmds.push({ id: `sess.replace.${x.id}`, title: t('cmd.sessReplace', { n: x.name }), hint: t('sess.tabs', { n: x.tabs.length }), run: () => void api.openSession(x.id, true) })
+    cmds.push({ id: `sess.del.${x.id}`, title: t('cmd.sessDelete', { n: x.name }), run: () => void api.deleteSession(x.id) })
+  }
   // Bolunmus gorunum (Split View)
   const act = s.tabs.find((x) => x.id === s.activeTabId)
   if (act && !act.lab) {
