@@ -264,3 +264,11 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .ws-row.sent .arrow { color: #fbbf24; } .ws-row.recv .arrow { color: #a3e635; } .arrow { font-style: normal; font-weight: 700; }
 .ws-row.sent { background: rgba(251,191,36,.04); } .ws-row.recv { background: rgba(163,230,53,.04); }
 .ws-row.sys { grid-template-columns: 1fr auto; color: var(--dim); } .ws-row.sys.err { color: #fca5a5; } .ws-row pre { grid-column: 1 / -1; margin: 4px 0; }
+
+/* ---- A11y ---- */
+.a11y { display: flex; flex-direction: column; flex: 1; min-height: 0; } .a11y-list { flex: 1; overflow: auto; padding: 8px 10px; }
+.agroup { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: rgba(255,255,255,.02); overflow: hidden; animation: rowin .28s var(--ease) both; }
+.ahead { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; } .ahead:hover { background: rgba(255,255,255,.04); } .ahead code { color: var(--dim); background: none; font-size: 10.5px; } .ahead em { margin-left: auto; font-style: normal; color: var(--dim); font-size: 10.5px; }
+.agroup.error .vdot { background: var(--bad); } .agroup.warn .vdot { background: var(--warn); } .cnt { background: rgba(255,255,255,.12); border-radius: 999px; padding: 0 8px; font-size: 10.5px; font-weight: 600; }
+.aitems { border-top: 1px solid var(--line); padding: 4px 8px 8px; animation: fadein .2s ease-out; } .aitem { padding: 6px 8px; border-radius: 8px; cursor: pointer; } .aitem:hover { background: rgba(248,113,113,.08); }
+.aitem .sel { background: none; padding: 0; font: 11.5px ui-monospace, Menlo, monospace; } .adetail { color: var(--dim); margin: 2px 0; } .ahtml { margin: 2px 0 0; color: #71717a; font: 10.5px ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; }

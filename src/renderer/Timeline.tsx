@@ -7,6 +7,7 @@ import { Seg } from './ui'
 import { Elements } from './Elements'
 import { Storage } from './Storage'
 import { Perf } from './Perf'
+import { A11y } from './A11y'
 import { Console } from './Console'
 import { causeChain, effectsOf } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
@@ -47,7 +48,7 @@ function label(e: Ev): string {
 const shortUrl = (u: string): string => { try { const x = new URL(u); return x.pathname + x.search } catch { return u } }
 const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
-type PTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'raw' | 'components' | 'renders'
+type PTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'a11y' | 'raw' | 'components' | 'renders'
 /** Unified Developer Timeline v0: 6 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
 export function Timeline({ width, height }: { width: number; height: number }) {
   const t = useT()
@@ -88,7 +89,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
         <div style={{ flexBasis: '100%' }}><Seg<PTab> value={tab} onChange={setTab} items={[
-          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') },
+          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') }, { key: 'a11y', label: t('tl.a11y') },
           { key: 'components', label: t('tl.components') }, { key: 'renders', label: t('tl.renders') }, { key: 'raw', label: `${t('tl.raw')} (${all.length})` }
         ]} /></div>
         {tab === 'timeline' && <>
@@ -103,7 +104,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
         </>}
       </div>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={all} byId={events} /> : tab === 'console' ? <Console events={all} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={all} byId={events} /> : tab === 'console' ? <Console events={all} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={events} onOpen={open} onSelect={select} />

@@ -17,6 +17,7 @@ import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
 import { saveSnapshot } from './snapshot'
 import { CdpProxy } from './cdpproxy'
+import { A11Y_AUDIT } from './a11y-audit'
 import { captureShot, shotName } from './shots'
 import { formatEval } from './evalformat'
 import { exportReport } from './report'
@@ -232,6 +233,7 @@ function registerIpc(): void {
     if (!process.env.DB_SCRIPT) shell.showItemInFolder(file)
     return { path: file, bytes: png.length }
   })
+  handle(Ch.a11y, schemas.tabId, ({ id }) => evalInPage(id, A11Y_AUDIT))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
