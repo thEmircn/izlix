@@ -14,6 +14,7 @@ import { parseLaunch, type Launch } from './launch'
 import { registerAppScheme, serveApp, lockPermissions, lockShell, isInsideAny, trustLoopbackCerts } from './security'
 import { SettingsStore } from './settings'
 import { SessionStore } from './sessions'
+import { DETECT_SCRIPT, parseDetected } from '../shared/frameworks'
 import { translate, type Key } from '../shared/i18n'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
@@ -150,6 +151,7 @@ function registerIpc(): void {
     const r = await e.view.webContents.debugger.sendCommand('Runtime.evaluate', { expression, returnByValue: true, timeout: 2000 })
     return r.result?.value ?? null
   }
+  handle(Ch.fwInfo, schemas.tabId, async ({ id }) => parseDetected(await evalInPage(id, DETECT_SCRIPT).catch(() => null)))
   handle(Ch.inspTree, schemas.tabId, ({ id }) => evalInPage(id, 'window.__IZLIX_TREE__ ? window.__IZLIX_TREE__() : null'))
   handle(Ch.inspNode, schemas.inspNode, async ({ id, node, t, name }) => {
     const d = await evalInPage(id, `window.__IZLIX_INSPECT__ ? window.__IZLIX_INSPECT__(${node}) : null`)

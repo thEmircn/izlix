@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { LANE_COLOR, eventLabel, type Lane } from '../shared/label'
 import { formatBytes, formatMs } from '../shared/network'
@@ -26,11 +26,13 @@ export function Overview({ events }: { events: BusEvent[] }) {
   const url = useStore((s) => s.tabs.find((x) => x.id === s.activeTabId)?.url ?? '')
   const host = (() => { try { return new URL(url).host } catch { return '' } })()
   const scoreColor = o.score >= 80 ? 'var(--ok)' : o.score >= 50 ? 'var(--warn)' : 'var(--bad)'
+  const [fw, setFw] = useState<{ id: string; name: string; version: string; supported: boolean }[]>([])
+  useEffect(() => { if (!tabId) return; let live = true; const run = (): void => { void window.izlix.frameworks(tabId).then((d: any) => { if (live) setFw(d ?? []) }) }; run(); const h = setInterval(run, 4000); return () => { live = false; clearInterval(h) } }, [tabId, url])
   const go = (id: number): void => set({ panelTab: 'timeline', selectedEventId: id })
   return (
     <div className="ov">
       <div className="ov-head">
-        <div><div className="ov-sub">{wsName(ws)}</div><div className="ov-host">{host}</div></div>
+        <div><div className="ov-sub">{wsName(ws)}</div><div className="ov-host">{host}</div>{fw.length > 0 && <div className="fw-chips">{fw.map((f) => <span key={f.id} className={`rchip ${f.supported ? 'ac' : ''}`} title={f.supported ? t('fw.supported') : t('fw.unsupported')}>{f.name}{f.version ? ` ${f.version}` : ''}</span>)}</div>}</div>
         <span className={`pill ${o.healthy ? 'ok' : 'bad'}`}><i />{o.healthy ? t('ov.healthy') : t('ov.issues', { n: o.errors + o.failed })}</span>
       </div>
       <div className="bento">

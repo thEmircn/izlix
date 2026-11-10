@@ -2215,5 +2215,37 @@
       "eq",
       0
     ]
+  ],
+  "frameworks": [
+    [
+      "reactDetected[0].id",
+      "eq",
+      "react"
+    ],
+    [
+      "reactDetected[0].supported",
+      "eq",
+      true
+    ],
+    [
+      "chips",
+      "contains",
+      "Vite"
+    ],
+    [
+      "vueDetected[0].id",
+      "eq",
+      "vue"
+    ],
+    [
+      "vueDetected[0].supported",
+      "eq",
+      false
+    ],
+    [
+      "note",
+      "contains",
+      "Vue 3.4.2 detected"
+    ]
   ]
 }

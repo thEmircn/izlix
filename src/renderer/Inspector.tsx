@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { aggregateRenders, isMinifiedName, wastedRatio, type TrackerRow } from '../shared/tracker'
 import { toast, useStore, useT } from './store'
+import { unsupportedComponentFrameworks, type Detected } from '../shared/frameworks'
 
 interface Node { id: number; depth: number; name: string; t?: number; key?: string }
 const ROW_H = 20
@@ -29,6 +30,7 @@ const latestRenderId = (events: Map<number, BusEvent>, tab: string | null): numb
 export function Inspector({ height }: { height: number }) {
   const t = useT()
   const tabId = useStore((s) => s.activeTabId)
+  const [fw, setFw] = useState<Detected[]>([])
   const events = useStore((s) => s.events)
   const editor = useStore((s) => s.editor)
   const [nodes, setNodes] = useState<Node[]>([])
@@ -107,6 +109,8 @@ export function Inspector({ height }: { height: number }) {
   }
   const open = (src: any): void => { void window.izlix.openSource({ file: src.file, line: src.line, column: src.column, editor }) }
 
+  useEffect(() => { if (!tabId || nodes.length > 0) return; let live = true; void window.izlix.frameworks(tabId).then((d: Detected[]) => { if (live) setFw(d ?? []) }); return () => { live = false } }, [tabId, nodes.length])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div className="cmp-bar" style={{ padding: '8px 10px' }}>
@@ -117,6 +121,7 @@ export function Inspector({ height }: { height: number }) {
         <button className="btn" onClick={() => void refresh()}>{t('insp.refresh')}</button>
         <span style={{ color: 'var(--dim)' }}>{t('insp.count', { n: nodes.length })}{truncated ? '+' : ''}</span>
       </div>
+      {nodes.length === 0 && (() => { const u = unsupportedComponentFrameworks(fw); return <div className="fw-note">{u.length ? t('fw.noAdapter', { n: u.map((x) => x.name + (x.version ? ' ' + x.version : '')).join(', ') }) : t('fw.noFramework')}</div> })()}
       <div data-testid="tree" style={{ height: viewH, overflow: 'auto', borderTop: '1px solid var(--line)', font: '11px ui-monospace, Menlo, monospace' }} onScroll={(e) => setScroll(e.currentTarget.scrollTop)}>
         <div style={{ height: shown.length * ROW_H, position: 'relative' }}>
           {shown.slice(first, last).map((n, i) => {

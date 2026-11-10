@@ -597,3 +597,5 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .pwa-chk { display: flex; align-items: center; gap: 9px; font-size: 12px; } .pwa-chk i { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); } .pwa-chk.ok i { background: var(--ok); } .pwa-chk.bad i { background: var(--bad); } .pwa-chk.warn i { background: var(--warn); } .pwa-chk small { color: var(--dim); font: 10px var(--mono); margin-left: 4px; }
 .pwa-err { color: var(--bad); font: 11px var(--mono); }
 .sw-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 7px; background: rgba(255,255,255,.015); } .sw-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .sw-h code { margin-left: auto; background: none; color: var(--dim); }
+
+.fw-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; } .fw-note { margin: 10px 12px 0; padding: 10px 12px; border: 1px dashed var(--line2); border-radius: 10px; color: var(--dim); line-height: 1.55; font-size: 11.5px; }

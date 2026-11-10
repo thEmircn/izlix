@@ -86,6 +86,7 @@ export const api = {
   openSession: (id: string, replace = false) => call(Ch.sessOpen, { id, replace }),
   deleteSession: (id: string) => call(Ch.sessDelete, { id }),
   onSessions: sub(Ch.sessState),
+  frameworks: (id: string) => call(Ch.fwInfo, { id }),
   dbgScope: (id: string, objectId: string) => call(Ch.dbgScope, { id, objectId }),
   dbgEval: (id: string, frameId: string, expression: string) => call(Ch.dbgEval, { id, frameId, expression }),
   onDbg: sub(Ch.dbgEvent),
