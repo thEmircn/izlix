@@ -109,7 +109,7 @@ export function Inspector({ height }: { height: number }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div style={{ display: 'flex', gap: 8, padding: '4px 8px', alignItems: 'center' }}>
+      <div className="cmp-bar" style={{ padding: '8px 10px' }}>
         <button className={`btn ${picking ? 'primary' : ''}`} onClick={() => void startPick()}>{t('el.pick')}</button>
         <input placeholder={t('insp.search')} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: '#121214', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
         <label><input type="checkbox" checked={hideMin} onChange={(e) => setHideMin(e.target.checked)} /> {t('insp.hideMin')}</label>
@@ -168,24 +168,39 @@ export function RenderTracker({ events, range }: { events: BusEvent[]; range: [n
   const editor = useStore((s) => s.editor)
   const rows = useMemo(() => aggregateRenders(events, range ?? undefined), [events, range])
   const open = (r: TrackerRow): void => { if (r.file && r.line) void window.izlix.openSource({ file: r.file, line: r.line, column: r.column, editor }) }
+  const totalRenders = rows.reduce((a, r) => a + r.renders, 0), totalMs = rows.reduce((a, r) => a + r.totalMs, 0)
+  const wasted = rows.reduce((a, r) => a + (r.reasons.parent ?? 0), 0)
+  const maxMs = Math.max(0.1, ...rows.map((r) => r.totalMs))
+  const REASON_CLS: Record<string, string> = { mount: 'ok', state: 'ac', props: 'ac', context: 'ac', parent: 'warn', hooks: 'ac' }
   return (
-    <div style={{ overflow: 'auto', flex: 1 }}>
-      <table className="tbl">
+    <div className="trk" style={{ overflow: 'auto', flex: 1 }}>
+      {rows.length > 0 && (
+        <div className="net-stats">
+          <div className="stat"><span>{t('trk.component')}</span><b>{rows.length}</b></div>
+          <div className="stat"><span>{t('trk.renders')}</span><b>{totalRenders}</b></div>
+          <div className="stat"><span>{t('trk.total')}</span><b>{totalMs.toFixed(1)} ms</b></div>
+          <div className="stat"><span>{t('trk.wasted')}</span><b className={totalRenders && wasted / totalRenders > 0.4 ? 'bad' : ''}>{totalRenders ? Math.round((wasted / totalRenders) * 100) : 0}%</b></div>
+        </div>
+      )}
+      <table className="tbl trk-tbl">
         <thead><tr>
-          <th>{t('trk.component')}</th><th className="num">{t('trk.renders')}</th><th className="num">{t('trk.total')}</th><th className="num">{t('trk.max')}</th><th>{t('trk.reason')}</th><th>{t('trk.changed')}</th><th>{t('trk.wasted')}</th><th>{t('trk.source')}</th></tr></thead>
+          <th>{t('trk.component')}</th><th className="num">{t('trk.renders')}</th><th>{t('trk.total')}</th><th>{t('trk.reason')}</th><th className="num">{t('trk.wasted')}</th>
+        </tr></thead>
         <tbody>
           {rows.slice(0, 300).map((r) => (
-            <tr key={r.key}>
-              <td style={{ color: '#e4e4e7', fontWeight: 500 }}>{r.name}</td><td className="num">{r.renders}</td><td className="num">{r.totalMs.toFixed(1)}</td><td className="num">{r.maxMs.toFixed(1)}</td>
-              <td>{Object.entries(r.reasons).map(([k, v]) => `${k}×${v}`).join(' ')}</td>
-              <td>{[...r.changedProps.map((p) => `props.${p}`), ...r.changedHooks.map((h) => `hook[${h}]`)].join(', ')}</td>
-              <td style={{ color: wastedRatio(r) > 0.5 && r.renders > 2 ? '#ffb454' : 'var(--dim)' }}>{r.renders > 1 ? `${Math.round(wastedRatio(r) * 100)}%` : ''}</td>
-              <td>{r.file ? <a href="#" style={{ color: 'var(--fg)', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={(e) => { e.preventDefault(); open(r) }}>{r.file.split('/').slice(-2).join('/')}:{r.line}</a> : ''}</td>
+            <tr key={r.key} title={[...r.changedProps.map((p) => `props.${p}`), ...r.changedHooks.map((h) => `hook[${h}]`)].join(', ')}>
+              <td><div className="trk-name">{r.name}</div>
+                {r.file ? <a href="#" className="trk-src" onClick={(e) => { e.preventDefault(); open(r) }}>{r.file.split('/').slice(-2).join('/')}:{r.line}</a> : null}</td>
+              <td className="num"><span className="trk-n">{r.renders}×</span></td>
+              <td><div className="trk-bar"><b style={{ width: `${Math.max(3, (r.totalMs / maxMs) * 100)}%` }} /></div><small>{r.totalMs.toFixed(1)} ms · max {r.maxMs.toFixed(1)}</small></td>
+              <td><div className="trk-chips">{Object.entries(r.reasons).map(([k, v]) => <span key={k} className={`rchip ${REASON_CLS[k] ?? ''}`}>{k}{v > 1 ? ` ×${v}` : ''}</span>)}</div>
+                {(r.changedProps.length > 0 || r.changedHooks.length > 0) && <small>{[...r.changedProps.map((p) => `props.${p}`), ...r.changedHooks.map((h) => `hook[${h}]`)].join(', ')}</small>}</td>
+              <td className="num" style={{ color: wastedRatio(r) > 0.5 && r.renders > 2 ? 'var(--warn)' : 'var(--dim)' }}>{r.renders > 1 ? `${Math.round(wastedRatio(r) * 100)}%` : ''}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      {!rows.length && <div style={{ padding: 8, color: 'var(--dim)' }}>{t('trk.empty')}</div>}
+      {!rows.length && <div className="empty-hint">{t('trk.empty')}</div>}
     </div>
   )
 }

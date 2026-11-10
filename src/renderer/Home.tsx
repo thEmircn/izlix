@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useStore, useT, wsName } from './store'
 import { IcFolder, IcServer, Plus, Star } from './icons'
 
@@ -8,6 +9,8 @@ export function Home({ style }: { style: React.CSSProperties }) {
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
   const marks = s.bookmarks[s.activeWorkspaceId] ?? []
   const api = window.izlix
+  const [recent, setRecent] = useState<{ url: string; title: string; ts: number }[]>([])
+  useEffect(() => { void api.history().then((h: { url: string; title: string; ts: number }[]) => setRecent((h ?? []).slice(0, 6))).catch(() => {}) }, [])
   return (
     <div className="home" style={style}>
       <div className="home-in">
@@ -26,6 +29,18 @@ export function Home({ style }: { style: React.CSSProperties }) {
             {marks.length ? marks.slice(0, 6).map((b) => (
               <button key={b.url} className="act" onClick={() => api.createTab(b.url)}><Star /><span>{b.title || b.url}</span><em>{b.url.replace(/^https?:\/\//, '').slice(0, 28)}</em></button>
             )) : <div className="tsub">{t('home.noBookmarks')}</div>}
+          </div>
+          <div className="tile wide">
+            <div className="mlabel">{t('home.recent')}</div>
+            {recent.length ? recent.map((v) => (
+              <button key={v.url} className="act" onClick={() => api.createTab(v.url)}><i style={{ background: 'var(--dim)' }} /><code>{new Date(v.ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</code><span>{v.title || v.url}</span><em>{v.url.replace(/^https?:\/\//, '').slice(0, 24)}</em></button>
+            )) : <div className="tsub">{t('home.noRecent')}</div>}
+          </div>
+          <div className="tile wide">
+            <div className="mlabel">{t('home.shortcuts')}</div>
+            {([['⌘T', 'menu.newTab'], ['⌘K', 'menu.palette'], ['⌘L', 'menu.openLoc'], ['⌥⌘1', 'tl.overview'], ['⌘D', 'menu.bookmark'], ['⇧⌘M', 'menu.marker']] as [string, any][]).map(([k, l]) => (
+              <div key={k} className="act" style={{ cursor: 'default' }}><i style={{ background: 'var(--ac)' }} /><code>{k}</code><span>{t(l)}</span><em /></div>
+            ))}
           </div>
           <div className="tile full row">
             <button className="btn primary" onClick={() => api.createTab()}><Plus />{t('tab.new')}</button>
