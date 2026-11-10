@@ -1,6 +1,6 @@
 module.exports = async ({ tabs, sleep, shellEval }) => {
   const http = require('http')
-  const html = `<!doctype html><title></title><body style="background:#fff"><h1>Title</h1><h3>skip</h3><img src="x.png"><button id=b1></button><a href="/x" style="display:inline-block;width:30px;height:30px"></a><input id=name type=text><p id=low style="color:#bbb">low contrast text</p><p id=ok style="color:#000">fine</p><div id=dup></div><div id=dup></div><button id=tiny style="width:10px;height:10px;padding:0">x</button><div tabindex=3>t</div>`
+  const html = `<!doctype html><title></title><body style="background:#fff"><h1>Title</h1><h3>skip</h3><img src="x.png"><button id=b1></button><a href="/x" style="display:inline-block;width:30px;height:30px"></a><input id=name type=text><p id=low style="color:#bbb">low contrast text</p><p id=ok style="color:#000">fine</p><div id=dup></div><div id=dup></div><button id=tiny style="width:10px;height:10px;padding:0">x</button><div tabindex=3>t</div><div id=wide style="width:3000px;height:5px;background:#eee"></div>`
   const srv = http.createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end(html) })
   await new Promise((r) => srv.listen(5191, '127.0.0.1', r))
   const out = {}

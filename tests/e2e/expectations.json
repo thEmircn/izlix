@@ -1081,6 +1081,11 @@
       "rules",
       "contains",
       "img-size"
+    ],
+    [
+      "rules",
+      "contains",
+      "overflow-x"
     ]
   ],
   "settings-flash": [
