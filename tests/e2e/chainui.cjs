@@ -7,8 +7,7 @@ module.exports = async ({ tabs, sleep, click, shellEval, shot }) => {
   await sleep(400)
   out.text = await shellEval(`document.body.innerText`)
   out.hasChain = /Cause chain/.test(out.text)
-  out.steps = (out.text.match(/\\+\\d+ ms/g) || []).length
-  out.kinds = ['input', 'request', 'response', 'render'].map((k) => new RegExp('\\\\n' + k + ' #\\\\d+').test(out.text))
+  out.hasInput = /input #\d+ click/.test(out.text); out.hasRequest = /request #\d+ GET/.test(out.text); out.hasResponse = /response #\d+ 200/.test(out.text)
   delete out.text
   await shot('/private/tmp/e2e-tmp/chain.png')
   return out

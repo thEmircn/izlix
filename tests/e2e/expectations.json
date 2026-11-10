@@ -454,5 +454,32 @@
       "eq",
       null
     ]
+  ],
+  "chainui": [
+    [
+      "clicked",
+      "eq",
+      true
+    ],
+    [
+      "hasChain",
+      "eq",
+      true
+    ],
+    [
+      "hasInput",
+      "eq",
+      true
+    ],
+    [
+      "hasRequest",
+      "eq",
+      true
+    ],
+    [
+      "hasResponse",
+      "eq",
+      true
+    ]
   ]
 }
