@@ -1298,5 +1298,52 @@
       "contains",
       "200"
     ]
+  ],
+  "permissions": [
+    [
+      "cardShown",
+      "eq",
+      true
+    ],
+    [
+      "cardText",
+      "contains",
+      "notifications"
+    ],
+    [
+      "blocked",
+      "eq",
+      "denied"
+    ],
+    [
+      "blockedAgain",
+      "eq",
+      "denied"
+    ],
+    [
+      "listed",
+      "len",
+      1
+    ],
+    [
+      "afterReset",
+      "eq",
+      0
+    ],
+    [
+      "allowed",
+      "eq",
+      "granted"
+    ],
+    [
+      "allowedAgain",
+      "eq",
+      "granted"
+    ],
+    [
+      "storedAllow",
+      "eq",
+      "granted"
+    ]
   ]
 }

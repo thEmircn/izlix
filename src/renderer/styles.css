@@ -112,8 +112,8 @@ select:focus-visible, button:focus-visible { outline: 2px solid rgba(255,255,255
 .resizer-h { position: absolute; height: 6px; cursor: row-resize; z-index: 20; }
 .resizer-v:hover, .resizer-h:hover { background: rgba(255,255,255,.12); }
 
-.toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; z-index: 80; pointer-events: none; }
-.toast { background: #202023; border: 1px solid var(--line2); border-radius: 9px; padding: 8px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: pop .22s var(--ease); max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toasts { position: fixed; top: 5px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; z-index: 80; pointer-events: none; } /* ust serit: native sayfa gorunumunun arkasinda kalmaz */
+.toast { background: #202023; border: 1px solid var(--line2); border-radius: 9px; padding: 4px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: pop .22s var(--ease); max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-hint { padding: 22px 16px; color: var(--dim); text-align: center; line-height: 1.7; }
 
 /* ---- kayan gostergeli segment ---- */
@@ -297,3 +297,5 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .mcard { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.025); } .mcard.leak { border-color: rgba(248,113,113,.5); }
 .leakbadge { font-style: normal; font-size: 9.5px; color: var(--bad); border: 1px solid rgba(248,113,113,.5); border-radius: 999px; padding: 0 6px; animation: breathe 1.4s ease-in-out infinite; }
 .spark { display: block; margin-top: 4px; }
+
+.permrow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: center; padding: 3px 0; } .permrow code { background: none; color: var(--dim); } .permrow em { font-style: normal; font-size: 10.5px; border-radius: 999px; padding: 0 8px; background: rgba(255,255,255,.08); } .permrow em.allow { color: #bef264; } .permrow em.deny { color: #fca5a5; }

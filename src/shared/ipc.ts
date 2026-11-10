@@ -55,5 +55,7 @@ export const schemas = {
   cacheSet: z.object({ id: z.string().max(64), disabled: z.boolean() }),
   hookSet: z.object({ id: z.string().max(64), node: z.number().int().min(0), index: z.number().int().min(0).max(200), json: z.string().max(20000) }),
   propSet: z.object({ id: z.string().max(64), node: z.number().int().min(0), key: z.string().max(200), json: z.string().max(20000) }),
+  permAnswer: z.object({ id: z.string().max(64), answer: z.enum(['allow-once', 'allow', 'block']) }),
+  permRemove: z.object({ origin: z.string().max(300), permission: z.string().max(40) }),
   overlay: z.object({ open: z.boolean() })
 }

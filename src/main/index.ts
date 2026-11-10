@@ -7,6 +7,7 @@ import type { Editor } from '../shared/events'
 import { EventBus } from './bus'
 import { TabManager } from './tabs'
 import { RuleStore } from './rules'
+import { PermissionStore, originOf, permissionKey } from './permissions'
 import { Library } from './library'
 import { Downloads, uniquePath } from './downloads'
 import { parseLaunch, type Launch } from './launch'
@@ -37,6 +38,9 @@ let workspaces: WorkspaceStore
 let rules: RuleStore
 let library: Library
 let settings: SettingsStore
+let perms: PermissionStore
+const pendingPerms = new Map<string, (a: 'allow-once' | 'allow' | 'block') => void>()
+let permSeq = 0
 let telemetry: Telemetry
 let demo: DemoServer
 let samplesDir = ''
@@ -266,6 +270,9 @@ function registerIpc(): void {
     if (!process.env.DB_SCRIPT) shell.showItemInFolder(file)
     return file
   })
+  handle(Ch.permAnswer, schemas.permAnswer, ({ id, answer }) => { const f = pendingPerms.get(id); if (f) { pendingPerms.delete(id); f(answer) } })
+  handle(Ch.permList, null, () => perms.list())
+  handle(Ch.permRemove, schemas.permRemove, ({ origin, permission }) => perms.remove(origin, permission))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -309,6 +316,32 @@ async function pollServers(): Promise<void> {
   } catch { /* lsof yoksa dedektor sessizce kapali */ }
 }
 
+/** Site izinleri: kayitli karar > (konum emulasyonu) > kullaniciya sor; bilinmeyen izinler reddedilir. */
+const permissionHandlers = {
+  check: (wc: Electron.WebContents | null, permission: string, origin: string, details: any): boolean => {
+    if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
+    const key = permissionKey(permission, details)
+    if (key === 'auto') return true
+    if (!key) return false
+    return perms.get(originOf(origin) || originOf(wc?.getURL() ?? ''), key) === 'allow'
+  },
+  request: async (wc: Electron.WebContents | null, permission: string, details: any): Promise<boolean> => {
+    if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
+    const key = permissionKey(permission, details)
+    if (key === 'auto') return true
+    const origin = originOf(details?.requestingUrl ?? wc?.getURL() ?? '')
+    if (!key || !origin) return false
+    const stored = perms.get(origin, key)
+    if (stored) return stored === 'allow'
+    const id = `perm-${++permSeq}`
+    send(Ch.permAsk, { id, origin, permission: key })
+    return new Promise<boolean>((resolve) => {
+      pendingPerms.set(id, (a) => { if (a === 'allow') perms.set(origin, key, 'allow'); if (a === 'block') perms.set(origin, key, 'deny'); resolve(a !== 'block') })
+      setTimeout(() => { if (pendingPerms.delete(id)) resolve(false) }, 30_000)
+    })
+  }
+}
+
 async function createWindow(): Promise<void> {
   const { maximized, ...ws0 } = restoreWindowState({ width: 1500, height: 900 })
   win = new BrowserWindow({
@@ -320,6 +353,7 @@ async function createWindow(): Promise<void> {
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
+  perms = new PermissionStore()
   settings = new SettingsStore()
   if (process.env.DB_SCRIPT && !process.env.DB_ONBOARD) settings.set({ onboarded: true }) // testlerde karsilama ekrani sayfa gorunumlerini gizlemesin
   telemetry = new Telemetry(app.getPath('userData'), () => settings.get().telemetry, () => settings.get().installId)
@@ -331,7 +365,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); if (!process.env.DB_NOPERM) lockPermissions(ses, (wc, perm) => perm === 'geolocation' && !!wc && tabs.isGeoEmulated(wc)); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
   proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
   registerIpc()

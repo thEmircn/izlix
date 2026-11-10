@@ -5,6 +5,7 @@ import { useStore, writePref, useT, toast, PANEL_TABS } from './store'
 import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
 import { Settings } from './Settings'
+import { PermissionPrompt } from './PermissionPrompt'
 import { Back, Forward, Reload, Plus, Close, Star, Download, Spinner } from './icons'
 import { RenameWorkspace } from './RenameWorkspace'
 import { Timeline } from './Timeline'
@@ -40,6 +41,7 @@ export function App() {
       api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
+      api.onPermAsk((p: any) => useStore.setState((st) => ({ permPrompts: [...st.permPrompts, p] }))),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
       api.onSettings((st: any) => { s.set({ settings: st }); if (!st.onboarded && useStore.getState().overlay === null) s.set({ overlay: 'welcome' }) }),
       api.onLibrary((l: any) => s.set({ bookmarks: l.bookmarks, downloads: l.downloads })),
@@ -73,7 +75,7 @@ export function App() {
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])
   // overlay acikken sayfa gorunumleri (native katman) gizlenir, aksi halde shell'in ustunde kalirlardi
-  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null) }, [s.overlay])
+  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0) }, [s.overlay, s.permPrompts.length])
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
@@ -178,6 +180,7 @@ export function App() {
       <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       <Toasts />
+      <PermissionPrompt />
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}

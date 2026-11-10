@@ -19,6 +19,7 @@ interface State {
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
   panelTab: PanelTab
   flash: boolean
+  permPrompts: { id: string; origin: string; permission: string }[]
   preserveLog: boolean
   toasts: { id: number; text: string }[]
   find: { open: boolean; active: number; total: number }
@@ -37,7 +38,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: 'timeline', flash: false, preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: 'timeline', flash: false, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)

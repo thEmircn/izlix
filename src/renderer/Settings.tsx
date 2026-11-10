@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
 import { useStore, useT, writePref } from './store'
 import { Kbd } from './ui'
@@ -14,6 +15,9 @@ export function Settings({ onClose }: { onClose(): void }) {
   const dock = useStore((s) => s.dock)
   const set = useStore((s) => s.set)
   const api = window.izlix
+  const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
+  const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
+  useEffect(loadPerms, [])
   const Row = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (
     <div className="srow"><div><div className="stitle">{title}</div>{hint && <div className="shint">{hint}</div>}</div><div>{children}</div></div>
   )
@@ -33,6 +37,14 @@ export function Settings({ onClose }: { onClose(): void }) {
           </Row>
           <Row title={t('set.autoOpen')} hint={t('set.autoOpenHint')}><Switch on={settings.autoOpen} label={t('set.autoOpen')} onChange={(v) => void api.setSettings({ autoOpen: v })} /></Row>
           <Row title={t('set.telemetry')} hint={t('set.telemetryHint')}><Switch on={settings.telemetry === 'granted'} label={t('set.telemetry')} onChange={(v) => void api.setSettings({ telemetry: v ? 'granted' : 'denied' })} /></Row>
+          <div className="srow" style={{ display: 'block' }}>
+            <div className="stitle" style={{ marginBottom: 6 }}>{t('set.perms')}</div>
+            {perms.map((p) => (
+              <div key={p.origin + p.permission} className="permrow"><span>{p.origin}</span><code>{p.permission}</code><em className={p.decision}>{p.decision}</em>
+                <button className="link" onClick={() => void api.permRemove(p.origin, p.permission).then(loadPerms)}>{t('set.permRevoke')}</button></div>
+            ))}
+            {!perms.length && <div className="shint">{t('set.permsEmpty')}</div>}
+          </div>
         </div>
         <div style={{ padding: '10px 18px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end' }}><button className="btn primary" onClick={onClose}>{t('welcome.done')}</button></div>
       </div>

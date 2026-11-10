@@ -25,9 +25,12 @@ export function serveApp(root: string): void {
 }
 
 /** Kamera, mikrofon, konum, bildirim vb. varsayilan olarak reddedilir (Permission Dashboard'a kadar). */
-export function lockPermissions(ses: Session, allow: (wc: WebContents | null, permission: string) => boolean = () => false): void {
-  ses.setPermissionRequestHandler((wc, perm, cb) => cb(allow(wc, perm)))
-  ses.setPermissionCheckHandler((wc, perm) => allow(wc, perm))
+export function lockPermissions(ses: Session, h: {
+  check: (wc: WebContents | null, permission: string, origin: string, details: any) => boolean
+  request: (wc: WebContents | null, permission: string, details: any) => Promise<boolean>
+}): void {
+  ses.setPermissionRequestHandler((wc, perm, cb, details) => { void h.request(wc, perm, details).then(cb, () => cb(false)) })
+  ses.setPermissionCheckHandler((wc, perm, origin, details) => h.check(wc, perm, origin, details))
 }
 
 /** Shell penceresi hicbir zaman baska yere gezinmez ve yeni pencere/webview acamaz. */
