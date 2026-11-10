@@ -49,8 +49,8 @@ export function App() {
       }),
       api.onEvent((e) => queue.push(e)), api.onUpdate((e) => queue.push(e))
     ]
-    // 100 ms'de bir toplu guncelle (Timeline gecikme butcesi: olaydan ekrana < 100 ms)
-    const t = setInterval(() => { if (queue.length) useStore.getState().ingest(queue.splice(0)) }, 100)
+    // 50 ms de bir toplu guncelle (Timeline gecikme butcesi: olaydan ekrana < 100 ms)
+    const t = setInterval(() => { if (queue.length) useStore.getState().ingest(queue.splice(0)) }, 50)
     const onResize = (): void => setSize({ w: window.innerWidth, h: window.innerHeight })
     window.addEventListener('resize', onResize)
     return () => { offs.forEach((f) => f()); clearInterval(t); window.removeEventListener('resize', onResize) }
