@@ -103,10 +103,10 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       <div className="phead">
         <SubNav value={tab} onChange={setTab} labels={labels} />
         {tab === 'timeline' && <>
-          {LANES.map((l) => (
-            <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{laneName(l)}</button>
+          <span className="lane-dots">{LANES.map((l) => (
+            <button key={l} type="button" aria-pressed={!hidden.has(l)} title={laneName(l)} className={`lane-dot ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}><i /></button>
           ))}
-          <button type="button" aria-pressed={allReq} className={`lane-chip ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} onClick={() => setAllReq(!allReq)}>{t('tl.allRequests')}</button>
+          <button type="button" aria-pressed={allReq} className={`lane-dot ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} title={t('tl.allRequests')} onClick={() => setAllReq(!allReq)}><i /></button></span>
           <input className="search" style={{ maxWidth: 150 }} placeholder={t('tl.search')} value={tq} onChange={(e) => setTq(e.target.value)} />
           {range && <button className="btn" onClick={() => setRange(null)}>{t('tl.live')}</button>}
         </>}

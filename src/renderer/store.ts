@@ -94,3 +94,22 @@ export function useThrottled<T>(value: T, ms: number): T {
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
   return ms <= 0 ? value : shown
 }
+
+/** Hedef degere yumusakca (ease-out) gecer; panel acilip kapanirken sayfa genisligi ani sicramasin. reduced-motion'da aninda. */
+export function useTween(target: number, ms = 240): number {
+  const [v, setV] = useState(target)
+  const from = useRef(target), cur = useRef(target)
+  useEffect(() => {
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce || ms <= 0 || cur.current === target) { cur.current = target; setV(target); return }
+    from.current = cur.current
+    const t0 = performance.now(); let raf = 0
+    const step = (t: number): void => {
+      const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3)
+      cur.current = from.current + (target - from.current) * e; setV(cur.current)
+      if (k < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step); return () => cancelAnimationFrame(raf)
+  }, [target, ms])
+  return v
+}

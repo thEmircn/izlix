@@ -5,7 +5,7 @@ import { DashboardView } from './DashboardView'
 import { IcOverview, IcPanel } from './icons'
 import { SessionPrompt } from './SessionPrompt'
 import type { DevToolsDock } from '../shared/events'
-import { useStore, writePref, useT, toast, PANEL_TABS, wsName } from './store'
+import { useStore, writePref, useT, toast, PANEL_TABS, wsName, useTween } from './store'
 import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
 import { Settings } from './Settings'
@@ -99,7 +99,9 @@ export function App() {
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
-  const ratio = s.panelOpen && !s.dashboard ? s.panelRatio : 0 // panel kapaliyken sayfa tam genislik
+  const targetRatio = s.panelOpen && !s.dashboard ? s.panelRatio : 0 // panel kapaliyken sayfa tam genislik
+  const ratio = useTween(targetRatio, 240) // yumusak acilip kapanma
+  const panelVisible = (s.panelOpen && !s.dashboard) || ratio > 0.005
   useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split }) }, [s.dock, ratio, s.split, chromeH])
 
   const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split })
@@ -176,17 +178,17 @@ export function App() {
           {s.workspaces.map((w) => <option key={w.id} value={w.id}>{wsName(w)}</option>)}
           <option value="__new">{t('ws.fromFolder')}</option>
         </select>
-        {s.detected.slice(0, 2).map((d) => (
-          <button key={d.port} className="chip" title={d.cwd ?? ''} onClick={() => api.createTab(`localhost:${d.port}`)}>
-            <i className="dot" />{d.port}{d.framework ? ` ${d.framework}` : ''}
+        {s.detected.length > 0 && (
+          <button className="chip srv-chip" title={s.detected.map((d) => `:${d.port} ${d.framework ?? ''}`).join('\n')} onClick={() => (s.detected.length === 1 ? api.createTab(`localhost:${s.detected[0].port}`) : s.set({ overlay: 'palette' }))}>
+            <i className="dot" />{s.detected[0].port}{s.detected[0].framework ? ` ${s.detected[0].framework}` : ''}{s.detected.length > 1 ? <b>+{s.detected.length - 1}</b> : null}
           </button>
-        ))}
-        {s.detected.length > 2 && <button className="chip" title={t('srv.more')} onClick={() => s.set({ overlay: 'palette' })}>+{s.detected.length - 2}</button>}
+        )}
         <span className="tb-sep" />
         <button className={`tb-btn dash-btn ${s.dashboard ? 'on' : ''}`} aria-pressed={s.dashboard} title={`${t('dash.title')}  ⌥⌘D`} aria-label={t('dash.title')} onClick={() => s.set({ dashboard: !s.dashboard })}><IcOverview /></button>
         <button className={`tb-btn panel-toggle ${s.panelOpen && !s.dashboard ? 'on' : ''}`} aria-pressed={s.panelOpen && !s.dashboard} title={`${t('panel.toggle')}  ⌥⌘B`} aria-label={t('panel.toggle')} onClick={() => s.set({ panelOpen: !s.panelOpen, dashboard: false })}><IcPanel /></button>
       </div>
 
+      {active?.loading && <div className="load-bar" aria-hidden><i /></div>}
       {active?.lab && (
         <div className="labbar" data-testid="labbar">
           <b>{t('lab.title')}</b>
@@ -199,7 +201,7 @@ export function App() {
         </div>
       )}
       {!active && <Home style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
-      {s.panelOpen && !s.dashboard && <div className="panel" style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
+      {panelVisible && <div className="panel" style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
         <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />
       </div>}
       {s.panelOpen && !s.dashboard && s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}

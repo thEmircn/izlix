@@ -611,3 +611,100 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .phead .seg2 { margin-right: auto; } .phead .seg2.sm button { padding: 2px 11px; } .phead { gap: 10px; }
 
 .tl-live { padding: 6px 12px 0; }
+
+
+/* ============================================================
+   TASARIM v4 — cam (vibrancy + buzlu yuzeyler), su dalgasi, yayli hareket
+   ============================================================ */
+:root {
+  --g1: rgba(255,255,255,.045); --g2: rgba(255,255,255,.08); --g3: rgba(255,255,255,.13);
+  --g-brd: rgba(255,255,255,.10); --g-brd2: rgba(255,255,255,.18);
+  --g-hi: inset 0 1px 0 rgba(255,255,255,.09);
+  --shadow-s: 0 4px 14px rgba(0,0,0,.28); --shadow-l: 0 22px 60px rgba(0,0,0,.5);
+  --spring: cubic-bezier(.34,1.56,.64,1);
+  --panel: rgba(22,22,26,.92); --card: rgba(255,255,255,.04); --line: rgba(255,255,255,.08); --raise: rgba(255,255,255,.08); --bg2: rgba(0,0,0,.22);
+}
+html, body, #root { background: transparent; }
+body { background: radial-gradient(1100px 650px at 100% 100%, rgba(255,106,43,.055), transparent 62%), rgba(9,9,12,.84); }
+
+/* ust cubuk: sekmeler + arac cubugu cama gomulu */
+.tabstrip, .toolbar { background: transparent; }
+.tab { background: var(--g1); border: 1px solid transparent; box-shadow: none; transition: background .2s, border-color .2s, box-shadow .25s, transform .25s var(--spring); }
+.tab:hover { background: var(--g2); transform: translateY(-1px); }
+.tab.active { background: var(--g3); border-color: var(--g-brd2); box-shadow: var(--g-hi), 0 8px 20px rgba(0,0,0,.28); }
+.tab.active::after { content: ''; position: absolute; left: 22%; right: 22%; bottom: -1px; height: 2px; border-radius: 2px; background: var(--ac); box-shadow: 0 0 10px var(--ac); animation: underin .45s var(--spring) both; }
+@keyframes underin { from { left: 50%; right: 50%; opacity: 0; } }
+.newtab:hover { transform: rotate(90deg); } .newtab { transition: background .15s, color .15s, transform .3s var(--spring); }
+.addr { background: rgba(0,0,0,.28); border: 1px solid var(--g-brd); border-radius: 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,.35); backdrop-filter: blur(12px); }
+.addr:focus { border-color: rgba(255,106,43,.6); box-shadow: inset 0 1px 3px rgba(0,0,0,.35), 0 0 0 4px var(--ac-soft), 0 0 24px rgba(255,106,43,.18); }
+.toolbar select { background-color: var(--g1); border: 1px solid var(--g-brd); border-radius: 10px; box-shadow: var(--g-hi); }
+.chip { background: var(--g1) !important; border: 1px solid var(--g-brd) !important; box-shadow: var(--g-hi); backdrop-filter: blur(10px); transition: background .2s, border-color .2s, transform .25s var(--spring) !important; }
+.chip:hover { background: var(--g2) !important; transform: translateY(-1px); }
+.srv-chip b { margin-left: 6px; opacity: .65; font-weight: 500; font-size: 10.5px; }
+.toolbar .tb-btn { border-radius: 10px; transition: background .2s, color .2s, transform .3s var(--spring); } .toolbar .tb-btn:hover { background: var(--g2); transform: translateY(-1px); } .toolbar .tb-btn.on { background: var(--ac-soft); box-shadow: 0 0 18px rgba(255,106,43,.2), inset 0 0 0 1px rgba(255,106,43,.3); }
+
+/* yukleme: ince, kayan isik cizgisi */
+.load-bar { position: absolute; left: 0; right: 0; top: 83px; height: 2px; overflow: hidden; z-index: 35; pointer-events: none; }
+.load-bar i { display: block; height: 100%; width: 36%; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--ac), #ffb48a, transparent); box-shadow: 0 0 12px var(--ac); animation: loadslide 1.05s cubic-bezier(.45,.05,.55,.95) infinite; }
+@keyframes loadslide { from { transform: translateX(-110%); } to { transform: translateX(300%); } }
+
+/* ana yuzeyler: buzlu cam kartlar */
+.panel, .dashboard, .home { background: rgba(18,18,23,.66); backdrop-filter: blur(30px) saturate(165%); -webkit-backdrop-filter: blur(30px) saturate(165%); border: 1px solid var(--g-brd); box-shadow: var(--shadow-l), var(--g-hi); }
+.panel { animation: panelin .35s var(--spring) both; } @keyframes panelin { from { opacity: 0; transform: translateX(18px) scale(.99); } }
+.dashboard { animation: dashin .42s var(--spring) both; } @keyframes dashin { from { opacity: 0; transform: translateY(16px) scale(.985); filter: blur(8px); } }
+.rail.seg2 { background: rgba(255,255,255,.03); border-right-color: var(--g-brd); }
+.rail-ind { background: linear-gradient(180deg, rgba(255,106,43,.22), rgba(255,106,43,.10)); box-shadow: 0 0 18px rgba(255,106,43,.22), inset 0 0 0 1px rgba(255,106,43,.28); transition: transform .5s var(--spring), opacity .2s; }
+.rail.seg2 button.on svg { filter: drop-shadow(0 0 6px rgba(255,106,43,.6)); } .rail.seg2 button svg { transition: transform .25s var(--spring), filter .25s; } .rail.seg2 button:hover svg { transform: scale(1.15); }
+.phead { border-bottom-color: var(--g-brd); background: linear-gradient(180deg, rgba(255,255,255,.035), transparent); }
+
+/* kartlar: cam + ince isik + kalkma */
+.tile, .lab-sec, .sw-card, .vcard, .net-stats .stat, .mcard, .tile.hero { background: var(--card); border: 1px solid var(--g-brd); box-shadow: var(--g-hi); backdrop-filter: blur(14px); transition: transform .35s var(--spring), border-color .25s, box-shadow .3s, background .25s; }
+.tile { overflow: hidden; }
+.tile:hover, .sw-card:hover, .vcard:hover { transform: translateY(-3px); border-color: var(--g-brd2); background: var(--g2); box-shadow: var(--g-hi), 0 16px 34px rgba(0,0,0,.35); }
+.tile::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.075) 50%, transparent 62%); transform: translateX(-130%); transition: transform .9s cubic-bezier(.2,.7,.2,1); }
+.tile:hover::after { transform: translateX(130%); }
+.tile .big { text-shadow: 0 2px 18px rgba(255,255,255,.08); }
+.tile.hero { background: radial-gradient(90% 150% at 0% 0%, rgba(255,106,43,.10), transparent 62%), var(--card); }
+
+/* dugmeler: cam + yayli basma */
+.btn { background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.045)); border: 1px solid var(--g-brd); box-shadow: var(--g-hi), 0 2px 6px rgba(0,0,0,.25); border-radius: 10px; transition: background .2s, border-color .2s, transform .3s var(--spring), box-shadow .25s; }
+.btn:hover { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); border-color: var(--g-brd2); transform: translateY(-1px); box-shadow: var(--g-hi), 0 8px 18px rgba(0,0,0,.3); }
+.btn:active { transform: scale(.95) translateY(0); transition-duration: .08s; }
+.btn.primary { background: linear-gradient(180deg, #ff8650, #ff6a2b); border-color: rgba(255,150,100,.5); color: #200d04; box-shadow: 0 8px 22px rgba(255,106,43,.38), inset 0 1px 0 rgba(255,255,255,.4); }
+.btn.primary:hover { background: linear-gradient(180deg, #ff9565, #ff7a3f); box-shadow: 0 12px 28px rgba(255,106,43,.5), inset 0 1px 0 rgba(255,255,255,.45); }
+.fchip, .lane-dot { transition: background .2s, color .2s, border-color .2s, transform .3s var(--spring), opacity .2s; } .fchip:active { transform: scale(.94); }
+.fchip { background: var(--g1); backdrop-filter: blur(8px); }
+.seg2:not(.rail) { background: rgba(0,0,0,.22); border-color: var(--g-brd); box-shadow: inset 0 1px 3px rgba(0,0,0,.3); } .seg-ind { background: var(--g3); box-shadow: var(--g-hi), 0 4px 12px rgba(0,0,0,.3); transition: transform .5s var(--spring), width .4s var(--spring); }
+.search, .dialog input, .lab-n input, .lab-s select, .jbar .search { background: rgba(0,0,0,.25) !important; border-color: var(--g-brd) !important; border-radius: 9px; transition: border-color .2s, box-shadow .25s; } .search:focus, .dialog input:focus { border-color: rgba(255,106,43,.55) !important; box-shadow: 0 0 0 3px var(--ac-soft); }
+
+/* lane noktalari (Timeline filtreleri): sade */
+.lane-dots { display: flex; flex-wrap: wrap; gap: 2px; }
+.lane-dot { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; color: var(--fg); font: 10.5px var(--mono); cursor: pointer; padding: 3px 8px; border-radius: 999px; } .lane-dot:hover { background: var(--g2); }
+.lane-dot i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 9px var(--c); transition: all .25s var(--spring); }
+.lane-dot.off { color: var(--dim); opacity: .55; } .lane-dot.off i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--dim); }
+
+/* diyalog / palet / bildirim: yogun buzlu cam */
+.overlay { background: rgba(0,0,0,.34); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); }
+.dialog { background: rgba(26,26,31,.70); backdrop-filter: blur(44px) saturate(180%); -webkit-backdrop-filter: blur(44px) saturate(180%); border: 1px solid rgba(255,255,255,.14); border-radius: 18px; box-shadow: 0 34px 100px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.11); animation: dlgin .4s var(--spring) both; }
+@keyframes dlgin { from { opacity: 0; transform: translateY(18px) scale(.965); filter: blur(5px); } }
+.pal-item { transition: background .15s, transform .25s var(--spring); } .pal-item.sel { background: linear-gradient(90deg, var(--ac-soft), rgba(255,255,255,.04)); transform: translateX(3px); box-shadow: inset 2px 0 0 var(--ac); }
+.pal-list .pal-item { animation: rowin .28s var(--ease) both; } .pal-list .pal-item:nth-child(2) { animation-delay: 25ms; } .pal-list .pal-item:nth-child(3) { animation-delay: 50ms; } .pal-list .pal-item:nth-child(4) { animation-delay: 75ms; } .pal-list .pal-item:nth-child(5) { animation-delay: 100ms; }
+.toast { background: rgba(34,34,40,.72); backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--g-brd2); box-shadow: var(--shadow-l), var(--g-hi); border-radius: 12px; animation: toastin .5s var(--spring) both; } @keyframes toastin { from { opacity: 0; transform: translateY(-14px) scale(.9); } }
+
+/* su dalgasi */
+.has-ripple { position: relative; overflow: hidden; }
+.ripple { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255,255,255,.34) 0%, rgba(255,255,255,.14) 38%, transparent 68%); transform: scale(0); opacity: .9; animation: ripple .8s cubic-bezier(.2,.7,.2,1) forwards; z-index: 0; }
+@keyframes ripple { to { transform: scale(1); opacity: 0; } }
+.btn.primary .ripple { background: radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,.2) 40%, transparent 68%); }
+
+/* iskelet: kayan isik */
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,.04) 20%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.04) 80%); background-size: 220% 100%; animation: shimmer 1.5s linear infinite; border-radius: 8px; } @keyframes shimmer { to { background-position: -220% 0; } }
+
+/* ince kaydirma cubugu */
+::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.13); border: 2px solid transparent; background-clip: content-box; border-radius: 8px; } ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.26); background-clip: content-box; border: 2px solid transparent; }
+.net-row.sel, .srcitem.on, .ax-row:hover { backdrop-filter: blur(6px); }
+.empty-hint { background: var(--g1); border-color: var(--g-brd2); }
+/* giris animasyonu bitince hover/transform serbest kalsin */
+.tile, .tab, .lab-sec, .sw-card, .vcard, .mcard, .act, .btn { animation-fill-mode: backwards; }
+
+.lane-dot { padding: 5px 5px; } .lane-dot i { width: 9px; height: 9px; } .lane-dots { gap: 0; margin-left: auto; } .phead .search { max-width: 150px; flex: 0 1 150px !important; }

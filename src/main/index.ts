@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, session, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
@@ -420,11 +420,13 @@ const permissionHandlers = {
 
 async function createWindow(): Promise<void> {
   // Test modu (DB_SCRIPT): kullaniciyi rahatsiz etme — Dock'a dusme, one gelme, gorunmez (opacity 0) ama render ediliyor. DB_VISIBLE=1 ile normal gorunur.
+  nativeTheme.themeSource = 'dark' // cam (vibrancy) her zaman koyu
   const quiet = !!process.env.DB_SCRIPT && !process.env.DB_VISIBLE
   if (quiet && process.platform === 'darwin') app.setActivationPolicy('accessory')
   const { maximized, ...ws0 } = restoreWindowState({ width: 1500, height: 900 })
   win = new BrowserWindow({
-    ...ws0, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#0a0a0b',
+    ...ws0, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#00000000', vibrancy: 'under-window', visualEffectState: 'active', // macOS cam: masaustu bulanik gorunur, shell kartlari saydam
+    
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
   if (maximized && !quiet) win.maximize()
