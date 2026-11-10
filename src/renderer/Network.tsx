@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { SENSITIVE_KEYS } from '../shared/mask'
-import { buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
+import { toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
 import { Seg } from './ui'
-import { useStore, useT } from './store'
+import { toast, useStore, useT } from './store'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'js', 'css', 'img', 'doc', 'font', 'other']
 
@@ -96,6 +96,8 @@ function Drawer({ r, byId, onClose }: { r: NetRow; byId: Map<number, BusEvent>; 
       <div className="drawer-h">
         <span className={`m m-${r.method}`}>{r.method}</span><span className="url" title={r.url}>{r.url}</span>
         <span className={`pill ${statusClass(r)}`}>{r.failed ? 'failed' : r.status ?? '···'}</span>
+        <button className="btn sm" onClick={() => { void navigator.clipboard?.writeText(toCurl(r.method, r.url, req?.payload.headers, req?.payload.postData)); toast(t('toast.copied')) }}>cURL</button>
+        <button className="btn sm" onClick={() => { void navigator.clipboard?.writeText(toFetch(r.method, r.url, req?.payload.headers, req?.payload.postData)); toast(t('toast.copied')) }}>fetch</button>
         <button className="icon-btn" aria-label={t('rr.close')} onClick={onClose}><Close /></button>
       </div>
       <Seg<DTab> small value={tab} onChange={setTab} items={(['headers', 'payload', 'response', 'timing', 'cause'] as DTab[]).map((k) => ({ key: k, label: t(`net.tab.${k}` as any) }))} />

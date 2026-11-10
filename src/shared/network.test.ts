@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
+import { toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
 
 const ev = (id: number, ts: number, kind: BusEvent['kind'], payload: any): BusEvent => ({ id, tabId: 't', ts, kind, source: 's', payload, causeIds: [], links: [] })
 
@@ -29,5 +29,21 @@ describe('buildNetworkRows', () => {
     expect(formatMs(80)).toBe('80 ms'); expect(formatMs(1500)).toBe('1.50 s')
     expect(typeOf('Stylesheet')).toBe('css'); expect(typeOf('???')).toBe('other')
     expect(nameOf('http://a.com/')).toBe('a.com'); expect(nameOf('garbage')).toBe('garbage')
+  })
+})
+
+describe('toCurl / toFetch', () => {
+  it('curl: yontem, basliklar, govde; cerez ve tarayici basliklari atlanir; tirnak kacirilir', () => {
+    const c = toCurl('POST', "http://a.com/x?q=1", { 'Content-Type': 'application/json', Cookie: 'a=b', 'sec-ch-ua': 'x', Authorization: "Bearer it's" }, '{"a":1}')
+    expect(c).toContain("curl 'http://a.com/x?q=1'")
+    expect(c).toContain('-X POST'); expect(c).toContain("-H 'Content-Type: application/json'")
+    expect(c).not.toContain('Cookie'); expect(c).not.toContain('sec-ch-ua')
+    expect(c).toContain(`'Authorization: Bearer it'\\''s'`)
+    expect(c).toContain(`--data-raw '{"a":1}'`)
+    expect(toCurl('GET', 'http://a.com', {})).toBe("curl 'http://a.com'")
+  })
+  it('fetch', () => {
+    const f = toFetch('PUT', 'http://a.com', { 'X-A': '1', Host: 'a.com' }, 'b')
+    expect(f).toContain('fetch("http://a.com"'); expect(f).toContain('"method": "PUT"'); expect(f).toContain('"X-A": "1"'); expect(f).not.toContain('Host')
   })
 })

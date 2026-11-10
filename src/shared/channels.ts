@@ -4,7 +4,7 @@ export const Ch = {
   navGo: 'nav:go', navBack: 'nav:back', navForward: 'nav:forward', navReload: 'nav:reload',
   sourceOpen: 'source:open', layoutSet: 'layout:set', snapshot: 'state:snapshot',
   wsCreate: 'ws:create', wsSwitch: 'ws:switch',
-  rulesSet: 'rules:set', reportExport: 'report:export', libHistory: 'lib:history', bookmarkToggle: 'lib:bookmark', downloadShow: 'dl:show', settingsGet: 'settings:get', settingsSet: 'settings:set', track: 'telemetry:track', demoOpen: 'demo:open', mediaSet: 'media:set', snapshotSave: 'snap:save', reqBody: 'req:body', wsRename: 'ws:rename', wsDelete: 'ws:delete', findStart: 'find:start', findStop: 'find:stop', tabsReopen: 'tabs:reopen', dtCall: 'dt:call', dtEnable: 'dt:enable', dtDisable: 'dt:disable', dtReact: 'dt:react', labSet: 'lab:set', inspTree: 'insp:tree', inspNode: 'insp:node', overlay: 'ui:overlay',
+  rulesSet: 'rules:set', reportExport: 'report:export', libHistory: 'lib:history', bookmarkToggle: 'lib:bookmark', downloadShow: 'dl:show', settingsGet: 'settings:get', settingsSet: 'settings:set', track: 'telemetry:track', demoOpen: 'demo:open', mediaSet: 'media:set', snapshotSave: 'snap:save', reqBody: 'req:body', wsRename: 'ws:rename', wsDelete: 'ws:delete', findStart: 'find:start', findStop: 'find:stop', tabsReopen: 'tabs:reopen', dtCall: 'dt:call', dtEnable: 'dt:enable', dtDisable: 'dt:disable', dtReact: 'dt:react', dtEval: 'dt:eval', labSet: 'lab:set', inspTree: 'insp:tree', inspNode: 'insp:node', overlay: 'ui:overlay',
   // main -> shell
   evNew: 'events:new', evUpdate: 'events:update', tabsState: 'tabs:state', wsState: 'ws:state', rulesState: 'rules:state', libState: 'lib:state', settingsState: 'settings:state', dtEvent: 'dt:event', findResult: 'find:result', cmd: 'ui:cmd'
 } as const

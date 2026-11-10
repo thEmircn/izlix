@@ -14,12 +14,24 @@ export function Console({ events }: { events: BusEvent[] }) {
   const [open, setOpen] = useState<number | null>(null)
   const [clearedAt, setClearedAt] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
+  const tabId = useStore((s) => s.activeTabId)
+  const [repl, setRepl] = useState<{ id: number; expr: string; ok: boolean; text: string }[]>([])
+  const [input, setInput] = useState('')
+  const history = useRef<string[]>([]); const hIdx = useRef(-1)
+  const run = async (): Promise<void> => {
+    const expr = input.trim(); if (!expr || !tabId) return
+    history.current.unshift(expr); hIdx.current = -1; setInput('')
+    const id = Date.now()
+    const r = await window.izlix.evalInPage(tabId, expr)
+    setRepl((x) => [...x.slice(-100), { id, expr, ok: !!r?.ok, text: String(r?.text ?? '') }])
+    stick.current = true
+  }
   const stick = useRef(true)
 
   const all = useMemo(() => buildConsoleRows(events.filter((e) => e.ts >= clearedAt)), [events, clearedAt])
   const counts = useMemo(() => { const c: Record<string, number> = {}; for (const r of all) c[r.level] = (c[r.level] ?? 0) + r.count; return c }, [all])
   const rows = useMemo(() => { const n = q.trim().toLowerCase(); return all.filter((r) => levels.has(r.level) && (!n || r.text.toLowerCase().includes(n))) }, [all, levels, q])
-  useEffect(() => { const el = listRef.current; if (el && stick.current) el.scrollTop = el.scrollHeight }, [rows.length])
+  useEffect(() => { const el = listRef.current; if (el && stick.current) el.scrollTop = el.scrollHeight }, [rows.length, repl.length])
   const toggle = (l: Level): void => setLevels((s) => { const n = new Set(s); n.has(l) ? n.delete(l) : n.add(l); return n })
 
   return (
@@ -35,7 +47,22 @@ export function Console({ events }: { events: BusEvent[] }) {
       </div>
       <div className="con-list" ref={listRef} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40 }}>
         {rows.map((r) => <Line key={r.id} r={r} open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} editor={editor} />)}
-        {!rows.length && <div className="empty-hint">{t('con.empty')}</div>}
+        {repl.map((r) => (
+          <div key={r.id} className="repl-pair">
+            <div className="repl-in"><b>›</b> {r.expr}</div>
+            <div className={`repl-out ${r.ok ? '' : 'err'}`}>{r.text}</div>
+          </div>
+        ))}
+        {!rows.length && !repl.length && <div className="empty-hint">{t('con.empty')}</div>}
+      </div>
+      <div className="repl-bar">
+        <b>›</b>
+        <input value={input} spellCheck={false} placeholder={t('con.repl')} onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void run()
+            else if (e.key === 'ArrowUp') { e.preventDefault(); hIdx.current = Math.min(hIdx.current + 1, history.current.length - 1); setInput(history.current[hIdx.current] ?? '') }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); hIdx.current = Math.max(hIdx.current - 1, -1); setInput(history.current[hIdx.current] ?? '') }
+          }} />
       </div>
     </div>
   )

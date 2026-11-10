@@ -47,5 +47,6 @@ export const schemas = {
   dtCall: z.object({ id: z.string().max(64), method: z.string().max(80), params: z.record(z.string(), z.any()).optional() }),
   dtFeature: z.object({ id: z.string().max(64), feature: z.enum(['elements', 'storage']) }),
   dtReact: z.object({ id: z.string().max(64), nodeId: z.number().int().min(0) }),
+  dtEval: z.object({ id: z.string().max(64), expression: z.string().min(1).max(20000) }),
   overlay: z.object({ open: z.boolean() })
 }

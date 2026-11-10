@@ -63,3 +63,24 @@ export const formatBytes = (n: number | null): string => n == null ? '' : n < 10
 export const formatMs = (n: number | null): string => n == null ? '' : n < 1000 ? `${n} ms` : `${(n / 1000).toFixed(2)} s`
 export const statusClass = (r: Pick<NetRow, 'status' | 'failed'>): 'pending' | 'ok' | 'redirect' | 'client' | 'server' | 'failed' =>
   r.failed ? 'failed' : r.status == null ? 'pending' : r.status >= 500 ? 'server' : r.status >= 400 ? 'client' : r.status >= 300 ? 'redirect' : 'ok'
+
+const shq = (v: string): string => `'${v.replace(/'/g, `'\\''`)}'`
+const SKIP_HEADERS = /^(host|content-length|connection|accept-encoding|sec-.*|:.*|origin|referer|user-agent|cookie)$/i
+
+/** Istegi cURL komutuna cevirir (gorunur basliklarla; cerez ve tarayiciya ozgu basliklar atlanir). */
+export function toCurl(method: string, url: string, headers: Record<string, string> = {}, body?: string): string {
+  const parts = [`curl ${shq(url)}`]
+  if (method !== 'GET') parts.push(`-X ${method}`)
+  for (const [k, v] of Object.entries(headers)) if (!SKIP_HEADERS.test(k)) parts.push(`-H ${shq(`${k}: ${v}`)}`)
+  if (body) parts.push(`--data-raw ${shq(body)}`)
+  return parts.join(' \\\n  ')
+}
+
+/** Istegi fetch() cagrisina cevirir */
+export function toFetch(method: string, url: string, headers: Record<string, string> = {}, body?: string): string {
+  const h = Object.fromEntries(Object.entries(headers).filter(([k]) => !SKIP_HEADERS.test(k)))
+  const init: Record<string, unknown> = { method }
+  if (Object.keys(h).length) init.headers = h
+  if (body) init.body = body
+  return `fetch(${JSON.stringify(url)}, ${JSON.stringify(init, null, 2)})`
+}

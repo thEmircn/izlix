@@ -46,6 +46,7 @@ export const api = {
   dtDisable: (id: string, feature: 'elements' | 'storage') => call(Ch.dtDisable, { id, feature }),
   dtReact: (id: string, nodeId: number) => call(Ch.dtReact, { id, nodeId }),
   onDt: sub(Ch.dtEvent),
+  evalInPage: (id: string, expression: string) => call(Ch.dtEval, { id, expression }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

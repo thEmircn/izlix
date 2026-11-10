@@ -14,10 +14,10 @@ async function main(ctx) {
   const d = app && await win.webContents.executeJavaScript(`window.izlix.inspectNode(${JSON.stringify(tabs.list().activeId)}, ${app.id}, ${app.t}, 'App').catch(e=>({err:String(e)}))`)
   out.detail = d && { name: d.name, hooks: d.hooks && d.hooks.map((h) => `${h.kind}=${JSON.stringify(h.value)}`).slice(0, 6), source: d.source && d.source.file.split('/').slice(-2).join('/') + ':' + d.source.line }
   // arayuz: Components sekmesi
-  await shellEval(`[...document.querySelectorAll('b')].find(b=>b.textContent==='Components').click()`); await sleep(900)
+  await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='Components').click()`); await sleep(900)
   out.rows = await shellEval(`document.querySelectorAll('[data-testid=tree] > div > div').length`)
   await shot('/private/tmp/e2e-tmp/inspector.png')
-  await shellEval(`[...document.querySelectorAll('b')].find(b=>b.textContent==='Renders').click()`); await sleep(500)
+  await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='Renders').click()`); await sleep(500)
   out.tracker = await shellEval(`[...document.querySelectorAll('tbody tr')].slice(0,4).map(r=>r.textContent)`)
   await shot('/private/tmp/e2e-tmp/tracker.png')
   return out

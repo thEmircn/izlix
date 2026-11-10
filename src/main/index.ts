@@ -17,6 +17,7 @@ import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
 import { saveSnapshot } from './snapshot'
 import { CdpProxy } from './cdpproxy'
+import { formatEval } from './evalformat'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, partitionFor, type DetectedServer } from './workspace'
@@ -207,6 +208,15 @@ function registerIpc(): void {
       if (file && resolver && m && isInsideAny([workspaces.get(tabs.get(id)!.info.workspaceId)?.rootDir, resolver.rootProvider?.()], file)) resolver.knownFiles.add(file)
       return { name: c.name, file, line: m ? Number(m[2]) : known?.line }
     }) ?? null
+  })
+  // Console REPL: kullanicinin yazdigi ifade sayfada calistirilir (yalnizca shell cagirabilir)
+  handle(Ch.dtEval, schemas.dtEval, async ({ id, expression }) => {
+    const wc = tabs.get(id)?.view.webContents
+    if (!wc || wc.isDestroyed()) return { ok: false, text: 'no page' }
+    try {
+      const r: any = await wc.debugger.sendCommand('Runtime.evaluate', { expression, includeCommandLineAPI: true, replMode: true, awaitPromise: true, generatePreview: true, userGesture: true, timeout: 5000 })
+      return formatEval(r)
+    } catch (e) { return { ok: false, text: String((e as Error).message ?? e) } }
   })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
