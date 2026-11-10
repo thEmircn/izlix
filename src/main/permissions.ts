@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { loadDoc, saveDoc } from './docdb'
 import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
@@ -24,17 +25,17 @@ export function permissionKey(permission: string, details?: { mediaTypes?: strin
 
 export class PermissionStore {
   private data: Record<string, Decision> = {}
-  private file: string
+  private dir: string
   constructor(dir = app.getPath('userData')) {
-    mkdirSync(dir, { recursive: true }); this.file = join(dir, 'permissions.json')
-    try { this.data = JSON.parse(readFileSync(this.file, 'utf8')) } catch { /* ilk acilis */ }
+    this.dir = dir
+    this.data = loadDoc<Record<string, Decision>>(dir, 'permissions') ?? {}
   }
   private k = (origin: string, perm: string): string => `${origin}|${perm}`
   get(origin: string, perm: string): Decision | undefined { return this.data[this.k(origin, perm)] }
   set(origin: string, perm: string, d: Decision): void { this.data[this.k(origin, perm)] = d; this.save() }
   remove(origin: string, perm: string): void { delete this.data[this.k(origin, perm)]; this.save() }
   list(): { origin: string; permission: string; decision: Decision }[] { return Object.entries(this.data).map(([k, decision]) => { const [origin, permission] = k.split('|'); return { origin, permission, decision } }) }
-  private save(): void { try { writeFileSync(this.file, JSON.stringify(this.data, null, 1)) } catch { /* disk */ } }
+  private save(): void { saveDoc(this.dir, 'permissions', this.data) }
 }
 
 export const originOf = (url: string): string => { try { const u = new URL(url); return /^https?:$/.test(u.protocol) ? u.origin : '' } catch { return '' } }

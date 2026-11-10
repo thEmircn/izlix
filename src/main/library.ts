@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { loadDoc, saveDoc } from './docdb'
 import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
@@ -11,20 +12,20 @@ const MAX_HISTORY = 5000
 /** Gecmis ve yer imleri (Workspace basina yer imi). Yerel JSON; yalnizca http(s) kaydedilir. */
 export class Library {
   private data: Data = { history: [], bookmarks: {} }
-  private file: string
+  private dir: string
   private timer: NodeJS.Timeout | null = null
 
   constructor(dir = app.getPath('userData')) {
     mkdirSync(dir, { recursive: true })
-    this.file = join(dir, 'library.json')
-    try { this.data = { history: [], bookmarks: {}, ...JSON.parse(readFileSync(this.file, 'utf8')) } } catch { /* ilk acilis */ }
+    this.dir = dir
+    this.data = { history: [], bookmarks: {}, ...(loadDoc<Partial<Data>>(dir, 'library') ?? {}) }
   }
 
   private save(): void {
     if (this.timer) return
-    this.timer = setTimeout(() => { this.timer = null; try { writeFileSync(this.file, JSON.stringify(this.data)) } catch { /* disk hatasi */ } }, 500)
+    this.timer = setTimeout(() => { this.timer = null; saveDoc(this.dir, 'library', this.data) }, 500)
   }
-  flush(): void { if (this.timer) { clearTimeout(this.timer); this.timer = null } try { writeFileSync(this.file, JSON.stringify(this.data)) } catch { /* yok say */ } }
+  flush(): void { if (this.timer) { clearTimeout(this.timer); this.timer = null } saveDoc(this.dir, 'library', this.data) }
 
   addVisit(url: string, title: string, now = Date.now()): void {
     if (!/^https?:/.test(url)) return

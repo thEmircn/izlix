@@ -93,7 +93,7 @@ export function Overview({ events }: { events: BusEvent[] }) {
           ) : <div className="tsub">{t('ov.noTraffic')}</div>}
         </div>
 
-        <div className="tile full">
+        <div className="tile wide">
           <div className="mlabel">{t('ov.vitals')}</div>
           {o.vitals.length ? (
             <div className="vrings">
@@ -135,7 +135,7 @@ export function Overview({ events }: { events: BusEvent[] }) {
           )) : <div className="tsub ok-note">{t('ov.noErrors')}</div>}
         </div>
 
-        <div className="tile full">
+        <div className="tile wide">
           <div className="mlabel">{t('ov.activity')} <span className="mdim">{ws?.servers.length ? t('ov.servers', { n: ws.servers.length }) : ''}{nRules ? ` · ${t('ov.rules', { n: nRules })}` : ''}</span></div>
           {o.activity.length ? o.activity.map((e) => (
             <button key={e.id} className="act" onClick={() => go(e.id)}>

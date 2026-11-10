@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NetRow } from './network'
-import { binTraffic, rate, smooth } from './traffic'
+import { binEvents, binTraffic, rate, smooth } from './traffic'
 
 const row = (start: number, over: Partial<NetRow> = {}): NetRow => ({ id: start, requestId: String(start), method: 'GET', url: 'http://a/x', name: 'x', host: 'a', type: 'xhr', status: 200, failed: null, mime: '', size: 100, start, end: start + 50, durationMs: 50, modified: false, resId: null, fromCache: false, frames: 0, closed: false, ...over })
 
@@ -26,4 +26,14 @@ describe('smooth / rate', () => {
     const b = binTraffic([row(99_000), row(99_600), row(99_700)], 100_000)
     expect(rate(b, b.reqs, 2)).toBeCloseTo(1.5)
   })
+})
+
+describe('binEvents', () => {
+  const ev = (kind: string, ts: number, payload: any = {}): any => ({ id: ts, tabId: 't', ts, kind, source: 's', payload, links: [] })
+  it('olay, render ve hata sayilari; vital/state sayilmaz', () => {
+    const b = binEvents([ev('input', 99_900), ev('render', 99_920, { count: 3 }), ev('render', 99_930, { count: 0 }), ev('error', 99_940), ev('console', 99_950, { level: 'error' }), ev('vital', 99_960)], 100_000)
+    const i = Math.floor((99_900 - b.startT) / 500)
+    expect(b.reqs[i]).toBe(5); expect(b.bytes[i]).toBe(1); expect(b.fails[i]).toBe(2)
+  })
+  it('pencere disindaki olaylar atlanir', () => { expect(binEvents([ev('input', 1000)], 100_000).reqs.reduce((a, c) => a + c, 0)).toBe(0) })
 })

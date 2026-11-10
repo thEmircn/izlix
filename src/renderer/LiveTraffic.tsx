@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { buildNetworkRows, formatBytes } from '../shared/network'
-import { binTraffic, rate, smooth } from '../shared/traffic'
+import { binEvents, binTraffic, rate, smooth } from '../shared/traffic'
 import { useT } from './store'
 
 const MAX_WIN = 60_000, MIN_WIN = 10_000
@@ -9,13 +9,14 @@ const ORANGE = [255, 106, 43], RED = [255, 92, 92], WHITE = [235, 235, 238]
 const rgba = (c: number[], a: number): string => `rgba(${c[0]},${c[1]},${c[2]},${a})`
 
 /** Canli ag trafigi: 60 sn'lik pencere surekli kayar; istek/sn (turuncu alan), bayt/sn (beyaz cizgi), hatalar (kirmizi), uc nokta nabiz atar. */
-export function LiveTraffic({ events, height = 150, compact = false }: { events: BusEvent[]; height?: number; compact?: boolean }) {
+export function LiveTraffic({ events, height = 150, compact = false, mode = 'net' }: { events: BusEvent[]; height?: number; compact?: boolean; mode?: 'net' | 'activity' }) {
   const t = useT()
   const tRef = useRef(t); tRef.current = t
-  const rows = useMemo(() => buildNetworkRows(events), [events])
+  const rows = useMemo(() => (mode === 'net' ? buildNetworkRows(events) : []), [events, mode])
   const rowsRef = useRef(rows); rowsRef.current = rows
+  const evRef = useRef(events); evRef.current = events
   const firstRef = useRef<number | null>(null)
-  firstRef.current = rows.reduce<number | null>((m, r) => (r.type === 'ws' ? m : m == null || r.start < m ? r.start : m), null)
+  firstRef.current = mode === 'net' ? rows.reduce<number | null>((m, r) => (r.type === 'ws' ? m : m == null || r.start < m ? r.start : m), null) : (events.length ? events[0].ts : null)
   const cv = useRef<HTMLCanvasElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const tip = useRef<HTMLDivElement>(null)
@@ -38,7 +39,7 @@ export function LiveTraffic({ events, height = 150, compact = false }: { events:
       // pencere veri suresine uyar: grafik ilk istekten (0 sn) baslar ve tum genisligi doldurur; 60 sn'yi asinca kayar
       const first = firstRef.current
       const win = Math.min(MAX_WIN, Math.max(MIN_WIN, first == null ? MIN_WIN : now - first + 1000))
-      const b = binTraffic(rowsRef.current, now, win, win <= 20_000 ? 250 : 500)
+      const b = mode === 'net' ? binTraffic(rowsRef.current, now, win, win <= 20_000 ? 250 : 500) : binEvents(evRef.current, now, win, win <= 20_000 ? 250 : 500)
       const sr = smooth(b.reqs), sb = smooth(b.bytes)
       const padT = compact ? 6 : 10, padB = compact ? 16 : 20, padL = 0, ph = H - padT - padB
       const x = (tm: number): number => padL + ((tm - (now - win)) / win) * (W - padL)
@@ -98,29 +99,29 @@ export function LiveTraffic({ events, height = 150, compact = false }: { events:
         ctx.fillStyle = '#0a0a0b'; ctx.strokeStyle = rgba(ORANGE, 1); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(hx, yR(sr[i]), 4, 0, 7); ctx.fill(); ctx.stroke()
         const ago = Math.max(0, Math.round((now - tm) / 1000))
         tip.current.style.opacity = '1'; tip.current.style.transform = `translateX(${Math.min(W - 130, Math.max(0, hx - 60))}px)`
-        tip.current.textContent = `-${ago}s · ${b.reqs[i]} ${tRef.current('ov.requests').toLowerCase()} · ${formatBytes(Math.round(b.bytes[i])) || '0 B'}${b.fails[i] ? ` · ${b.fails[i]} !` : ''}`
+        tip.current.textContent = mode === 'net' ? `-${ago}s · ${b.reqs[i]} ${tRef.current('ov.requests').toLowerCase()} · ${formatBytes(Math.round(b.bytes[i])) || '0 B'}${b.fails[i] ? ` · ${b.fails[i]} !` : ''}` : `-${ago}s · ${b.reqs[i]} ${tRef.current('live.events')} · ${b.bytes[i]} render${b.fails[i] ? ` · ${b.fails[i]} !` : ''}`
       } else if (tip.current) tip.current.style.opacity = '0'
 
       if (ts - lastHud > 250) {
         lastHud = ts
         const rs = rowsRef.current
-        setHud({ rps: rate(b, b.reqs, 3), bps: rate(b, b.bytes, 3), pending: rs.filter((r) => r.end == null && !r.failed && r.type !== 'ws' && now - r.start < 30_000).length, total: rs.filter((r) => r.type !== 'ws').length, fails: b.fails.reduce((a, c) => a + c, 0) })
+        setHud({ rps: rate(b, b.reqs, 3), bps: rate(b, b.bytes, 3), pending: mode === 'net' ? rs.filter((r) => r.end == null && !r.failed && r.type !== 'ws' && now - r.start < 30_000).length : 0, total: mode === 'net' ? rs.filter((r) => r.type !== 'ws').length : evRef.current.length, fails: b.fails.reduce((a, c) => a + c, 0) })
       }
       raf = reduce ? window.setTimeout(() => draw(performance.now()), 500) as unknown as number : requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
     return () => { stopped = true; cancelAnimationFrame(raf); clearTimeout(raf); ro.disconnect() }
-  }, [height, compact])
+  }, [height, compact, mode])
 
   return (
     <div className={`live ${compact ? 'compact' : ''}`}>
       <div className="live-hud">
         <span className="pill ok live-pill"><i />{t('live.title')}</span>
-        <div className="hud"><b>{hud.rps.toFixed(hud.rps < 10 ? 1 : 0)}</b><small>{t('live.rps')}</small></div>
-        <div className="hud"><b>{formatBytes(Math.round(hud.bps)) || '0 B'}</b><small>{t('live.bps')}</small></div>
-        <div className="hud"><b>{hud.pending}</b><small>{t('live.pending')}</small></div>
+        <div className="hud"><b>{hud.rps.toFixed(hud.rps < 10 ? 1 : 0)}</b><small>{t(mode === 'net' ? 'live.rps' : 'live.eps')}</small></div>
+        {mode === 'net' ? <div className="hud"><b>{formatBytes(Math.round(hud.bps)) || '0 B'}</b><small>{t('live.bps')}</small></div> : <div className="hud"><b>{hud.bps.toFixed(hud.bps < 10 ? 1 : 0)}</b><small>{t('live.rendersps')}</small></div>}
+        {mode === 'net' && <div className="hud"><b>{hud.pending}</b><small>{t('live.pending')}</small></div>}
         {hud.fails > 0 && <div className="hud bad"><b>{hud.fails}</b><small>{t('live.fails')}</small></div>}
-        <span className="live-legend"><i style={{ background: 'rgb(255,106,43)' }} />{t('live.reqs')}<i style={{ background: 'rgba(235,235,238,.6)' }} />{t('live.bytes')}</span>
+        <span className="live-legend"><i style={{ background: 'rgb(255,106,43)' }} />{t(mode === 'net' ? 'live.reqs' : 'live.events')}<i style={{ background: 'rgba(235,235,238,.6)' }} />{t(mode === 'net' ? 'live.bytes' : 'live.renders')}</span>
       </div>
       <div className="live-canvas" ref={wrap} style={{ height }}
         onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); hover.current = e.clientX - r.left }}

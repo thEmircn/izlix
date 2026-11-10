@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { loadDoc, saveDoc } from './docdb'
 import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { SessionInfo } from '../shared/events'
@@ -6,13 +7,13 @@ import type { SessionInfo } from '../shared/events'
 /** Workspace basina adlandirilmis sekme oturumlari (JSON). Yalnizca http(s)/about:blank adresleri saklanir. */
 export class SessionStore {
   private data: Record<string, SessionInfo[]> = {}
-  private file: string
+  private dir: string
   constructor(dir = app.getPath('userData')) {
     mkdirSync(dir, { recursive: true })
-    this.file = join(dir, 'sessions.json')
-    try { this.data = JSON.parse(readFileSync(this.file, 'utf8')) } catch { /* ilk acilis */ }
+    this.dir = dir
+    this.data = loadDoc<Record<string, SessionInfo[]>>(dir, 'sessions') ?? {}
   }
-  private save(): void { try { writeFileSync(this.file, JSON.stringify(this.data, null, 1)) } catch { /* disk hatasi: bellekte kalir */ } }
+  private save(): void { saveDoc(this.dir, 'sessions', this.data) }
   list(wsId: string): SessionInfo[] { return (this.data[wsId] ?? []).slice().sort((a, b) => b.ts - a.ts) }
   all(): Record<string, SessionInfo[]> { return Object.fromEntries(Object.keys(this.data).map((k) => [k, this.list(k)])) }
 

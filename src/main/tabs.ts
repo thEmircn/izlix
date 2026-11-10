@@ -1,4 +1,5 @@
 import { BrowserWindow, WebContentsView, session, app } from 'electron'
+import { loadDoc, saveDoc } from './docdb'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { TabInfo, DevToolsDock } from '../shared/events'
@@ -39,7 +40,6 @@ export class TabManager {
   private seq = 0
   private closed: { url: string; workspaceId: string }[] = []
   private layoutParams: LayoutParams = { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }
-  private sessionFile = join(app.getPath('userData'), 'session.json')
 
   constructor(private win: BrowserWindow, private bus: EventBus, private workspaces: WorkspaceStore, private onChange: () => void,
     /** sayfanin dev sunucusunun proje kokunu bulur (Workspace kokunun yoksa port -> cwd) */
@@ -372,13 +372,14 @@ export class TabManager {
   private persist(): void {
     try {
       const tabs = this.order.map((id) => this.tabs.get(id)!.info).filter((t) => t.url).map((t) => ({ url: t.url, workspaceId: t.workspaceId }))
-      writeFileSync(this.sessionFile, JSON.stringify({ tabs, active: Math.max(0, this.order.findIndex((i) => i === this.activeId)) }))
+      saveDoc(app.getPath('userData'), 'session', { tabs, active: Math.max(0, this.order.findIndex((i) => i === this.activeId)) })
     } catch { /* disk hatasi oturumu durdurmaz */ }
   }
 
   async restore(): Promise<boolean> {
     let saved: { tabs: { url: string; workspaceId: string }[]; active: number }
-    try { saved = JSON.parse(readFileSync(this.sessionFile, 'utf8')) } catch { return false }
+    const doc = loadDoc<typeof saved>(app.getPath('userData'), 'session'); if (!doc) return false
+    saved = doc
     const valid = saved.tabs.filter((t) => this.workspaces.get(t.workspaceId))
     if (!valid.length) return false
     const ids: string[] = []

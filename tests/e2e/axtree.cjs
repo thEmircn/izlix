@@ -5,7 +5,7 @@ module.exports = async ({ tabs, sleep, shellEval: se }) => {
   const srv = http.createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end(html) })
   await new Promise((r) => srv.listen(5198, '127.0.0.1', r))
   await tabs.create({ url: 'localhost:5198', workspaceId: 'default' }); await sleep(2000)
-  await shellEval(`[...document.querySelectorAll('.rail > button')].find(b=>b.textContent==='A11y')?.click()`); await sleep(1200)
+  await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='A11y')?.click()`); await sleep(1200)
   await shellEval(`[...document.querySelectorAll('.a11y .seg2 button')].find(b=>b.textContent==='Tree')?.click()`); await sleep(1500)
   out.rows = await shellEval(`document.querySelectorAll('.ax-row').length`)
   out.roles = await shellEval(`[...document.querySelectorAll('.ax-role')].map(r=>r.textContent)`)

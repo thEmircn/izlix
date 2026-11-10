@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { loadDoc, saveDoc } from './docdb'
 import { join, basename } from 'node:path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { execFile } from 'node:child_process'
@@ -13,17 +14,17 @@ export const partitionFor = (id: string): string => `persist:ws-${id}`
 
 export class WorkspaceStore {
   private items: Stored[] = []
-  private file: string
+  private dir: string
   servers = new Map<string, WorkspaceInfo['servers']>()
 
   constructor(dir = app.getPath('userData')) {
     mkdirSync(dir, { recursive: true })
-    this.file = join(dir, 'workspaces.json')
-    try { this.items = JSON.parse(readFileSync(this.file, 'utf8')) } catch { /* ilk acilis */ }
+    this.dir = dir
+    this.items = loadDoc<Stored[]>(dir, 'workspaces') ?? []
     if (!this.items.length) { this.items = [{ id: 'default', name: 'Default', rootDir: null }]; this.save() }
   }
 
-  private save(): void { writeFileSync(this.file, JSON.stringify(this.items, null, 1)) }
+  private save(): void { saveDoc(this.dir, 'workspaces', this.items) }
 
   list(): WorkspaceInfo[] {
     return this.items.map((w) => ({ ...w, servers: this.servers.get(w.id) ?? [] }))

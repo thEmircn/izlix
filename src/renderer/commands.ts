@@ -113,6 +113,8 @@ export function buildCommands(): Command[] {
   for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId)) {
     cmds.push({ id: `tab:${tb.id}`, title: t('cmd.tab', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.activateTab(tb.id) })
   }
+  cmds.push({ id: 'panel.toggle', title: t('cmd.panelToggle'), hint: '⌥⌘B', run: () => s.set({ panelOpen: !s.panelOpen, dashboard: false }) })
+  cmds.push({ id: 'dashboard.toggle', title: t('cmd.dashToggle'), hint: '⌥⌘D', run: () => s.set({ dashboard: !s.dashboard }) })
   // Oturumlar
   cmds.push({ id: 'session.save', title: t('cmd.sessSave'), run: () => s.set({ overlay: 'session' }) })
   for (const x of s.sessions[s.activeWorkspaceId] ?? []) {

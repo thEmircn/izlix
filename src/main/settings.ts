@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { loadDoc, saveDoc } from './docdb'
 import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Settings } from '../shared/events'
@@ -7,12 +8,11 @@ const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr
 
 export class SettingsStore {
   private data: Settings
-  private file: string
+  private dir: string
   constructor(dir = app.getPath('userData')) {
     mkdirSync(dir, { recursive: true })
-    this.file = join(dir, 'settings.json')
-    let saved: Partial<Settings> = {}
-    try { saved = JSON.parse(readFileSync(this.file, 'utf8')) } catch { /* ilk acilis */ }
+    this.dir = dir
+    const saved: Partial<Settings> = loadDoc<Partial<Settings>>(dir, 'settings') ?? {}
     this.data = { ...DEFAULTS, ...saved }
     // surum 2: varsayilan dil Turkce; daha once secim kaydi olmayan (surumsuz) ayarlar bir kez Turkceye tasinir
     if (!(saved as { langV?: number }).langV) { this.data.language = 'tr'; (this.data as Settings & { langV?: number }).langV = 2; this.save() }
@@ -20,5 +20,5 @@ export class SettingsStore {
   }
   get(): Settings { return { ...this.data } }
   set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
-  private save(): void { try { writeFileSync(this.file, JSON.stringify(this.data, null, 1)) } catch { /* disk hatasi */ } }
+  private save(): void { saveDoc(this.dir, 'settings', this.data) }
 }

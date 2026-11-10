@@ -11,7 +11,7 @@ module.exports = async ({ tabs, sleep, shellEval: se }) => {
   })
   await new Promise((r) => srv.listen(5199, '127.0.0.1', r))
   await tabs.create({ url: 'localhost:5199', workspaceId: 'default' }); await sleep(2500)
-  await shellEval(`[...document.querySelectorAll('.rail > button')].find(b=>b.textContent==='Storage')?.click()`); await sleep(1000)
+  await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='Storage')?.click()`); await sleep(1000)
   await shellEval(`[...document.querySelectorAll('.st .seg2 button')].find(b=>b.textContent==='App')?.click()`); await sleep(2000)
   out.manifestName = await shellEval(`[...document.querySelectorAll('.pwa-kv > div')].find(d=>d.textContent.startsWith('name'))?.querySelector('code')?.textContent`)
   out.display = await shellEval(`[...document.querySelectorAll('.pwa-kv > div')].find(d=>d.textContent.startsWith('display'))?.querySelector('code')?.textContent`)

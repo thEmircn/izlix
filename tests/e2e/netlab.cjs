@@ -10,7 +10,7 @@ module.exports = async ({ tabs, sleep, shellEval: se, pageEval }) => {
   await new Promise((r) => srv.listen(5195, '127.0.0.1', r))
   await tabs.create({ url: 'localhost:5195', workspaceId: 'default' }); await sleep(1800)
   await pageEval(`fetch('/api/user').then(()=>fetch('/api/user')).then(()=>fetch('/graphql',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({operationName:'GetUser',query:'query GetUser($id: ID!) { user(id: $id) { name } }',variables:{id:7}})})); 1`); await sleep(1500)
-  const rail = (n) => shellEval(`[...document.querySelectorAll('.rail > button')].find(b=>b.textContent==='${n}')?.click()`)
+  const rail = (n) => shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='${n}')?.click()`)
   const dtab = (n) => shellEval(`[...document.querySelectorAll('.drawer .seg2 button')].find(b=>b.textContent==='${n}')?.click()`)
   await rail('Network'); await sleep(900)
   out.gqlTag = await shellEval(`document.querySelector('.gqltag')?.textContent`)

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { computeLayout, padRect } from '../shared/layout'
 import { Home } from './Home'
+import { DashboardView } from './DashboardView'
+import { IcOverview, IcPanel } from './icons'
 import { SessionPrompt } from './SessionPrompt'
 import type { DevToolsDock } from '../shared/events'
 import { useStore, writePref, useT, toast, PANEL_TABS, wsName } from './store'
@@ -61,6 +63,8 @@ export function App() {
           case 'shortcuts.open': st.set({ overlay: st.overlay === 'shortcuts' ? null : 'shortcuts' }); break
           case 'settings.open': st.set({ overlay: 'settings' }); break
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
+          case 'panel.toggle': st.set({ panelOpen: !st.panelOpen, dashboard: false }); break
+          case 'dashboard.toggle': st.set({ dashboard: !st.dashboard }); break
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
           case cmd.startsWith('panel.') ? cmd : '': { const k = PANEL_TABS[Number(cmd.slice(6))]; if (k) st.set({ panelTab: k }); break }
@@ -91,13 +95,14 @@ export function App() {
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])
   // overlay acikken sayfa gorunumleri (native katman) gizlenir, aksi halde shell'in ustunde kalirlardi
-  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0) }, [s.overlay, s.permPrompts.length])
+  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0 || s.dashboard) }, [s.overlay, s.permPrompts.length, s.dashboard])
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
-  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH, split: s.split }) }, [s.dock, s.panelRatio, s.split, chromeH])
+  const ratio = s.panelOpen && !s.dashboard ? s.panelRatio : 0 // panel kapaliyken sayfa tam genislik
+  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split }) }, [s.dock, ratio, s.split, chromeH])
 
-  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH, split: s.split })
+  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }
   const api = window.izlix
   // Panel boyutlandirma: surukleme sirasinda native gorunumler gizlenir (aksi halde fare olaylarini yutarlar)
@@ -171,14 +176,15 @@ export function App() {
           {s.workspaces.map((w) => <option key={w.id} value={w.id}>{wsName(w)}</option>)}
           <option value="__new">{t('ws.fromFolder')}</option>
         </select>
-        {(s.detected.length ? s.detected : []).map((d) => (
+        {s.detected.slice(0, 2).map((d) => (
           <button key={d.port} className="chip" title={d.cwd ?? ''} onClick={() => api.createTab(`localhost:${d.port}`)}>
-            <i className="dot" />{d.port}{d.framework ? ` ${d.framework}` : ''}{ws?.servers.some((x) => x.port === d.port) ? <span className="mine">{t('ws.mine')}</span> : null}
+            <i className="dot" />{d.port}{d.framework ? ` ${d.framework}` : ''}
           </button>
         ))}
-        <select aria-label={t('devtools')} value={s.dock} onChange={(e) => setDock(e.target.value as DevToolsDock)}>
-          <option value="right">{t('dock.right')}</option><option value="bottom">{t('dock.bottom')}</option><option value="off">{t('dock.off')}</option>
-        </select>
+        {s.detected.length > 2 && <button className="chip" title={t('srv.more')} onClick={() => s.set({ overlay: 'palette' })}>+{s.detected.length - 2}</button>}
+        <span className="tb-sep" />
+        <button className={`tb-btn dash-btn ${s.dashboard ? 'on' : ''}`} aria-pressed={s.dashboard} title={`${t('dash.title')}  ⌥⌘D`} aria-label={t('dash.title')} onClick={() => s.set({ dashboard: !s.dashboard })}><IcOverview /></button>
+        <button className={`tb-btn panel-toggle ${s.panelOpen && !s.dashboard ? 'on' : ''}`} aria-pressed={s.panelOpen && !s.dashboard} title={`${t('panel.toggle')}  ⌥⌘B`} aria-label={t('panel.toggle')} onClick={() => s.set({ panelOpen: !s.panelOpen, dashboard: false })}><IcPanel /></button>
       </div>
 
       {active?.lab && (
@@ -193,12 +199,13 @@ export function App() {
         </div>
       )}
       {!active && <Home style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
-      <div className="panel" style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
+      {s.panelOpen && !s.dashboard && <div className="panel" style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
         <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />
-      </div>
-      {s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}
-      <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />
+      </div>}
+      {s.panelOpen && !s.dashboard && s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}
+      {s.panelOpen && !s.dashboard && <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />}
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
+      {s.dashboard && <DashboardView top={chromeH} />}
       <Toasts />
       <PermissionPrompt />
       {s.overlay === 'session' && <SessionPrompt onClose={() => s.set({ overlay: null })} />}

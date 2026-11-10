@@ -9,7 +9,7 @@ module.exports = async ({ tabs, sleep, shellEval: se, pageEval, click }) => {
   })
   await new Promise((r) => srv.listen(5194, '127.0.0.1', r))
   const tid = await tabs.create({ url: 'localhost:5194', workspaceId: 'default' }); await sleep(2500)
-  const rail = (n) => shellEval(`[...document.querySelectorAll('.rail > button')].find(b=>b.textContent==='${n}')?.click()`)
+  const rail = (n) => shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='${n}')?.click()`)
   const side = (n) => shellEval(`[...document.querySelectorAll('.srcside .seg2 button')].find(b=>b.textContent.startsWith('${n}'))?.click()`)
   const trigger = () => Promise.race([pageEval(`setTimeout(()=>document.getElementById('go').click(), 30); 1`), new Promise((r) => setTimeout(() => r('PAGE-HUNG'), 5000))])
   await rail('Sources'); await sleep(1200)

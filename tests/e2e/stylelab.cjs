@@ -5,7 +5,7 @@ module.exports = async ({ tabs, sleep, shellEval: rawEval, pageEval, shot }) => 
   const srv = http.createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end(html) })
   await new Promise((r) => srv.listen(5193, '127.0.0.1', r))
   await tabs.create({ url: 'localhost:5193', workspaceId: 'default' }); await sleep(2000)
-  const rail = (n) => shellEval(`[...document.querySelectorAll('.rail > button')].find(b=>b.textContent===${JSON.stringify(n)})?.click()`)
+  const rail = (n) => shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent===${JSON.stringify(n)})?.click()`)
   await rail('Style Lab'); await sleep(1200)
   await shellEval(`(()=>{const rows=[...document.querySelectorAll('.el-tree [class*=row], .el-tree div')].filter(d=>d.textContent.startsWith('<div')&&d.textContent.includes('card')); (rows[0]||document.createElement('i')).click()})()`); await sleep(1200)
   out.hasLab = await shellEval(`!!document.querySelector('.lab')`)

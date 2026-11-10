@@ -10,7 +10,8 @@ import { Perf } from './Perf'
 import { A11y } from './A11y'
 import { Coverage } from './Coverage'
 import { Overview } from './Overview'
-import { Rail } from './Rail'
+import { LiveTraffic } from './LiveTraffic'
+import { Rail, SubNav } from './Rail'
 import { LANES, LANE_COLOR as COLOR, eventLabel, shortUrl, type Lane } from '../shared/label'
 import { translate } from '../shared/i18n'
 import { Profiler } from './Profiler'
@@ -97,10 +98,10 @@ export function Timeline({ width, height }: { width: number; height: number }) {
 
   return (
     <div className="pbody">
-      <Rail value={tab} onChange={setTab} labels={labels} />
+      <Rail value={tab} onChange={setTab} labels={labels} groupLabels={{ timeline: labels.timeline, network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server }} />
       <div className="pmain" ref={mainRef}>
       <div className="phead">
-        <span className="mlabel">{labels[tab].replace(/ \(\d+\)$/, '')}</span>
+        <SubNav value={tab} onChange={setTab} labels={labels} />
         {tab === 'timeline' && <>
           {LANES.map((l) => (
             <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{laneName(l)}</button>
@@ -108,9 +109,6 @@ export function Timeline({ width, height }: { width: number; height: number }) {
           <button type="button" aria-pressed={allReq} className={`lane-chip ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} onClick={() => setAllReq(!allReq)}>{t('tl.allRequests')}</button>
           <input className="search" style={{ maxWidth: 150 }} placeholder={t('tl.search')} value={tq} onChange={(e) => setTq(e.target.value)} />
           {range && <button className="btn" onClick={() => setRange(null)}>{t('tl.live')}</button>}
-          <select className="mini-select" value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as any }) }}>
-            <option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option>
-          </select>
         </>}
       </div>
       {snapshot && <div className="snapbar"><span>{t('snap.viewing', { n: snapshot.name })}</span><button className="btn sm" onClick={() => set({ snapshot: null, selectedEventId: null })}>{t('snap.close')}</button></div>}
@@ -118,6 +116,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
       {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'stylelab' ? <Elements startTab="lab" /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
+          <div className="tl-live"><LiveTraffic events={all} compact mode="activity" height={88} /></div>
           <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} />
           <Minimap all={all} from={from} to={to} live={!range} width={mainW} onRange={setRange} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
