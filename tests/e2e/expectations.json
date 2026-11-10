@@ -2329,5 +2329,27 @@
       "eq",
       true
     ]
+  ],
+  "panel-toggle": [
+    [
+      "widerWhenClosed",
+      "eq",
+      true
+    ],
+    [
+      "panelGone",
+      "eq",
+      true
+    ],
+    [
+      "restored",
+      "eq",
+      true
+    ],
+    [
+      "dashPanelGone",
+      "eq",
+      true
+    ]
   ]
 }
