@@ -88,7 +88,7 @@ function handle<S extends z.ZodType>(channel: string, schema: S | null, fn: (arg
 async function handleLaunch(l: Launch): Promise<void> {
   if (!win) { pendingLaunch = l; return }
   if (win.isMinimized()) win.restore()
-  win.focus()
+  if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) win.focus()
   if (l.type === 'url') { await newTab(l.url); return }
   const w = workspaces.create('', l.dir)
   activeWorkspaceId = w.id
@@ -393,12 +393,16 @@ const permissionHandlers = {
 }
 
 async function createWindow(): Promise<void> {
+  // Test modu (DB_SCRIPT): kullaniciyi rahatsiz etme — Dock'a dusme, one gelme, gorunmez (opacity 0) ama render ediliyor. DB_VISIBLE=1 ile normal gorunur.
+  const quiet = !!process.env.DB_SCRIPT && !process.env.DB_VISIBLE
+  if (quiet && process.platform === 'darwin') app.setActivationPolicy('accessory')
   const { maximized, ...ws0 } = restoreWindowState({ width: 1500, height: 900 })
   win = new BrowserWindow({
-    ...ws0, minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#0a0a0b',
+    ...ws0, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#0a0a0b',
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
-  if (maximized) win.maximize()
+  if (maximized && !quiet) win.maximize()
+  if (quiet) { win.setOpacity(0); win.setIgnoreMouseEvents(true); win.showInactive() }
   trackWindowState(win)
   workspaces = new WorkspaceStore()
   rules = new RuleStore()

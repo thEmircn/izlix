@@ -119,6 +119,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} />
+          <Minimap all={all} from={from} to={to} live={!range} width={mainW} onRange={setRange} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
         </>
       )}
@@ -134,6 +135,7 @@ function Lanes(props: {
 }) {
   const { events, markers, width: W, from, to, selected, onSelect, onRange, allReq, hidden } = props
   const ref = useRef<HTMLDivElement>(null)
+  const hlRef = useRef<SVGGElement>(null), hlText = useRef<SVGTextElement>(null), hlLine = useRef<SVGLineElement>(null), hlBg = useRef<SVGRectElement>(null)
   const [drag, setDrag] = useState<[number, number] | null>(null)
 
   const lanes = LANES.filter((l) => !hidden.has(l))
@@ -153,16 +155,28 @@ function Lanes(props: {
   const pos = new Map<number, { x: number; y: number }>()
   for (const e of shown) { const l = laneOf(e, allReq); if (l) pos.set(e.id, { x: x(e.ts), y: laneY(l) }) }
 
+  // secili olayin nedensellik zinciri (iki yone): vurgulanir, oklar akar
+  const chain = new Set<number>()
+  if (selected != null) {
+    const adj = new Map<number, number[]>()
+    for (const e of shown) for (const lk of e.links) { (adj.get(e.id) ?? adj.set(e.id, []).get(e.id)!).push(lk.from); (adj.get(lk.from) ?? adj.set(lk.from, []).get(lk.from)!).push(e.id) }
+    const q = [selected]; chain.add(selected)
+    while (q.length) { const c = q.pop()!; for (const n of adj.get(c) ?? []) if (!chain.has(n)) { chain.add(n); q.push(n) } }
+  }
+  // istek -> yanit sure kapsulleri
+  const resByReq = new Map<string, Ev>()
+  for (const e of shown) if (e.kind === 'response' && e.payload.requestId) resByReq.set(e.payload.requestId, e)
+
   const step = [100, 250, 500, 1000, 2000, 5000, 10000, 30000].find((s) => span / s <= 10) ?? 60000
   const ticks: number[] = []
   for (let t = Math.ceil(from / step) * step; t <= to; t += step) ticks.push(t)
   const H = lanes.length * LANE_H + AXIS_H
-
   const mouse = (ev: React.MouseEvent): number => ev.clientX - (ref.current?.getBoundingClientRect().left ?? 0)
+  const bodyH = lanes.length * LANE_H
 
   return (
     <div ref={ref} style={{ flex: '0 0 auto', userSelect: 'none' }}>
-      <svg width={W} height={H}
+      <svg width={W} height={H} className="tl-svg"
         onWheel={(ev) => {
           // tekerlek: imlec etrafinda yakinlastir/uzaklastir; shift+tekerlek: yatay kaydir
           const x0 = ev.clientX - (ref.current?.getBoundingClientRect().left ?? 0)
@@ -172,7 +186,19 @@ function Lanes(props: {
           if (nt - nf >= 200) onRange([nf, nt])
         }}
         onMouseDown={(ev) => setDrag([mouse(ev), mouse(ev)])}
-        onMouseMove={(ev) => drag && setDrag([drag[0], mouse(ev)])}
+        onMouseMove={(ev) => {
+          const mx = mouse(ev)
+          if (drag) setDrag([drag[0], mx])
+          // capraz imlec: DOM'a dogrudan yazilir (yeniden cizim yok)
+          if (hlRef.current && hlLine.current && hlText.current && hlBg.current) {
+            const inside = mx >= PAD_L && mx <= W - PAD_R
+            hlRef.current.style.opacity = inside ? '1' : '0'
+            hlLine.current.setAttribute('x1', String(mx)); hlLine.current.setAttribute('x2', String(mx))
+            const label = fmtT(tsAt(mx) - from), tx = Math.min(W - 44, Math.max(PAD_L, mx - 18))
+            hlText.current.textContent = label; hlText.current.setAttribute('x', String(tx + 5)); hlBg.current.setAttribute('x', String(tx)); hlBg.current.setAttribute('width', String(label.length * 6 + 10))
+          }
+        }}
+        onMouseLeave={() => { if (hlRef.current) hlRef.current.style.opacity = '0' }}
         onMouseUp={() => {
           if (drag && Math.abs(drag[1] - drag[0]) > 6) { const a = tsAt(Math.min(...drag)), b = tsAt(Math.max(...drag)); onRange([a, b]) }
           setDrag(null)
@@ -180,32 +206,45 @@ function Lanes(props: {
         <defs>
           {(['exact', 'estimated'] as const).map((c) => (
             <marker key={c} id={`ar-${c}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L8,4 L0,8 z" fill={c === 'exact' ? '#ddd' : '#999'} />
+              <path d="M0,0 L8,4 L0,8 z" fill={c === 'exact' ? '#e4e4e7' : '#8b8b92'} />
             </marker>
           ))}
+          <marker id="ar-hot" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff6a2b" /></marker>
         </defs>
-        {lanes.map((l) => (
+        {/* serit zeminleri */}
+        {lanes.map((l, i) => (
           <g key={l}>
-            <line x1={PAD_L} x2={W - PAD_R} y1={laneY(l)} y2={laneY(l)} stroke="#2e2e30" />
-            <text x={6} y={laneY(l) + 4} fill={COLOR[l]} fontSize={11}>{laneName(l)}</text>
+            <rect x={PAD_L - 4} y={i * LANE_H + 2} width={Math.max(0, W - PAD_L - PAD_R + 8)} height={LANE_H - 4} rx={9} fill={i % 2 ? 'rgba(255,255,255,.012)' : 'rgba(255,255,255,.028)'} />
+            <circle cx={12} cy={laneY(l)} r={3.5} fill={COLOR[l]} />
+            <text x={22} y={laneY(l) + 3.5} fill="#a1a1aa" fontSize={10.5} fontFamily="ui-monospace, Menlo, monospace" style={{ textTransform: 'uppercase', letterSpacing: '.05em' }}>{laneName(l)}</text>
           </g>
         ))}
         {ticks.map((t) => (
           <g key={t}>
-            <line x1={x(t)} x2={x(t)} y1={0} y2={lanes.length * LANE_H} stroke="#262628" />
-            <text x={x(t) + 2} y={H - 6} fill="#777" fontSize={10}>{fmtT(t - from)}</text>
+            <line x1={x(t)} x2={x(t)} y1={0} y2={bodyH} stroke="rgba(255,255,255,.05)" strokeDasharray="2 5" />
+            <text x={x(t) + 3} y={H - 6} fill="#6b6b73" fontSize={10} fontFamily="ui-monospace, Menlo, monospace">{fmtT(t - from)}</text>
           </g>
         ))}
-        {/* nedensellik oklari: kesin = duz, tahmini = kesikli */}
+        {/* istek -> yanit sure kapsulleri */}
+        {shown.map((e) => {
+          if (e.kind !== 'request') return null
+          const r = resByReq.get(e.payload.requestId); const p = pos.get(e.id)
+          if (!r || !p) return null
+          const x2 = x(r.ts); if (x2 - p.x < 3) return null
+          const bad = (r.payload.status ?? 0) >= 400
+          return <rect key={`cap${e.id}`} className={many ? '' : 'cap'} x={p.x} y={p.y - 4} width={x2 - p.x} height={8} rx={4} fill={bad ? 'rgba(255,92,92,.28)' : 'rgba(255,255,255,.14)'} stroke={bad ? 'rgba(255,92,92,.5)' : 'rgba(255,255,255,.2)'} strokeWidth={.6} />
+        })}
+        {/* nedensellik oklari: kesin = duz, tahmini = kesikli; secili zincir turuncu ve akar */}
         {shown.flatMap((e) => e.links.map((lk) => {
           const a = pos.get(lk.from), b = pos.get(e.id)
           if (!a || !b) return null
           const mx = (a.x + b.x) / 2
+          const hot = selected != null && chain.has(e.id) && chain.has(lk.from)
           return (
-            <path className={many ? '' : 'link'} key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
-              fill="none" stroke={lk.certainty === 'exact' ? '#ddd' : '#999'} strokeWidth={1.2}
-              strokeDasharray={lk.certainty === 'estimated' ? '4 3' : undefined} markerEnd={`url(#ar-${lk.certainty})`}
-              opacity={selected == null || selected === e.id || selected === lk.from ? 0.9 : 0.35}>
+            <path className={`${many ? '' : 'link'} ${hot ? 'hot' : ''}`} key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
+              fill="none" stroke={hot ? '#ff6a2b' : lk.certainty === 'exact' ? '#e4e4e7' : '#8b8b92'} strokeWidth={hot ? 1.8 : 1.1}
+              strokeDasharray={hot ? '6 4' : lk.certainty === 'estimated' ? '4 3' : undefined} markerEnd={`url(#ar-${hot ? 'hot' : lk.certainty})`}
+              opacity={selected == null ? 0.55 : hot ? 1 : 0.12}>
               <title>{lk.type} ({lk.certainty === 'exact' ? 'exact' : 'estimated'})</title>
             </path>
           )
@@ -213,27 +252,68 @@ function Lanes(props: {
         {shown.map((e) => {
           const p = pos.get(e.id); const l = laneOf(e, allReq)
           if (!p || !l) return null
-          const r = e.kind === 'render' ? Math.min(9, 4 + Math.sqrt(e.payload.count)) : 5
+          const r = e.kind === 'render' ? Math.min(9, 4 + Math.sqrt(e.payload.count)) : 4.6
+          const isSel = selected === e.id, inChain = chain.has(e.id)
           return (
-            <g key={e.id}>
+            <g key={e.id} opacity={selected != null && !inChain ? 0.35 : 1}>
+              {(e.kind === 'error' || isSel) && <circle cx={p.x} cy={p.y} r={r + 5} fill={isSel ? 'rgba(255,106,43,.25)' : 'rgba(255,92,92,.22)'} />}
               {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="#ffb454" strokeWidth={2} strokeDasharray="3 2" />}
-            <circle className={many ? '' : 'node'} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
-              style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)}>
-              <title>{label(e)}</title>
-            </circle>
+              <circle className={many ? '' : 'node'} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={isSel ? '#fff' : '#0f0f11'} strokeWidth={isSel ? 2 : 1.5}
+                style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)}>
+                <title>{label(e)}</title>
+              </circle>
             </g>
           )
         })}
         {markers.map((m) => (
           <g key={m.id} className="marker" style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(m.id)}>
-            <line x1={x(m.ts)} x2={x(m.ts)} y1={0} y2={lanes.length * LANE_H} stroke="#fbbf24" strokeWidth={1.5} strokeDasharray="4 3" opacity={selected === m.id ? 1 : 0.75} />
+            <line x1={x(m.ts)} x2={x(m.ts)} y1={0} y2={bodyH} stroke="#fbbf24" strokeWidth={1.5} strokeDasharray="4 3" opacity={selected === m.id ? 1 : 0.75} />
             <path d={`M${x(m.ts)},0 l10,4 l-10,4 z`} fill="#fbbf24" /><title>{String(m.payload.text)}</title>
             <text x={x(m.ts) + 13} y={9} fill="#fbbf24" fontSize={10}>{String(m.payload.text).slice(0, 24)}</text>
           </g>
         ))}
-        {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={lanes.length * LANE_H} fill="#f4f4f5" opacity={0.15} />}
+        {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={bodyH} fill="#ff6a2b" opacity={0.12} stroke="#ff6a2b" strokeOpacity={0.5} />}
+        {/* capraz imlec */}
+        <g ref={hlRef} style={{ opacity: 0, pointerEvents: 'none', transition: 'opacity .1s' }}>
+          <line ref={hlLine} y1={0} y2={bodyH} stroke="rgba(255,255,255,.3)" strokeDasharray="3 3" />
+          <rect ref={hlBg} y={H - 18} height={15} rx={5} fill="#26262b" /><text ref={hlText} y={H - 7} fill="#e4e4e7" fontSize={10} fontFamily="ui-monospace, Menlo, monospace" />
+        </g>
       </svg>
     </div>
+  )
+}
+
+/** Mini harita: tum kaydin olay yogunlugu; secili gorunum penceresi surukleyerek tasinir, disina tiklayinca oraya gider. */
+function Minimap({ all, from, to, live, width, onRange }: { all: Ev[]; from: number; to: number; live: boolean; width: number; onRange(r: [number, number]): void }) {
+  const H = 34, BINS = Math.max(20, Math.floor(width / 7))
+  const tMin = all.length ? all[0].ts : 0, tMax = all.length ? all[all.length - 1].ts : 1
+  const total = Math.max(1000, tMax - tMin)
+  const hist = useMemo(() => {
+    const h = new Array<number>(BINS).fill(0)
+    for (const e of all) if (e.kind !== 'vital' && e.kind !== 'state') h[Math.min(BINS - 1, Math.floor(((e.ts - tMin) / total) * BINS))]++
+    return h
+  }, [all, BINS, tMin, total])
+  const hi = Math.max(1, ...hist)
+  const px = (ts: number): number => ((ts - tMin) / total) * width
+  const vx = Math.max(0, px(from)), vw = Math.max(8, Math.min(width, px(to)) - vx)
+  const ref = useRef<SVGSVGElement>(null)
+  const start = (e: React.PointerEvent): void => {
+    const left = ref.current!.getBoundingClientRect().left, spanMs = to - from
+    const at = (cx: number): number => tMin + ((cx - left) / width) * total
+    const inside = e.clientX - left >= vx && e.clientX - left <= vx + vw
+    const grab = inside ? at(e.clientX) - from : spanMs / 2
+    const move = (ev: PointerEvent): void => { const f = Math.max(tMin, Math.min(tMax - spanMs, at(ev.clientX) - grab)); onRange([f, f + spanMs]) }
+    move(e.nativeEvent)
+    const up = (): void => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
+  }
+  if (all.length < 2) return null
+  return (
+    <svg ref={ref} width={width} height={H} className="minimap" onPointerDown={start}>
+      {hist.map((v, i) => <rect key={i} x={(i / BINS) * width + 1} width={Math.max(1, width / BINS - 2)} y={H - 4 - (v / hi) * (H - 10)} height={(v / hi) * (H - 10) + 1} rx={1.5} fill="rgba(255,255,255,.22)" />)}
+      <rect x={vx} y={1} width={vw} height={H - 2} rx={6} fill="rgba(255,106,43,.12)" stroke="rgba(255,106,43,.7)" />
+      {live && <circle cx={Math.min(width - 6, vx + vw - 6)} cy={H / 2} r={2.5} fill="#ff6a2b" className="spark-ping" />}
+    </svg>
   )
 }
 
