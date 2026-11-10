@@ -625,5 +625,22 @@
       "contains",
       "5993"
     ]
+  ],
+  "hmr": [
+    [
+      "hmr.action",
+      "eq",
+      "update"
+    ],
+    [
+      "hmr.file",
+      "contains",
+      "App.tsx"
+    ],
+    [
+      "linked",
+      "eq",
+      true
+    ]
   ]
 }

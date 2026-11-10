@@ -21,6 +21,7 @@ export interface SourceLookup {
 //  render -> hata         : KESIN   (hata stack'indeki bilesen commit kaydinda) / yoksa TAHMINI
 const RESPONSE_RENDER_WINDOW_MS = 1000
 const ERROR_RENDER_WINDOW_MS = 10_000
+const HMR_RENDER_WINDOW_MS = 3000 // HMR bildirimi ile yeniden render arasi
 
 interface Commit { evId: number; ts: number; names: Set<string> }
 
@@ -30,6 +31,7 @@ export class Correlator {
   private requestByCdpId = new Map<string, number>()
   private responses: { evId: number; ts: number; used: boolean }[] = []
   private commits: Commit[] = []
+  private hmrs: { evId: number; ts: number; used: boolean }[] = []
 
   /** Her sekmenin kendi korelatoru vardir; yalnizca kendi sekmesinin olaylarini isler. */
   constructor(private bus: EventBus, private src: SourceLookup, private tabId?: string) {
@@ -67,6 +69,10 @@ export class Correlator {
       case 'bridge:commit':
         this.onCommit(ev)
         break
+      case 'hmr:vite':
+      case 'hmr:next':
+        if (p.action !== 'rebuilding') { this.hmrs.push({ evId: ev.id, ts: ev.ts, used: false }); if (this.hmrs.length > 50) this.hmrs.shift() }
+        break
       case 'cdp:Runtime.exceptionThrown':
         void this.onError(ev)
         break
@@ -80,8 +86,10 @@ export class Correlator {
       // girdi gorevinde commit edildi: girdiye bagli (olay tampondan dusmusse bag yok), yanita ASLA baglanmaz
       if (inputEv != null) this.bus.link(ev.id, inputEv, 'exact', 'input→state')
     } else {
-      // girdiyle tetiklenmediyse: son islenmemis fetch yaniti (tahmini)
-      const r = [...this.responses].reverse().find((x) => !x.used && ev.ts - x.ts <= RESPONSE_RENDER_WINDOW_MS)
+      // girdiyle tetiklenmediyse: once HMR (dosya kaydi -> yeniden render), sonra son islenmemis fetch yaniti (tahmini)
+      const h = [...this.hmrs].reverse().find((x) => !x.used && ev.ts >= x.ts - 50 && ev.ts - x.ts <= HMR_RENDER_WINDOW_MS)
+      if (h) { h.used = true; this.bus.link(ev.id, h.evId, 'estimated', 'hmr→render') }
+      const r = h ? undefined : [...this.responses].reverse().find((x) => !x.used && ev.ts - x.ts <= RESPONSE_RENDER_WINDOW_MS)
       if (r) { r.used = true; this.bus.link(ev.id, r.evId, 'estimated', 'response→render') }
     }
     this.commits.push({ evId: ev.id, ts: ev.ts, names: new Set((p.components ?? []).map((c: any) => c.name)) })

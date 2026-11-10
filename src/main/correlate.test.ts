@@ -100,4 +100,27 @@ describe('Correlator', () => {
     await tick(); await tick()
     expect(bus.get(err3.id)!.links[0]).toMatchObject({ certainty: 'exact' }) // Boom, ilk commit'te
   })
+
+  it('HMR bildirimi sonraki girdisiz render ile tahmini baglanir; yanit baglantisinin yerine gecer ve bir kez tuketilir', () => {
+    const { bus, input, commit } = setup()
+    void input
+    const hmr = bus.emit({ tabId: 't', kind: 'hmr', source: 'hmr:vite', ts: 1000, payload: { action: 'update', file: '/src/App.tsx' } })
+    const r1 = commit(1200, {})
+    const r2 = commit(1300, {})
+    expect(r1.links).toEqual([{ from: hmr.id, certainty: 'estimated', type: 'hmr→render' }])
+    expect(r2.links).toEqual([]) // HMR yalnizca bir kez
+  })
+
+  it('HMR penceresi disindaki render baglanmaz; girdili render HMR ile baglanmaz', () => {
+    const { bus, input, commit } = setup()
+    bus.emit({ tabId: 't', kind: 'hmr', source: 'hmr:vite', ts: 1000, payload: { action: 'update' } })
+    expect(commit(9000, {}).links).toEqual([])
+    const bus2 = setup()
+    bus2.bus.emit({ tabId: 't', kind: 'hmr', source: 'hmr:next', ts: 1000, payload: { action: 'done' } })
+    bus2.input(7, 1100)
+    const r = bus2.commit(1150, { inputId: 7 })
+    expect(r.links.map((l) => l.type)).toEqual(['input→state'])
+    void input
+  })
 })
+

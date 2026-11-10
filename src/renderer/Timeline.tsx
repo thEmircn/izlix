@@ -6,9 +6,9 @@ import { causeChain, effectsOf } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
 
 // ---- sabitler ----
-const LANES = ['input', 'request', 'response', 'render', 'console', 'error'] as const
+const LANES = ['input', 'hmr', 'request', 'response', 'render', 'console', 'error'] as const
 type Lane = (typeof LANES)[number]
-const COLOR: Record<Lane, string> = { input: '#c792ea', request: '#4ea1ff', response: '#3ecf8e', render: '#ffb454', console: '#8fa3b8', error: '#ff5c5c' }
+const COLOR: Record<Lane, string> = { input: '#c792ea', hmr: '#2dd4bf', request: '#4ea1ff', response: '#3ecf8e', render: '#ffb454', console: '#8fa3b8', error: '#ff5c5c' }
 const LANE_H = 30, PAD_L = 62, PAD_R = 14, AXIS_H = 20, DEFAULT_WINDOW = 15_000
 const NET_TYPES = ['Fetch', 'XHR', 'Document']
 
@@ -19,6 +19,7 @@ function laneOf(e: Ev, allReq: boolean): Lane | null {
     case 'response': return allReq || NET_TYPES.includes(e.payload.type) ? 'response' : null
     case 'render': return e.payload.count > 0 ? 'render' : null
     case 'error': return 'error'
+    case 'hmr': return 'hmr'
     case 'console': return 'console'
     default: return null
   }
@@ -32,6 +33,7 @@ function label(e: Ev): string {
     case 'response': return `${p.status} ${shortUrl(p.url)}`
     case 'render': return `commit · ${p.count} render`
     case 'error': return String(p.text ?? p.errorText ?? 'error').split('\n')[0]
+    case 'hmr': return `HMR ${p.file ?? p.action}`
     case 'console': return String(p.text ?? '')
     default: return e.source
   }

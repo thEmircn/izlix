@@ -3,6 +3,7 @@ import type { EventBus } from './bus'
 import { ADAPTERS, BINDING } from './adapters'
 import { SourceResolver } from './sources'
 import { Correlator } from './correlate'
+import { parseHmr } from './hmr'
 
 export interface Tab { resolver: SourceResolver; correlator: Correlator; detach(): void }
 
@@ -45,9 +46,12 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
         bus.emit({ tabId, kind: 'error', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: { requestId: p.requestId, errorText: p.errorText } })
         break
       case 'Runtime.consoleAPICalled': // timestamp: epoch ms
-        bus.emit({ tabId, kind: 'console', ts: p.timestamp ?? now, source: `cdp:${method}`, payload: {
-          level: p.type, text: (p.args ?? []).map((a: any) => a.value ?? a.description ?? a.type).join(' '), stackTrace: p.stackTrace
-        } })
+        {
+          const text = (p.args ?? []).map((a: any) => a.value ?? a.description ?? a.type).join(' ')
+          bus.emit({ tabId, kind: 'console', ts: p.timestamp ?? now, source: `cdp:${method}`, payload: { level: p.type, text, stackTrace: p.stackTrace } })
+          const hmr = parseHmr(text)
+          if (hmr) bus.emit({ tabId, kind: 'hmr', ts: p.timestamp ?? now, source: `hmr:${hmr.tool}`, payload: hmr })
+        }
         break
       case 'Runtime.exceptionThrown': // timestamp: epoch ms
         bus.emit({ tabId, kind: 'error', ts: p.timestamp ?? now, source: `cdp:${method}`, payload: {
