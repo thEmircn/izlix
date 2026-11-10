@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Open in Izlix",
+  "version": "0.1.0",
+  "description": "Bu sayfayı Izlix'da açar (araç çubuğu düğmesi veya sağ tık).",
+  "permissions": ["contextMenus", "activeTab"],
+  "action": { "default_title": "Izlix'da aç" },
+  "background": { "service_worker": "background.js" }
+}

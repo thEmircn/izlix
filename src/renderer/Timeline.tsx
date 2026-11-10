@@ -4,9 +4,9 @@ import { useStore, writePref } from './store'
 import { Inspector, RenderTracker } from './Inspector'
 
 // ---- sabitler ----
-const LANES = ['input', 'request', 'response', 'render', 'error'] as const
+const LANES = ['input', 'request', 'response', 'render', 'console', 'error'] as const
 type Lane = (typeof LANES)[number]
-const COLOR: Record<Lane, string> = { input: '#c792ea', request: '#4ea1ff', response: '#3ecf8e', render: '#ffb454', error: '#ff5c5c' }
+const COLOR: Record<Lane, string> = { input: '#c792ea', request: '#4ea1ff', response: '#3ecf8e', render: '#ffb454', console: '#8fa3b8', error: '#ff5c5c' }
 const LANE_H = 30, PAD_L = 62, PAD_R = 14, AXIS_H = 20, DEFAULT_WINDOW = 15_000
 const NET_TYPES = ['Fetch', 'XHR', 'Document']
 
@@ -17,7 +17,7 @@ function laneOf(e: Ev, allReq: boolean): Lane | null {
     case 'response': return allReq || NET_TYPES.includes(e.payload.type) ? 'response' : null
     case 'render': return e.payload.count > 0 ? 'render' : null
     case 'error': return 'error'
-    case 'console': return ['error', 'warning'].includes(e.payload.level) ? 'error' : null
+    case 'console': return 'console'
     default: return null
   }
 }
@@ -37,7 +37,7 @@ function label(e: Ev): string {
 const shortUrl = (u: string): string => { try { const x = new URL(u); return x.pathname + x.search } catch { return u } }
 const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
-/** Unified Developer Timeline v0: 5 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
+/** Unified Developer Timeline v0: 6 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
 export function Timeline({ width, height }: { width: number; height: number }) {
   const events = useStore((s) => s.events)
   const activeTabId = useStore((s) => s.activeTabId)

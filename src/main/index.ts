@@ -9,6 +9,7 @@ import { TabManager } from './tabs'
 import { RuleStore } from './rules'
 import { Library } from './library'
 import { Downloads } from './downloads'
+import { parseLaunch, type Launch } from './launch'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
@@ -46,6 +47,21 @@ function handle<S extends z.ZodType>(channel: string, schema: S | null, fn: (arg
     return fn(r.data)
   })
 }
+
+/** CLI / izlix:// istekleri: klasor -> Workspace (+ calisan dev sunucusu), url -> yeni sekme */
+async function handleLaunch(l: Launch): Promise<void> {
+  if (!win) { pendingLaunch = l; return }
+  if (win.isMinimized()) win.restore()
+  win.focus()
+  if (l.type === 'url') { await newTab(l.url); return }
+  const w = workspaces.create('', l.dir)
+  activeWorkspaceId = w.id
+  if (!detected.length) await pollServers() // soguk baslangicta sunucu listesi henuz bos olabilir
+  const srv = detected.find((s) => s.cwd && workspaces.workspaceForCwd(s.cwd)?.id === w.id)
+  await newTab(srv ? `localhost:${srv.port}` : undefined)
+  pushWorkspaces(); pushTabs()
+}
+let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
 async function newTab(url?: string): Promise<string> { return tabs.create({ url, workspaceId: activeWorkspaceId }) }
 
@@ -164,7 +180,7 @@ async function createWindow(): Promise<void> {
   if (process.env.DB_SCRIPT) {
     const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
     const ctx = {
-      app, win, tabs, bus, library, downloads, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
+      app, win, tabs, bus, library, downloads, handleLaunch, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
       newTab,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
@@ -184,6 +200,11 @@ async function createWindow(): Promise<void> {
   }
 }
 
-app.whenReady().then(createWindow)
+const gotLock = process.env.DB_SCRIPT ? true : app.requestSingleInstanceLock()
+if (!gotLock) app.quit()
+app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd); if (l) void handleLaunch(l) })
+app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
+if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
+if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
 app.on('before-quit', () => library?.flush())
 app.on('window-all-closed', () => app.quit())
