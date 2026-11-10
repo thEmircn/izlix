@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState, type ComponentType, type SVGProps } from 'react'
+import { useRef, type ComponentType, type SVGProps } from 'react'
 import type { PanelTab } from './store'
-import { Forward, IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcStyle, IcTimeline } from './icons'
+import { IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcStyle, IcTimeline } from './icons'
 import { Seg } from './ui'
 
 type Ic = ComponentType<SVGProps<SVGSVGElement>>
@@ -20,21 +20,14 @@ export const RAIL_SETS: RailGroup[][] = [
 export const RAIL_GROUPS: RailGroup[] = RAIL_SETS.flat()
 export const groupOf = (tab: PanelTab): RailGroup | undefined => RAIL_GROUPS.find((g) => g.tabs.includes(tab))
 
-/** Sol ikon rayi: her grup bir ikon; secili olan vurgulu hap, etiketler istege bagli acilir. */
+/** Alt dock: panelin altinda yuzen cam hap; ikonlar, secili olan etiketiyle acilir. */
 export function Rail({ value, onChange, labels, groupLabels }: { value: PanelTab; onChange(k: PanelTab): void; labels: Record<PanelTab, string>; groupLabels: Record<RailGroup['label'], string> }) {
-  const [open, setOpen] = useState(() => { try { return localStorage.getItem('railOpen') === '1' } catch { return false } })
   const mem = useRef<Record<string, PanelTab>>({}) // grup basina son kullanilan sekme
   mem.current[groupOf(value)?.label ?? ''] = value
-  const toggle = (): void => { setOpen(!open); try { localStorage.setItem('railOpen', open ? '0' : '1') } catch { /* yok say */ } }
-  const ref = useRef<HTMLElement>(null)
-  const [y, setY] = useState<number | null>(null)
-  useLayoutEffect(() => { const b = ref.current?.querySelector<HTMLElement>('button.on'); setY(b ? b.offsetTop : null) }, [value, open])
   return (
-    <nav ref={ref} className={`rail seg2 ${open ? 'open' : ''}`} role="tablist" aria-orientation="vertical">
-      {y != null && <div className="rail-ind" style={{ transform: `translateY(${y}px)` }} />}
-      <button className="rail-toggle" aria-label="Toggle labels" onClick={toggle}><Forward /></button>
+    <nav className="rail seg2 dock" role="tablist" aria-orientation="horizontal" data-labels={labels.timeline}>
       {RAIL_SETS.map((set, si) => [
-        <i key={`s${si}`} className="rail-sep" />,
+        si > 0 ? <i key={`s${si}`} className="rail-sep" /> : null,
         ...set.map((g) => {
           const I = g.icon, on = g.tabs.includes(value), name = groupLabels[g.label]
           return (
@@ -54,7 +47,7 @@ export function SubNav({ value, onChange, labels }: { value: PanelTab; onChange(
   const cur = groupOf(value)
   return (
     <>
-      {cur && cur.tabs.length > 1 ? mk(cur) : <span className="mlabel">{labels[value].replace(/ \(\d+\)$/, '')}</span>}
+      {cur && cur.tabs.length > 1 ? mk(cur) : null}
       <div hidden>{RAIL_GROUPS.filter((g) => g !== cur && g.tabs.length > 1).map((g) => <span key={g.label}>{mk(g)}</span>)}</div>
     </>
   )

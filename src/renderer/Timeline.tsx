@@ -11,7 +11,7 @@ import { A11y } from './A11y'
 import { Coverage } from './Coverage'
 import { Overview } from './Overview'
 import { LiveTraffic } from './LiveTraffic'
-import { Rail, SubNav } from './Rail'
+import { Rail, SubNav, groupOf } from './Rail'
 import { LANES, LANE_COLOR as COLOR, eventLabel, shortUrl, type Lane } from '../shared/label'
 import { translate } from '../shared/i18n'
 import { Profiler } from './Profiler'
@@ -96,11 +96,15 @@ export function Timeline({ width, height }: { width: number; height: number }) {
 
   const labels = { overview: t('tl.overview'), timeline: t('tl.timeline'), network: t('tl.network'), console: t('tl.console'), elements: t('tl.elements'), sources: t('tl.sources'), storage: t('tl.storage'), perf: t('tl.perf'), coverage: t('tl.coverage'), a11y: t('tl.a11y'), profiler: t('tl.profiler'), seo: t('tl.seo'), server: t('tl.server'), components: t('tl.components'), renders: t('tl.renders'), raw: `${t('tl.raw')} (${all.length})`, stylelab: t('tl.stylelab') } as Record<PanelTab, string>
 
+  const groupTitle = ({ timeline: t('tl.timeline'), network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server } as Record<string, string>)[groupOf(tab)?.label ?? 'timeline'] ?? labels[tab]
+
   return (
     <div className="pbody">
       <Rail value={tab} onChange={setTab} labels={labels} groupLabels={{ timeline: labels.timeline, network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server }} />
       <div className="pmain" ref={mainRef}>
       <div className="phead">
+        <div className="ptitle"><h3 key={tab}>{groupTitle}</h3>{tab === 'timeline' || tab === 'raw' ? <span className="pcount">{t('tl.eventsCount', { n: all.length })}</span> : null}</div>
+        <div className="psub">
         <SubNav value={tab} onChange={setTab} labels={labels} />
         {tab === 'timeline' && <>
           <span className="lane-dots">{LANES.map((l) => (
@@ -110,6 +114,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
           <input className="search" style={{ maxWidth: 150 }} placeholder={t('tl.search')} value={tq} onChange={(e) => setTq(e.target.value)} />
           {range && <button className="btn" onClick={() => setRange(null)}>{t('tl.live')}</button>}
         </>}
+        </div>
       </div>
       {snapshot && <div className="snapbar"><span>{t('snap.viewing', { n: snapshot.name })}</span><button className="btn sm" onClick={() => set({ snapshot: null, selectedEventId: null })}>{t('snap.close')}</button></div>}
       <ErrorBoundary label={tab}>
@@ -137,7 +142,9 @@ function Lanes(props: {
   const hlRef = useRef<SVGGElement>(null), hlText = useRef<SVGTextElement>(null), hlLine = useRef<SVGLineElement>(null), hlBg = useRef<SVGRectElement>(null)
   const [drag, setDrag] = useState<[number, number] | null>(null)
 
-  const lanes = LANES.filter((l) => !hidden.has(l))
+  // olayi olmayan seritler gizlenir (istek/yanit her zaman kalir): sade gorunum
+  const present = new Set<Lane>(); for (const e of events) { const l = laneOf(e, allReq); if (l) present.add(l) }
+  const lanes = LANES.filter((l) => !hidden.has(l) && (present.has(l) || l === 'request' || l === 'response'))
   const laneY = (l: Lane): number => lanes.indexOf(l) * LANE_H + LANE_H / 2
   const span = Math.max(1, to - from)
   const x = (ts: number): number => PAD_L + ((ts - from) / span) * (W - PAD_L - PAD_R)
@@ -151,6 +158,10 @@ function Lanes(props: {
     shown = [...keep, ...rest].sort((a, b) => a.ts - b.ts)
   }
   const many = shown.length > 120
+  // yogun seritler: cok olay varsa tek tek nokta yerine yogunluk cubuklari; hata/secili zincir/degistirilmis olaylar nokta olarak kalir
+  const DENSE_AT = 36, perLane = new Map<Lane, number>()
+  for (const e of shown) { const l = laneOf(e, allReq); if (l) perLane.set(l, (perLane.get(l) ?? 0) + 1) }
+  const denseLanes = new Set<Lane>((['request', 'response', 'console'] as Lane[]).filter((l) => (perLane.get(l) ?? 0) > DENSE_AT))
   const pos = new Map<number, { x: number; y: number }>()
   for (const e of shown) { const l = laneOf(e, allReq); if (l) pos.set(e.id, { x: x(e.ts), y: laneY(l) }) }
 
@@ -162,6 +173,9 @@ function Lanes(props: {
     const q = [selected]; chain.add(selected)
     while (q.length) { const c = q.pop()!; for (const n of adj.get(c) ?? []) if (!chain.has(n)) { chain.add(n); q.push(n) } }
   }
+  const isDense = (e: Ev): boolean => { const l = laneOf(e, allReq); return !!l && denseLanes.has(l) && selected !== e.id && !chain.has(e.id) && e.kind !== 'error' && !(e.kind === 'response' && (e.payload.status ?? 0) >= 400) && !e.payload.modified }
+  const heat = new Map<Lane, Map<number, number>>()
+  for (const e of shown) { const l = laneOf(e, allReq); if (!l || !denseLanes.has(l)) continue; const bx = Math.round(x(e.ts) / 5); const m = heat.get(l) ?? new Map<number, number>(); m.set(bx, (m.get(bx) ?? 0) + 1); heat.set(l, m) }
   // istek -> yanit sure kapsulleri
   const resByReq = new Map<string, Ev>()
   for (const e of shown) if (e.kind === 'response' && e.payload.requestId) resByReq.set(e.payload.requestId, e)
@@ -224,9 +238,11 @@ function Lanes(props: {
             <text x={x(t) + 3} y={H - 6} fill="#6b6b73" fontSize={10} fontFamily="ui-monospace, Menlo, monospace">{fmtT(t - from)}</text>
           </g>
         ))}
+        {/* yogun seritler: yogunluk cubuklari */}
+        {[...heat.entries()].flatMap(([l, bins]) => { const mx = Math.max(1, ...bins.values()); return [...bins.entries()].map(([bx, c]) => { const h = 5 + (c / mx) * (LANE_H - 14); return <rect key={`h${l}${bx}`} className="heat" x={bx * 5} y={laneY(l) - h / 2} width={4} height={h} rx={2} fill={COLOR[l]} opacity={0.28 + 0.62 * (c / mx)} /> }) })}
         {/* istek -> yanit sure kapsulleri */}
         {shown.map((e) => {
-          if (e.kind !== 'request') return null
+          if (e.kind !== 'request' || isDense(e)) return null
           const r = resByReq.get(e.payload.requestId); const p = pos.get(e.id)
           if (!r || !p) return null
           const x2 = x(r.ts); if (x2 - p.x < 3) return null
@@ -237,6 +253,8 @@ function Lanes(props: {
         {shown.flatMap((e) => e.links.map((lk) => {
           const a = pos.get(lk.from), b = pos.get(e.id)
           if (!a || !b) return null
+          const src = shown.find((z) => z.id === lk.from)
+          if (isDense(e) || (src && isDense(src))) return null
           const mx = (a.x + b.x) / 2
           const hot = selected != null && chain.has(e.id) && chain.has(lk.from)
           return (
@@ -250,7 +268,7 @@ function Lanes(props: {
         }))}
         {shown.map((e) => {
           const p = pos.get(e.id); const l = laneOf(e, allReq)
-          if (!p || !l) return null
+          if (!p || !l || isDense(e)) return null
           const r = e.kind === 'render' ? Math.min(9, 4 + Math.sqrt(e.payload.count)) : 4.6
           const isSel = selected === e.id, inChain = chain.has(e.id)
           return (
