@@ -33,6 +33,8 @@ export function buildCommands(): Command[] {
     { id: 'autoopen', title: t(s.settings.autoOpen ? 'cmd.autoOpenOff' : 'cmd.autoOpenOn'), run: () => void api.setSettings({ autoOpen: !s.settings.autoOpen }) },
     { id: 'react.flash', title: t('tl.reactHl') + (s.flash ? ' (on)' : ''), run: () => { if (active) void api.flashRenders(active.id, !s.flash).then((on: boolean | null) => s.set({ flash: !!on })) } },
     { id: 'shortcuts', title: t('cmd.shortcuts'), hint: '⌘/', run: () => s.set({ overlay: 'shortcuts' }) },
+    { id: 'srv.start', title: t('cmd.srvStart'), run: () => { s.set({ panelTab: 'server' }); void api.serverInfo(s.activeWorkspaceId).then((i: any) => { const sc = i?.scripts?.find((x: any) => x.likely) ?? i?.scripts?.[0]; if (sc) void api.serverStart(s.activeWorkspaceId, sc.name) }) } },
+    { id: 'srv.stop', title: t('cmd.srvStop'), run: () => void api.serverStop(s.activeWorkspaceId) },
     { id: 'settings', title: t('cmd.settings'), hint: '⌘,', run: () => s.set({ overlay: 'settings' }) },
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
@@ -83,7 +85,7 @@ export function buildCommands(): Command[] {
   for (const g of GEO_PRESETS) cmds.push({ id: `geo.${g.id}`, title: t('cmd.geo', { p: g.label }), hint: emu?.geo === g.id ? 'active' : g.locale, run: () => setEmu({ geo: g.id }) })
   if (emu?.geo) cmds.push({ id: 'geo.off', title: t('cmd.geoOff'), run: () => setEmu({ geo: null }) })
   // Panel sekmeleri
-  const PANEL_NAMES: Record<string, string> = { timeline: 'Timeline', network: 'Network', console: 'Console', elements: 'Elements', storage: 'Storage', perf: 'Performance', coverage: 'Coverage', a11y: 'Accessibility', seo: 'Meta & SEO', components: 'Components', renders: 'Renders', raw: 'Raw events' }
+  const PANEL_NAMES: Record<string, string> = { timeline: 'Timeline', network: 'Network', console: 'Console', elements: 'Elements', storage: 'Storage', perf: 'Performance', coverage: 'Coverage', a11y: 'Accessibility', seo: 'Meta & SEO', server: 'Server', components: 'Components', renders: 'Renders', raw: 'Raw events' }
   PANEL_TABS.forEach((k, i) => cmds.push({ id: `panel.${k}`, title: t('cmd.panel', { n: PANEL_NAMES[k] }), hint: i < 9 ? `⌥⌘${i + 1}` : '', run: () => s.set({ panelTab: k }) }))
   // Responsive Lab (#7)
   const lab = active?.lab

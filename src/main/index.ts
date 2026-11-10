@@ -20,6 +20,7 @@ import { loadSnapshot, saveSnapshot } from './snapshot'
 import { buildHar } from './report-data'
 import { maskDeep } from '../shared/mask'
 import { CdpProxy } from './cdpproxy'
+import { DevServers } from './devserver'
 import { A11Y_AUDIT } from './a11y-audit'
 import { CSS_SNAPSHOT } from './css-snapshot'
 import { SEO_SCRIPT } from './seo-script'
@@ -48,6 +49,7 @@ let telemetry: Telemetry
 let demo: DemoServer
 let samplesDir = ''
 let proxy: CdpProxy
+let servers: DevServers
 let polledOnce = false
 let downloads: Downloads
 let activeWorkspaceId = 'default'
@@ -292,6 +294,10 @@ function registerIpc(): void {
     if (r.canceled || !r.filePaths[0]) return null
     try { return { name: r.filePaths[0].split('/').pop(), events: loadSnapshot(r.filePaths[0]) } } catch { return null }
   })
+  // Dev sunucusu: Workspace klasorundeki package.json script'i (yalnizca tanimli script'ler) calistirilir
+  handle(Ch.srvInfo, schemas.wsId, ({ wsId }) => servers.info(wsId, workspaces.get(wsId)?.rootDir ?? null))
+  handle(Ch.srvStart, schemas.srvStart, ({ wsId, script }) => { const w = workspaces.get(wsId); return w?.rootDir ? servers.start(wsId, w.rootDir, script) : false })
+  handle(Ch.srvStop, schemas.wsId, ({ wsId }) => servers.stop(wsId))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -386,6 +392,7 @@ async function createWindow(): Promise<void> {
     return workspaces.get(wsId)?.rootDir ?? null
   }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
+  servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
   proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
   registerIpc()
   setInterval(() => bus.compact(), 10_000).unref()
@@ -431,5 +438,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => library?.flush())
+app.on('before-quit', () => { library?.flush(); servers?.stopAll() })
 app.on('window-all-closed', () => app.quit())

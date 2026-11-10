@@ -326,3 +326,9 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .errcard { margin: 18px; padding: 16px; border: 1px solid rgba(248,113,113,.45); border-radius: 12px; background: rgba(248,113,113,.06); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; } .errcard code { background: none; padding: 0; color: #fca5a5; white-space: pre-wrap; }
 
 .snapbar { display: flex; gap: 10px; align-items: center; padding: 6px 12px; background: rgba(251,191,36,.08); border-bottom: 1px solid rgba(251,191,36,.3); color: #fcd34d; font-size: 11px; } .snapbar span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Server ---- */
+.srv { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.srvstat { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; } .srvstat .vdot { background: #71717a; } .srvstat.running .vdot { background: #a3e635; box-shadow: 0 0 8px #a3e635; } .srvstat.starting .vdot { background: var(--warn); animation: breathe 1s ease-in-out infinite; } .srvstat.exited .vdot { background: var(--bad); }
+.srv-log { flex: 1; overflow: auto; padding: 6px 12px 12px; font: 11.5px/1.55 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; background: var(--bg2); border-top: 1px solid var(--line); }
+.srv-log .e { color: #fca5a5; } .srv-log .w { color: #fcd34d; } .srv-log .sys { color: var(--dim); }

@@ -3,8 +3,8 @@ import type { RulesConfig } from '../shared/rules'
 import type { BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
 import { translate, type Key } from '../shared/i18n'
 
-export type PanelTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'seo' | 'components' | 'renders' | 'raw'
-export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'storage', 'perf', 'coverage', 'a11y', 'seo', 'components', 'renders', 'raw']
+export type PanelTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
+export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'storage', 'perf', 'coverage', 'a11y', 'seo', 'server', 'components', 'renders', 'raw']
 
 interface State {
   tabs: TabInfo[]; activeTabId: string | null; dock: DevToolsDock
