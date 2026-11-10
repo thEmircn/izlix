@@ -55,6 +55,13 @@ export function App() {
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
           case cmd.startsWith('panel.') ? cmd : '': { const k = PANEL_TABS[Number(cmd.slice(6))]; if (k) st.set({ panelTab: k }); break }
+          case cmd.startsWith('tab.go.') || cmd === 'tab.next' || cmd === 'tab.prev' ? cmd : '': {
+            const mine = st.tabs.filter((x) => x.workspaceId === st.activeWorkspaceId)
+            if (!mine.length) break
+            const cur = mine.findIndex((x) => x.id === st.activeTabId)
+            const idx = cmd === 'tab.next' ? (cur + 1) % mine.length : cmd === 'tab.prev' ? (cur - 1 + mine.length) % mine.length : Number(cmd.slice(7)) === 9 ? mine.length - 1 : Math.min(Number(cmd.slice(7)) - 1, mine.length - 1)
+            void api.activateTab(mine[idx].id); break
+          }
           case 'tab.reopen': void api.reopenTab(); break
           case 'tab.new': void api.createTab(); break
           case 'tab.close': if (act) void api.closeTab(act.id); break

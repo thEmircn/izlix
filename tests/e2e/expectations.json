@@ -1071,6 +1071,16 @@
       "items",
       "gte",
       1
+    ],
+    [
+      "rules",
+      "contains",
+      "viewport-meta"
+    ],
+    [
+      "rules",
+      "contains",
+      "img-size"
     ]
   ],
   "settings-flash": [
@@ -1366,6 +1376,33 @@
       "selectors",
       "contains",
       ".also-unused .deep"
+    ]
+  ],
+  "tab-keys": [
+    [
+      "next",
+      "eq",
+      true
+    ],
+    [
+      "prev",
+      "eq",
+      true
+    ],
+    [
+      "go2",
+      "eq",
+      true
+    ],
+    [
+      "last",
+      "eq",
+      true
+    ],
+    [
+      "persisted",
+      "eq",
+      "console"
     ]
   ]
 }
