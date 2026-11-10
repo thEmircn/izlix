@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { aggregateRenders, isMinifiedName, wastedRatio, type TrackerRow } from '../shared/tracker'
-import { useStore, useT } from './store'
+import { toast, useStore, useT } from './store'
 
 interface Node { id: number; depth: number; name: string; t?: number; key?: string }
 const ROW_H = 20
@@ -43,6 +43,34 @@ export function Inspector({ height }: { height: number }) {
   const render = latestRenderId(events, tabId)
   const counts = useMemo(() => new Map(aggregateRenders([...events.values()].filter((e) => e.tabId === tabId)).map((r) => [r.key, r])), [events, tabId])
 
+  const [picking, setPicking] = useState(false)
+  const nodesRef = useRef<Node[]>([]); nodesRef.current = nodes
+  useEffect(() => {
+    if (!tabId) return
+    void window.izlix.dtEnable(tabId, 'elements')
+    const off = window.izlix.onDt(async (e: any) => {
+      if (e.id !== useStore.getState().activeTabId || e.method !== 'Overlay.inspectNodeRequested') return
+      setPicking(false)
+      void window.izlix.dt(tabId, 'Overlay.setInspectMode', { mode: 'none', highlightConfig: {} })
+      await window.izlix.dt(tabId, 'DOM.getDocument', { depth: 0 })
+      const r: any = await window.izlix.dt(tabId, 'DOM.pushNodesByBackendIdsToFrontend', { backendNodeIds: [e.params.backendNodeId] })
+      const nodeId = r?.nodeIds?.[0]
+      const hit: any = nodeId ? await window.izlix.dtReactIndex(tabId, nodeId) : null
+      if (!hit) { toast(t('insp.noComp')); return }
+      const tree = await window.izlix.inspectTree(tabId)
+      setNodes(tree?.nodes ?? [])
+      const n = (tree?.nodes ?? []).find((x: Node) => x.id === hit.id)
+      if (n) { setFilter(''); void pick(n) }
+    })
+    return () => { off(); void window.izlix.dt(tabId, 'Overlay.setInspectMode', { mode: 'none', highlightConfig: {} }).catch(() => {}); void window.izlix.dtDisable(tabId, 'elements') }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId])
+  const startPick = async (): Promise<void> => {
+    if (!tabId) return
+    const on = !picking; setPicking(on)
+    await window.izlix.dt(tabId, 'Overlay.setInspectMode', { mode: on ? 'searchForNode' : 'none', highlightConfig: { contentColor: { r: 255, g: 255, b: 255, a: 0.12 }, borderColor: { r: 251, g: 191, b: 36, a: 0.5 }, showInfo: true } })
+  }
+
   const refresh = useCallback(async () => {
     if (!tabId) return
     const r = await window.izlix.inspectTree(tabId)
@@ -63,11 +91,19 @@ export function Inspector({ height }: { height: number }) {
     setSel(n); setDetail(null)
     if (tabId) setDetail(await window.izlix.inspectNode(tabId, n.id, n.t, n.name))
   }
+  const editHook = async (index: number, json: string): Promise<void> => {
+    if (!tabId || !sel) return
+    try { JSON.parse(json) } catch { toast(t('insp.badJson')); return }
+    const r = await window.izlix.setHook(tabId, sel.id, index, json)
+    if (!r?.ok) toast(r?.err ?? t('insp.badJson'))
+    setTimeout(() => void pick(sel), 350)
+  }
   const open = (src: any): void => { void window.izlix.openSource({ file: src.file, line: src.line, column: src.column, editor }) }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', gap: 8, padding: '4px 8px', alignItems: 'center' }}>
+        <button className={`btn ${picking ? 'primary' : ''}`} onClick={() => void startPick()}>{t('el.pick')}</button>
         <input placeholder={t('insp.search')} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: '#121214', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
         <label><input type="checkbox" checked={hideMin} onChange={(e) => setHideMin(e.target.checked)} /> {t('insp.hideMin')}</label>
         <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {t('insp.auto')}</label>
@@ -97,7 +133,15 @@ export function Inspector({ height }: { height: number }) {
             <div style={{ marginTop: 6, color: 'var(--dim)' }}>props</div><Val v={detail.props} />
             {detail.state !== undefined && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>state</div><Val v={detail.state} /></>}
             {detail.hooks?.length > 0 && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>hooks</div>
-              {detail.hooks.map((h: any) => <div key={h.index}>#{h.index} <span style={{ color: '#a1a1aa' }}>{h.kind}</span> <Val v={h.value} depth={1} /></div>)}</>}
+              {detail.hooks.map((h: any) => (
+                <div key={h.index} className="hookrow">#{h.index} <span style={{ color: '#a1a1aa' }}>{h.kind}</span>{' '}
+                  {h.kind === 'state' && h.raw != null
+                    ? <input className="hookinp" defaultValue={h.raw} spellCheck={false} title={t('insp.editHook')}
+                        onKeyDown={(e) => { if (e.key === 'Enter') void editHook(h.index, (e.target as HTMLInputElement).value) }}
+                        onBlur={(e) => { if (e.target.value !== h.raw) void editHook(h.index, e.target.value) }} />
+                    : <Val v={h.value} depth={1} />}
+                </div>
+              ))}</>}
           </>
         )}
       </div>

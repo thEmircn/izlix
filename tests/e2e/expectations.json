@@ -1183,5 +1183,27 @@
       "lt",
       100
     ]
+  ],
+  "hooks-edit": [
+    [
+      "inputs",
+      "len",
+      3
+    ],
+    [
+      "page[0]",
+      "eq",
+      "Edited live"
+    ],
+    [
+      "toast",
+      "contains",
+      "JSON"
+    ],
+    [
+      "hit.name",
+      "eq",
+      "App"
+    ]
   ]
 }

@@ -281,3 +281,6 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .switch.on { background: var(--accent); border-color: transparent; } .switch.on i { transform: translateX(16px); background: #0e0e0f; }
 
 .tgl { display: inline-flex; align-items: center; gap: 4px; color: var(--dim); cursor: pointer; white-space: nowrap; font-size: 11px; } .tgl:hover { color: var(--fg); }
+
+.hookinp { background: var(--bg2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font: 11px ui-monospace, Menlo, monospace; width: 60%; outline: none; color: #bef264; } .hookinp:focus { border-color: rgba(255,255,255,.4); }
+.hookrow { padding: 1px 0; }

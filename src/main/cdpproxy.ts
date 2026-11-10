@@ -89,6 +89,20 @@ export class CdpProxy {
   /** sekme kapanirken */
   drop(tabId: string): void { this.release(tabId) }
 
+  /** DOM dugumu -> en yakin React bileseninin Inspector agac indeksi (Pick) */
+  async reactIndex(tabId: string, nodeId: number): Promise<{ id: number; name: string } | null> {
+    const w = this.wc(tabId)
+    if (!w) return null
+    try {
+      const r: any = await w.debugger.sendCommand('DOM.resolveNode', { nodeId })
+      const objectId = r.object?.objectId
+      if (!objectId) return null
+      const res: any = await w.debugger.sendCommand('Runtime.callFunctionOn', { objectId, functionDeclaration: 'function () { return window.__IZLIX_INDEX_OF__ ? window.__IZLIX_INDEX_OF__(this) : null }', returnByValue: true })
+      void w.debugger.sendCommand('Runtime.releaseObject', { objectId }).catch(() => {})
+      return res.result?.value ?? null
+    } catch { return null }
+  }
+
   /** React bilesen zinciri: DOM dugumu -> fiber -> bilesen adlari */
   async reactChain(tabId: string, nodeId: number): Promise<{ name: string; src?: string }[] | null> {
     const w = this.wc(tabId)

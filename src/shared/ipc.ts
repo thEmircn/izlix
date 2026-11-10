@@ -53,5 +53,6 @@ export const schemas = {
   shot: z.object({ id: z.string().max(64), kind: z.enum(['viewport', 'full', 'node']), nodeId: z.number().int().min(0).optional(), copy: z.boolean().optional() }),
   flash: z.object({ id: z.string().max(64), on: z.boolean() }),
   cacheSet: z.object({ id: z.string().max(64), disabled: z.boolean() }),
+  hookSet: z.object({ id: z.string().max(64), node: z.number().int().min(0), index: z.number().int().min(0).max(200), json: z.string().max(20000) }),
   overlay: z.object({ open: z.boolean() })
 }

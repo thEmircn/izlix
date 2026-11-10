@@ -221,12 +221,33 @@ export const BRIDGE_SOURCE = String.raw`(() => {
         else if (m && typeof m === 'object' && !Array.isArray(m) && 'create' in m && 'deps' in m) kind = 'effect';
         else if (m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === 1 && 'current' in m) kind = 'ref';
         else if (Array.isArray(m) && m.length === 2 && (Array.isArray(m[1]) || m[1] === null)) kind = 'memo';
-        hooks.push({ index: i, kind: kind, value: kind === 'effect' ? { $: 'effect' } : ser(kind === 'memo' ? m[0] : m, 0, []) });
+        let raw = null;
+        if (kind === 'state') { try { const j = JSON.stringify(m); if (j !== undefined && j.length <= 4000) raw = j; } catch (e) {} }
+        hooks.push({ index: i, kind: kind, raw: raw, value: kind === 'effect' ? { $: 'effect' } : ser(kind === 'memo' ? m[0] : m, 0, []) });
         c = c.next; i++;
       }
       d.hooks = hooks;
     }
     return d;
+  };
+
+  // Hook state'ini canli degistir (useState/useReducer dispatch); yalnizca JSON ile ifade edilebilen degerler
+  window.__IZLIX_SET_HOOK__ = function (id, index, json) {
+    const f = inspected[id]; if (!f) return { ok: false, err: 'component not found (refresh the tree)' };
+    let c = f.memoizedState, i = 0; while (c && i < index) { c = c.next; i++; }
+    if (!c || !c.queue || typeof c.queue.dispatch !== 'function') return { ok: false, err: 'not a state hook' };
+    try { c.queue.dispatch(JSON.parse(json)); return { ok: true }; } catch (e) { return { ok: false, err: String(e) }; }
+  };
+  // DOM ogesinden en yakin bilesenin agac indeksi (Pick icin)
+  window.__IZLIX_INDEX_OF__ = function (el) {
+    const key = Object.keys(el).find((k) => k.indexOf('__reactFiber$') === 0 || k.indexOf('__reactInternalInstance$') === 0);
+    if (!key) return null;
+    let f = el[key];
+    while (f && COMPONENT_TAGS.indexOf(f.tag) === -1) f = f.return;
+    if (!f) return null;
+    let idx = inspected.findIndex((x) => x === f || x === f.alternate);
+    if (idx === -1) { window.__IZLIX_TREE__(); idx = inspected.findIndex((x) => x === f || x === f.alternate); }
+    return idx === -1 ? null : { id: idx, name: nameOf(f) };
   };
 
   let rid = 0, commitSeq = 0;
