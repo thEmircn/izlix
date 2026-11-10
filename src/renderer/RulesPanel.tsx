@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { newRule, type Rule, type RuleAction, type RulesConfig } from '../shared/rules'
+import { parseRulesJson, newRule, type Rule, type RuleAction, type RulesConfig } from '../shared/rules'
 import { useStore, useT } from './store'
 
 const TYPES: RuleAction['type'][] = ['mock', 'delay', 'status', 'redirect', 'headers']
@@ -23,6 +23,13 @@ export function RulesPanel({ onClose }: { onClose(): void }) {
   const stored = useStore((s) => s.rules[s.activeWorkspaceId])
   const [cfg, setCfg] = useState<RulesConfig>(() => stored ? structuredClone(stored) : { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] })
   const upd = (id: string, p: Partial<Rule>): void => setCfg((c) => ({ ...c, rules: c.rules.map((r) => r.id === id ? { ...r, ...p } : r) }))
+  const [importing, setImporting] = useState<string | null>(null)
+  const [bad, setBad] = useState(false)
+  const doImport = (): void => {
+    const r = parseRulesJson(importing ?? '')
+    if (!r) { setBad(true); return }
+    setCfg((c) => ({ rules: [...c.rules, ...r.rules], domains: r.domains?.length ? r.domains : c.domains })); setImporting(null); setBad(false)
+  }
   const save = async (): Promise<void> => { await window.izlix.setRules(wsId, cfg); void window.izlix.track('rules.saved', { rules: cfg.rules.length }); onClose() }
 
   return (
@@ -32,10 +39,19 @@ export function RulesPanel({ onClose }: { onClose(): void }) {
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 10, alignItems: 'center' }}>
           <b style={{ flex: 1 }}>{t('rr.title', { ws: wsName ?? '' })}</b>
           <button className="btn" onClick={() => setCfg((c) => ({ ...c, rules: [...c.rules, newRule()] }))}>{t('rr.add')}</button>
+          <button className="btn" onClick={() => void navigator.clipboard?.writeText(JSON.stringify(cfg, null, 1)).catch(() => {})}>{t('rr.copy')}</button>
+          <button className="btn" onClick={() => setImporting(importing === null ? '' : null)}>{t('rr.import')}</button>
           <button className="btn primary" onClick={save}>{t('rr.save')}</button>
           <button className="btn" onClick={onClose}>{t('rr.close')}</button>
         </div>
         <div style={{ overflow: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {importing !== null && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ color: bad ? '#ff5c5c' : 'var(--dim)' }}>{bad ? t('rr.importBad') : t('rr.importHint')}</div>
+              <textarea rows={5} aria-label={t('rr.import')} value={importing} onChange={(e) => { setImporting(e.target.value); setBad(false) }} />
+              <div><button className="btn primary" onClick={doImport}>{t('rr.import')}</button></div>
+            </div>
+          )}
           <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {t('rr.domains')}
             <input style={{ flex: 1 }} value={cfg.domains.join(', ')} onChange={(e) => setCfg({ ...cfg, domains: e.target.value.split(',').map((d) => d.trim()).filter(Boolean) })} />

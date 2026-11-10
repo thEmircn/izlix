@@ -99,3 +99,20 @@ export function ruleFromRequest(url: string, method: string, kind: 'mock' | 'del
   const name = { mock: 'Mock', delay: 'Delay 2s', fail: 'Fail 500' }[kind]
   return newRule({ name: `${name} ${method} ${(() => { try { return new URL(url).pathname } catch { return url } })()}`, urlPattern: pattern, method, action })
 }
+
+/** Disaridan yapistirilan JSON'u kural listesine cevirir (dizi veya {rules, domains}); gecersizse null. Kimlikler yeniden uretilir. */
+export function parseRulesJson(text: string): { rules: Rule[]; domains?: string[] } | null {
+  try {
+    const j = JSON.parse(text)
+    const list = Array.isArray(j) ? j : j?.rules
+    if (!Array.isArray(list)) return null
+    const types = ['redirect', 'headers', 'mock', 'delay', 'status']
+    const rules: Rule[] = []
+    for (const r of list) {
+      if (!r || typeof r.urlPattern !== 'string' || !r.urlPattern || !r.action || !types.includes(r.action.type)) return null
+      rules.push(newRule({ name: String(r.name ?? 'Imported').slice(0, 200), enabled: r.enabled !== false, urlPattern: r.urlPattern.slice(0, 2048), method: typeof r.method === 'string' ? r.method : undefined, action: r.action }))
+    }
+    const domains = Array.isArray(j?.domains) ? j.domains.filter((d: unknown) => typeof d === 'string') : undefined
+    return { rules, domains }
+  } catch { return null }
+}

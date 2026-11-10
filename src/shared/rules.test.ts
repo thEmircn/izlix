@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ruleFromRequest, evaluate, hostAllowed, matchesPattern, needsResponseStage, newRule, type Rule } from './rules'
+import { parseRulesJson, ruleFromRequest, evaluate, hostAllowed, matchesPattern, needsResponseStage, newRule, type Rule } from './rules'
 import { fuzzyScore, rank } from './fuzzy'
 
 const rule = (p: Partial<Rule>): Rule => newRule({ id: p.id ?? 'r', ...p })
@@ -102,5 +102,17 @@ describe('ruleFromRequest', () => {
     expect(evaluate([r], { url: 'http://localhost:5173/api/other', method: 'GET' })).toBeNull()
     expect(ruleFromRequest('http://a.com/x', 'POST', 'mock').action.type).toBe('mock')
     expect(ruleFromRequest('http://a.com/x', 'GET', 'mock', '{"a":1}', 'text/plain').action).toMatchObject({ body: '{"a":1}', contentType: 'text/plain' })
+  })
+})
+
+describe('parseRulesJson', () => {
+  const rule = { name: 'a', urlPattern: '/x', action: { type: 'delay', ms: 5 } }
+  it('dizi ve nesne bicimi; kimlikler yeniden uretilir', () => {
+    expect(parseRulesJson(JSON.stringify([{ ...rule, id: 'same' }]))!.rules[0].id).not.toBe('same')
+    const o = parseRulesJson(JSON.stringify({ rules: [rule], domains: ['localhost', 5] }))!
+    expect(o.rules).toHaveLength(1); expect(o.domains).toEqual(['localhost'])
+  })
+  it('gecersiz girdiler null', () => {
+    for (const t of ['x', '{}', '[{"urlPattern":"","action":{"type":"delay"}}]', '[{"urlPattern":"/x","action":{"type":"evil"}}]', 'null']) expect(parseRulesJson(t)).toBeNull()
   })
 })
