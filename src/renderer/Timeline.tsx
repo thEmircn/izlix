@@ -199,9 +199,11 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
       {ev.kind === 'request' && (
         <div style={{ margin: '4px 0' }}>{t('tl.ruleFrom')}{' '}
           {(['mock', 'delay', 'fail'] as const).map((k) => (
-            <button key={k} className="btn" style={{ marginRight: 4 }} onClick={() => {
+            <button key={k} className="btn" style={{ marginRight: 4 }} onClick={async () => {
+              const body = k === 'mock' ? await window.izlix.responseBody(ev.tabId, p.requestId) : null
+              const mime = [...byId.values()].find((x) => x.kind === 'response' && x.payload.requestId === p.requestId)?.payload.mimeType
               const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
-              void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k)] })
+              void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k, body, mime)] })
               st.set({ overlay: 'rules' })
             }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : 'tl.ruleFail')}</button>
           ))}

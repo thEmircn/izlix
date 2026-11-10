@@ -101,5 +101,6 @@ describe('ruleFromRequest', () => {
     expect(evaluate([r], { url: 'http://localhost:5173/api/items?page=2', method: 'GET' })?.status).toBe(500)
     expect(evaluate([r], { url: 'http://localhost:5173/api/other', method: 'GET' })).toBeNull()
     expect(ruleFromRequest('http://a.com/x', 'POST', 'mock').action.type).toBe('mock')
+    expect(ruleFromRequest('http://a.com/x', 'GET', 'mock', '{"a":1}', 'text/plain').action).toMatchObject({ body: '{"a":1}', contentType: 'text/plain' })
   })
 })

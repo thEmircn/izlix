@@ -91,10 +91,10 @@ export function newRule(partial: Partial<Rule> = {}): Rule {
 }
 
 /** Timeline'daki bir istekten hizli kural: yol kalibi (sorgu dizesiz) + secilen eylem. */
-export function ruleFromRequest(url: string, method: string, kind: 'mock' | 'delay' | 'fail'): Rule {
+export function ruleFromRequest(url: string, method: string, kind: 'mock' | 'delay' | 'fail', body?: string | null, contentType?: string): Rule {
   let pattern = url
   try { const u = new URL(url); pattern = u.origin === 'null' ? url : u.origin + u.pathname } catch { /* ham url */ }
-  const action: RuleAction = kind === 'mock' ? { type: 'mock', status: 200, body: '{}', contentType: 'application/json' }
+  const action: RuleAction = kind === 'mock' ? { type: 'mock', status: 200, body: body ?? '{}', contentType: contentType || 'application/json' }
     : kind === 'delay' ? { type: 'delay', ms: 2000 } : { type: 'status', code: 500 }
   const name = { mock: 'Mock', delay: 'Delay 2s', fail: 'Fail 500' }[kind]
   return newRule({ name: `${name} ${method} ${(() => { try { return new URL(url).pathname } catch { return url } })()}`, urlPattern: pattern, method, action })

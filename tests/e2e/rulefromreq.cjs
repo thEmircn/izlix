@@ -9,5 +9,13 @@ module.exports = async ({ tabs, sleep, click, shellEval, rules, pageEval }) => {
   out.panelOpen = await shellEval(`!!document.querySelector('[role=dialog][aria-label^="Request Rules"]')`)
   await shellEval(`document.querySelector('[role=dialog][aria-label^="Request Rules"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`); await sleep(300)
   out.afterStatus = await pageEval(`fetch('/api/items').then(r=>r.status)`)
+  // mock: gercek govdeyle dolar
+  rules.set('default', { rules: [], domains: ['localhost'] })
+  await shellEval(`window.izlix.setRules('default',{rules:[],domains:['localhost']})`); await sleep(300)
+  await click('#load'); await sleep(1500)
+  await shellEval(`[...document.querySelectorAll('svg circle')].filter(c=>c.getAttribute('fill')==='#4ea1ff').pop().dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(300)
+  await shellEval(`[...document.querySelectorAll('button')].find(b=>b.textContent==='mock').click()`); await sleep(800)
+  const m = rules.get('default').rules[0]
+  out.mockBody = m && m.action.body && m.action.body.slice(0, 60)
   return out
 }

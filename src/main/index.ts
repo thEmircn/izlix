@@ -151,6 +151,15 @@ function registerIpc(): void {
   })
   handle(Ch.mediaSet, schemas.mediaSet, ({ id, colorScheme, reducedMotion }) => tabs.setMedia(id, colorScheme, reducedMotion))
   handle(Ch.snapshotSave, schemas.tabId, ({ id }) => { const f = saveSnapshot(join(app.getPath('userData'), 'snapshots'), bus.snapshot(id)); if (!process.env.DB_SCRIPT) shell.showItemInFolder(f); return f })
+  // Mock'u gercek yanit govdesiyle doldurmak icin: yalnizca metin, en fazla 200 KB
+  handle(Ch.reqBody, schemas.reqBody, async ({ id, requestId }) => {
+    const e = tabs.get(id); if (!e) return null
+    try {
+      const r: any = await e.view.webContents.debugger.sendCommand('Network.getResponseBody', { requestId })
+      if (r.base64Encoded || String(r.body).length > 200_000) return null
+      return String(r.body)
+    } catch { return null }
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

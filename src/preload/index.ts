@@ -34,6 +34,7 @@ export const api = {
   onSettings: sub(Ch.settingsState),
   setMedia: (id: string, colorScheme: 'light' | 'dark' | null, reducedMotion: boolean) => call(Ch.mediaSet, { id, colorScheme, reducedMotion }),
   saveSnapshot: (id: string) => call(Ch.snapshotSave, { id }),
+  responseBody: (id: string, requestId: string) => call(Ch.reqBody, { id, requestId }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

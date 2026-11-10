@@ -507,6 +507,11 @@
       "afterStatus",
       "eq",
       500
+    ],
+    [
+      "mockBody",
+      "contains",
+      "Item 0"
     ]
   ]
 }
