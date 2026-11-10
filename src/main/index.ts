@@ -89,7 +89,10 @@ async function handleLaunch(l: Launch): Promise<void> {
   activeWorkspaceId = w.id
   if (!detected.length) await pollServers() // soguk baslangicta sunucu listesi henuz bos olabilir
   const srv = detected.find((s) => s.cwd && workspaces.workspaceForCwd(s.cwd)?.id === w.id)
-  await newTab(srv ? `localhost:${srv.port}` : undefined)
+  // --run: calisan sunucu yoksa package.json'daki en uygun script baslatilir (URL gorununce sekme kendiliginden acilir)
+  const sc = l.run && !srv ? DevServers.scan(l.dir).scripts.find((x) => x.likely) : undefined
+  if (sc) servers.start(w.id, l.dir, sc.name)
+  if (!sc) await newTab(srv ? `localhost:${srv.port}` : undefined)
   pushWorkspaces(); pushTabs()
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))

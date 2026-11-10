@@ -6,6 +6,10 @@ describe('parseLaunch', () => {
     expect(parseLaunch(['--open=/a/b'])).toEqual({ type: 'dir', dir: '/a/b' })
     expect(parseLaunch(['--open=proj'], '/home/x')).toEqual({ type: 'dir', dir: '/home/x/proj' })
   })
+  it('--run bayragi dev sunucusunu da baslatir', () => {
+    expect(parseLaunch(['--open=/a/b', '--run'])).toEqual({ type: 'dir', dir: '/a/b', run: true })
+    expect(parseLaunch(['--open=/a/b'])).toEqual({ type: 'dir', dir: '/a/b' })
+  })
   it('izlix://open?url= yalnizca http(s)', () => {
     expect(parseLaunch(['izlix://open?url=' + encodeURIComponent('http://localhost:3000/x?a=1')])).toEqual({ type: 'url', url: 'http://localhost:3000/x?a=1' })
     expect(parseLaunch(['izlix://open?url=' + encodeURIComponent('javascript:alert(1)')])).toBeNull()

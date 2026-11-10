@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path'
 
-export type Launch = { type: 'dir'; dir: string } | { type: 'url'; url: string }
+export type Launch = { type: 'dir'; dir: string; run?: boolean } | { type: 'url'; url: string }
 
 /**
  * Disaridan gelen istekler (CLI argumani veya izlix:// baglantisi) -> eylem.
@@ -11,7 +11,7 @@ export function parseLaunch(args: string[], cwd = process.cwd()): Launch | null 
     if (a.startsWith('--open=')) {
       const p = a.slice('--open='.length)
       if (!p) continue
-      return { type: 'dir', dir: isAbsolute(p) ? resolve(p) : resolve(cwd, p) }
+      return { type: 'dir', dir: isAbsolute(p) ? resolve(p) : resolve(cwd, p), ...(args.includes('--run') ? { run: true } : {}) }
     }
     if (a.startsWith('izlix://')) {
       try {

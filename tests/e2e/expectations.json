@@ -1631,5 +1631,22 @@
       "eq",
       true
     ]
+  ],
+  "launch-run": [
+    [
+      "ws",
+      "eq",
+      true
+    ],
+    [
+      "tab",
+      "contains",
+      "5184"
+    ],
+    [
+      "status",
+      "eq",
+      "running"
+    ]
   ]
 }
