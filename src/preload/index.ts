@@ -23,6 +23,8 @@ export const api = {
   createWorkspace: (name: string, rootDir: string | null) => call(Ch.wsCreate, { name, rootDir }),
   switchWorkspace: (id: string) => call(Ch.wsSwitch, { id }),
   setRules: (wsId: string, cfg: { rules: unknown[]; domains: string[] }) => call(Ch.rulesSet, { wsId, ...cfg }),
+  inspectTree: (id: string) => call(Ch.inspTree, { id }),
+  inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),
   exportReport: () => call(Ch.reportExport),
   setOverlay: (open: boolean) => call(Ch.overlay, { open }),
   onRules: sub(Ch.rulesState), onCommand: sub(Ch.cmd),

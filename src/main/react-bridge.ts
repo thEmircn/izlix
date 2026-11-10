@@ -129,6 +129,72 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     return { rendered: rendered, total: total };
   }
 
+  // ---- React Inspector: agac ve ayrinti TALEP UZERINE hesaplanir (ana surec Runtime.evaluate ile cagirir; ek yuk yok) ----
+  const rootsByRenderer = new Map();
+  let inspected = [];
+  function ser(v, depth, seen) {
+    try {
+      if (v === null || v === undefined) return v === null ? null : { $: 'undefined' };
+      const t = typeof v;
+      if (t === 'string') return v.length > 200 ? v.slice(0, 200) + '…' : v;
+      if (t === 'number') return Number.isFinite(v) ? v : { $: String(v) };
+      if (t === 'boolean') return v;
+      if (t === 'bigint') return { $: v + 'n' };
+      if (t === 'symbol') return { $: String(v) };
+      if (t === 'function') return { $: 'ƒ ' + (v.displayName || v.name || 'anonymous') + '()' };
+      if (v.$$typeof) return { $: '<' + (typeof v.type === 'string' ? v.type : (v.type && (v.type.displayName || v.type.name)) || 'Element') + ' />' };
+      if (typeof Node !== 'undefined' && v instanceof Node) return { $: '<' + String(v.nodeName).toLowerCase() + '>' };
+      if (seen.indexOf(v) !== -1) return { $: '[Circular]' };
+      if (depth >= 3) return { $: Array.isArray(v) ? 'Array(' + v.length + ')' : '{…}' };
+      seen = seen.concat([v]);
+      if (Array.isArray(v)) return v.slice(0, 20).map((x) => ser(x, depth + 1, seen)).concat(v.length > 20 ? [{ $: '…' + (v.length - 20) + ' more' }] : []);
+      if (v instanceof Map) return { $: 'Map(' + v.size + ')' };
+      if (v instanceof Set) return { $: 'Set(' + v.size + ')' };
+      if (v instanceof Date) return { $: v.toISOString() };
+      const out = {}; const keys = Object.keys(v);
+      keys.slice(0, 20).forEach((k) => { out[k] = ser(v[k], depth + 1, seen); });
+      if (keys.length > 20) out['…'] = { $: (keys.length - 20) + ' more' };
+      return out;
+    } catch (e) { return { $: '[unreadable]' }; }
+  }
+  window.__IZLIX_TREE__ = function () {
+    const out = []; inspected = [];
+    const LIMIT = 20000;
+    function walk(f, depth) {
+      while (f && out.length < LIMIT) {
+        if (COMPONENT_TAGS.indexOf(f.tag) !== -1) {
+          out.push({ id: inspected.length, depth: depth, name: nameOf(f), t: typeIdOf(f), key: f.key == null ? undefined : String(f.key) });
+          inspected.push(f);
+          walk(f.child, depth + 1);
+        } else walk(f.child, depth);
+        f = f.sibling;
+      }
+    }
+    rootsByRenderer.forEach((root) => walk(root.current && root.current.child, 0));
+    return { nodes: out, truncated: out.length >= LIMIT };
+  };
+  window.__IZLIX_INSPECT__ = function (id) {
+    const f = inspected[id];
+    if (!f) return null;
+    const d = { name: nameOf(f), props: ser(f.memoizedProps, 0, []), ms: typeof f.actualDuration === 'number' ? Math.round(f.actualDuration * 100) / 100 : undefined };
+    if (f.tag === CLASS) d.state = ser(f.memoizedState, 0, []);
+    else {
+      const hooks = []; let c = f.memoizedState, i = 0;
+      while (c && typeof c === 'object' && 'next' in c && i < 60) {
+        const m = c.memoizedState;
+        let kind = 'hook';
+        if (c.queue) kind = 'state';
+        else if (m && typeof m === 'object' && !Array.isArray(m) && 'create' in m && 'deps' in m) kind = 'effect';
+        else if (m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === 1 && 'current' in m) kind = 'ref';
+        else if (Array.isArray(m) && m.length === 2 && (Array.isArray(m[1]) || m[1] === null)) kind = 'memo';
+        hooks.push({ index: i, kind: kind, value: kind === 'effect' ? { $: 'effect' } : ser(kind === 'memo' ? m[0] : m, 0, []) });
+        c = c.next; i++;
+      }
+      d.hooks = hooks;
+    }
+    return d;
+  };
+
   let rid = 0, commitSeq = 0;
   const renderers = new Map();
   const hook = {
@@ -136,6 +202,7 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     renderers: renderers,
     inject(renderer) { const id = ++rid; renderers.set(id, renderer); emit('inject', { version: renderer.version, bundleType: renderer.bundleType }); return id; },
     onCommitFiberRoot(id, root) {
+      rootsByRenderer.set(id, root);
       const t0 = performance.now();
       let info;
       try { info = collect(root); } catch (e) { emit('bridge-error', { message: String(e) }); return; }

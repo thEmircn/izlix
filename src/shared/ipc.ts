@@ -34,5 +34,6 @@ export const schemas = {
       ])
     })).max(500)
   }),
+  inspNode: z.object({ id: z.string().max(64), node: z.number().int().min(0), t: z.number().int().optional(), name: z.string().max(200) }),
   overlay: z.object({ open: z.boolean() })
 }

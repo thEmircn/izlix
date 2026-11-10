@@ -81,6 +81,18 @@ function registerIpc(): void {
     rules.set(wsId, { rules: list, domains: domains.map((d) => d.trim()).filter(Boolean) })
     tabs.refreshRules(); pushRules()
   })
+  // React Inspector: agac ve ayrinti sayfadan CDP Runtime.evaluate ile talep uzerine alinir
+  const evalInPage = async (tabId: string, expression: string): Promise<any> => {
+    const e = tabs.get(tabId); if (!e) return null
+    const r = await e.view.webContents.debugger.sendCommand('Runtime.evaluate', { expression, returnByValue: true, timeout: 2000 })
+    return r.result?.value ?? null
+  }
+  handle(Ch.inspTree, schemas.tabId, ({ id }) => evalInPage(id, 'window.__IZLIX_TREE__ ? window.__IZLIX_TREE__() : null'))
+  handle(Ch.inspNode, schemas.inspNode, async ({ id, node, t, name }) => {
+    const d = await evalInPage(id, `window.__IZLIX_INSPECT__ ? window.__IZLIX_INSPECT__(${node}) : null`)
+    if (d && t !== undefined) d.source = await tabs.get(id)?.cdp?.resolver.resolveType(t, name).catch(() => null) ?? null
+    return d
+  })
   handle(Ch.reportExport, null, () => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir

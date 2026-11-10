@@ -99,7 +99,7 @@ export function App() {
 
       {!active && <div className="empty" style={{ left: 0, top: CHROME_H, width: layout.page.width, height: layout.page.height }}>Sekme yok. ＋ ile aç.</div>}
       <div className="panel" style={{ left: layout.timeline.x, top: layout.timeline.y, width: layout.timeline.width, height: layout.timeline.height }}>
-        <Timeline width={layout.timeline.width} />
+        <Timeline width={layout.timeline.width} height={layout.timeline.height} />
       </div>
       {s.overlay === 'palette' && <Palette onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rules' && <RulesPanel onClose={() => s.set({ overlay: null })} />}

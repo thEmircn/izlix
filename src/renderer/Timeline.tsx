@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
 import { useStore, writePref } from './store'
+import { Inspector, RenderTracker } from './Inspector'
 
 // ---- sabitler ----
 const LANES = ['input', 'request', 'response', 'render', 'error'] as const
@@ -37,13 +38,13 @@ const shortUrl = (u: string): string => { try { const x = new URL(u); return x.p
 const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
 /** Unified Developer Timeline v0: 5 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
-export function Timeline({ width }: { width: number }) {
+export function Timeline({ width, height }: { width: number; height: number }) {
   const events = useStore((s) => s.events)
   const activeTabId = useStore((s) => s.activeTabId)
   const selected = useStore((s) => s.selectedEventId)
   const editor = useStore((s) => s.editor)
   const set = useStore((s) => s.set)
-  const [tab, setTab] = useState<'timeline' | 'raw'>('timeline')
+  const [tab, setTab] = useState<'timeline' | 'raw' | 'components' | 'renders'>('timeline')
   const [hidden, setHidden] = useState<Set<Lane>>(new Set())
   const [allReq, setAllReq] = useState(false)
   const [range, setRange] = useState<[number, number] | null>(null)
@@ -64,6 +65,8 @@ export function Timeline({ width }: { width: number }) {
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
         <b onClick={() => setTab('timeline')} style={{ cursor: 'pointer', opacity: tab === 'timeline' ? 1 : 0.5 }}>Timeline</b>
+        <b onClick={() => setTab('components')} style={{ cursor: 'pointer', opacity: tab === 'components' ? 1 : 0.5 }}>Components</b>
+        <b onClick={() => setTab('renders')} style={{ cursor: 'pointer', opacity: tab === 'renders' ? 1 : 0.5 }}>Renders</b>
         <b onClick={() => setTab('raw')} style={{ cursor: 'pointer', opacity: tab === 'raw' ? 1 : 0.5 }}>Raw ({all.length})</b>
         {tab === 'timeline' && <>
           {LANES.map((l) => (
@@ -76,7 +79,7 @@ export function Timeline({ width }: { width: number }) {
           </select>
         </>}
       </div>
-      {tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={events} onOpen={open} onSelect={select} />
