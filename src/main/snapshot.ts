@@ -1,0 +1,16 @@
+import { gzipSync, gunzipSync } from 'node:zlib'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import type { BusEvent } from '../shared/events'
+import { toNdjson } from './report-data'
+
+/** Anlik goruntu (K-09): maskeli, gzip'li NDJSON. Yalnizca kullanici isteyince diske yazilir. */
+export const encodeSnapshot = (events: BusEvent[]): Buffer => gzipSync(Buffer.from(toNdjson(events)))
+export const decodeSnapshot = (buf: Buffer): BusEvent[] => gunzipSync(buf).toString('utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+
+export function saveSnapshot(dir: string, events: BusEvent[], now = new Date()): string {
+  mkdirSync(dir, { recursive: true })
+  const file = join(dir, `timeline-${now.toISOString().replace(/[:.]/g, '-').slice(0, 19)}.ndjson.gz`)
+  writeFileSync(file, encodeSnapshot(events))
+  return file
+}

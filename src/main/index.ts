@@ -15,6 +15,7 @@ import { SettingsStore } from './settings'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
+import { saveSnapshot } from './snapshot'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
@@ -149,6 +150,7 @@ function registerIpc(): void {
     return newTab(`http://127.0.0.1:${port}/`)
   })
   handle(Ch.mediaSet, schemas.mediaSet, ({ id, colorScheme, reducedMotion }) => tabs.setMedia(id, colorScheme, reducedMotion))
+  handle(Ch.snapshotSave, schemas.tabId, ({ id }) => { const f = saveSnapshot(join(app.getPath('userData'), 'snapshots'), bus.snapshot(id)); if (!process.env.DB_SCRIPT) shell.showItemInFolder(f); return f })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

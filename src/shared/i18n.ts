@@ -33,6 +33,7 @@ const en = {
   'cmd.labStart': 'Responsive Lab: Start (iPhone SE + iPad mini + Laptop)', 'cmd.labStartWith': 'Responsive Lab: Start with {d}', 'cmd.labExit': 'Responsive Lab: Exit', 'cmd.labAdd': 'Responsive Lab: Add {d}', 'cmd.labRemove': 'Responsive Lab: Remove {d}',
   'cmd.emuDark': 'Emulate: Dark color scheme', 'cmd.emuLight': 'Emulate: Light color scheme', 'cmd.emuMotionOn': 'Emulate: Reduced motion on', 'cmd.emuMotionOff': 'Emulate: Reduced motion off', 'cmd.emuReset': 'Emulate: Reset (theme + motion)',
   'cmd.tlTaller': 'Panels: Timeline taller', 'cmd.tlShorter': 'Panels: Timeline shorter', 'cmd.panelWider': 'Panels: Wider side panel', 'cmd.panelNarrower': 'Panels: Narrower side panel',
+  'cmd.snapshot': 'Timeline: Save snapshot (.ndjson.gz)',
   'cmd.dockHide': 'DevTools: Hide', 'cmd.dockAt': 'DevTools: Dock {pos}', 'cmd.tab': 'Tab: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Bookmark: {t}', 'cmd.download': 'Download: {t}', 'cmd.history': 'History: {t}', 'cmd.openServer': 'Open localhost:{port}{fw}',
   'cmd.ruleOff': 'Rule: Disable “{n}”', 'cmd.ruleOn': 'Rule: Enable “{n}”'
 } as const
@@ -71,6 +72,7 @@ const tr: Record<Key, string> = {
   'cmd.labStart': 'Responsive Lab: Başlat (iPhone SE + iPad mini + Laptop)', 'cmd.labStartWith': 'Responsive Lab: {d} ile başlat', 'cmd.labExit': 'Responsive Lab: Çık', 'cmd.labAdd': 'Responsive Lab: {d} ekle', 'cmd.labRemove': 'Responsive Lab: {d} çıkar',
   'cmd.emuDark': 'Emülasyon: Koyu tema', 'cmd.emuLight': 'Emülasyon: Açık tema', 'cmd.emuMotionOn': 'Emülasyon: Azaltılmış hareket açık', 'cmd.emuMotionOff': 'Emülasyon: Azaltılmış hareket kapalı', 'cmd.emuReset': 'Emülasyon: Sıfırla (tema + hareket)',
   'cmd.tlTaller': 'Paneller: Timeline daha yüksek', 'cmd.tlShorter': 'Paneller: Timeline daha alçak', 'cmd.panelWider': 'Paneller: Yan panel daha geniş', 'cmd.panelNarrower': 'Paneller: Yan panel daha dar',
+  'cmd.snapshot': 'Timeline: Anlık görüntü kaydet (.ndjson.gz)',
   'cmd.dockHide': 'DevTools: Gizle', 'cmd.dockAt': 'DevTools: {pos} yerleştir', 'cmd.tab': 'Sekme: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Yer imi: {t}', 'cmd.download': 'İndirme: {t}', 'cmd.history': 'Geçmiş: {t}', 'cmd.openServer': 'localhost:{port} aç{fw}',
   'cmd.ruleOff': 'Kural: “{n}” kapat', 'cmd.ruleOn': 'Kural: “{n}” aç'
 }

@@ -33,6 +33,7 @@ export const api = {
   openDemo: () => call(Ch.demoOpen),
   onSettings: sub(Ch.settingsState),
   setMedia: (id: string, colorScheme: 'light' | 'dark' | null, reducedMotion: boolean) => call(Ch.mediaSet, { id, colorScheme, reducedMotion }),
+  saveSnapshot: (id: string) => call(Ch.snapshotSave, { id }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),
