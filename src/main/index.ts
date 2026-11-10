@@ -25,6 +25,7 @@ import { A11Y_AUDIT } from './a11y-audit'
 import { CSS_SNAPSHOT } from './css-snapshot'
 import { SEO_SCRIPT } from './seo-script'
 import { IMAGE_AUDIT, LINK_CHECK } from './page-tools'
+import { loadBundle } from './source-bundle'
 import { captureShot, shotName } from './shots'
 import { formatEval } from './evalformat'
 import { exportReport } from './report'
@@ -302,6 +303,14 @@ function registerIpc(): void {
   handle(Ch.srvStart, schemas.srvStart, ({ wsId, script }) => { const w = workspaces.get(wsId); return w?.rootDir ? servers.start(wsId, w.rootDir, script) : false })
   handle(Ch.srvStop, schemas.wsId, ({ wsId }) => servers.stop(wsId))
   handle(Ch.marker, schemas.marker, ({ id, text }) => { if (tabs.get(id)) bus.emit({ tabId: id, kind: 'marker', source: 'user:marker', payload: { text } }) })
+  // Sources: betik + source map (yalnizca http/https; sayfanin oturumuyla getirilir)
+  handle(Ch.srcLoad, schemas.srcLoad, async ({ id, url }) => {
+    const e = tabs.get(id)
+    if (!e || !/^https?:\/\//i.test(url)) return null
+    const fetchText = async (u: string): Promise<string | null> => { try { const r = await e.view.webContents.session.fetch(u); return r.ok ? await r.text() : null } catch { return null } }
+    return loadBundle(fetchText, url)
+  })
+  handle(Ch.srcPos, schemas.srcPos, async ({ id, url, line, col }) => tabs.get(id)?.cdp?.resolver.resolveFrame(undefined, line - 1, col - 1, url) ?? null)
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

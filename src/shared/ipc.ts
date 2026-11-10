@@ -61,5 +61,7 @@ export const schemas = {
   srvStart: z.object({ wsId: z.string().max(64), script: z.string().max(100) }),
   wsId: z.object({ wsId: z.string().max(64) }),
   marker: z.object({ id: z.string().max(64), text: z.string().min(1).max(200) }),
+  srcLoad: z.object({ id: z.string().max(64), url: z.string().max(4096) }),
+  srcPos: z.object({ id: z.string().max(64), url: z.string().max(4096), line: z.number().int().min(1), col: z.number().int().min(1) }),
   overlay: z.object({ open: z.boolean() })
 }

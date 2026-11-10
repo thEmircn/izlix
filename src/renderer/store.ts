@@ -3,8 +3,8 @@ import type { RulesConfig } from '../shared/rules'
 import type { BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
 import { translate, type Key } from '../shared/i18n'
 
-export type PanelTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
-export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'storage', 'perf', 'coverage', 'a11y', 'seo', 'server', 'components', 'renders', 'raw']
+export type PanelTab = 'timeline' | 'network' | 'console' | 'elements' | 'sources' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
+export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'sources', 'storage', 'perf', 'coverage', 'a11y', 'seo', 'server', 'components', 'renders', 'raw']
 
 interface State {
   tabs: TabInfo[]; activeTabId: string | null; dock: DevToolsDock
@@ -19,6 +19,8 @@ interface State {
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
   panelTab: PanelTab
   flash: boolean
+  /** Sources'a gitme istegi (konsol stack'i vb.): betik URL'si ve uretilen konum */
+  sourceTarget: { url: string; line: number; col: number } | null
   /** salt okunur anlik goruntu incelemesi (canli olaylarin yerine gecer) */
   snapshot: { name: string; events: BusEvent[] } | null
   permPrompts: { id: string; origin: string; permission: string }[]
@@ -40,7 +42,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) ? read('panelTab', 'timeline') : 'timeline') as PanelTab, flash: false, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) ? read('panelTab', 'timeline') : 'timeline') as PanelTab, flash: false, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
   set: (p) => { if (p.panelTab) writePref('panelTab', p.panelTab); set(p) },
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)

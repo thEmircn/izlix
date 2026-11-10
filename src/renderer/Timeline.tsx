@@ -11,6 +11,7 @@ import { A11y } from './A11y'
 import { Coverage } from './Coverage'
 import { Seo } from './Seo'
 import { Server } from './Server'
+import { Sources } from './Sources'
 import { ErrorBoundary } from './ErrorBoundary'
 import { Console } from './Console'
 import { causeChain, effectsOf, sinceNavigation } from '../shared/chain'
@@ -99,7 +100,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
         <div style={{ flexBasis: '100%' }}><Seg<PTab> value={tab} onChange={setTab} items={[
-          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') }, { key: 'coverage', label: t('tl.coverage') }, { key: 'a11y', label: t('tl.a11y') }, { key: 'seo', label: t('tl.seo') }, { key: 'server', label: t('tl.server') },
+          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'sources', label: t('tl.sources') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') }, { key: 'coverage', label: t('tl.coverage') }, { key: 'a11y', label: t('tl.a11y') }, { key: 'seo', label: t('tl.seo') }, { key: 'server', label: t('tl.server') },
           { key: 'components', label: t('tl.components') }, { key: 'renders', label: t('tl.renders') }, { key: 'raw', label: `${t('tl.raw')} (${all.length})` }
         ]} /></div>
         {tab === 'timeline' && <>
@@ -117,7 +118,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {snapshot && <div className="snapbar"><span>{t('snap.viewing', { n: snapshot.name })}</span><button className="btn sm" onClick={() => set({ snapshot: null, selectedEventId: null })}>{t('snap.close')}</button></div>}
       <ErrorBoundary label={tab}>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />

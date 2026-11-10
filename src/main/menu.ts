@@ -19,7 +19,7 @@ export function installMenu(run: (cmd: string) => void): void {
         c('Request Rules…', 'CmdOrCtrl+Shift+R', 'rules.open'),
         c('Toggle DevTools', 'Alt+CmdOrCtrl+I', 'devtools.toggle'),
         { type: 'separator' },
-        ...['Timeline', 'Network', 'Console', 'Elements', 'Storage', 'Performance', 'Coverage', 'Accessibility', 'Meta & SEO', 'Server', 'Components', 'Renders'].map((n, i) => i < 9 ? c(`Panel: ${n}`, `Alt+CmdOrCtrl+${i + 1}`, `panel.${i}`) : { label: `Panel: ${n}`, click: () => run(`panel.${i}`) }),
+        ...['Timeline', 'Network', 'Console', 'Elements', 'Sources', 'Storage', 'Performance', 'Coverage', 'Accessibility', 'Meta & SEO', 'Server', 'Components', 'Renders'].map((n, i) => i < 9 ? c(`Panel: ${n}`, `Alt+CmdOrCtrl+${i + 1}`, `panel.${i}`) : { label: `Panel: ${n}`, click: () => run(`panel.${i}`) }),
         { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
         { type: 'separator' }, { role: 'togglefullscreen' }
       ]

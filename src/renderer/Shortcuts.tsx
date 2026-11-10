@@ -4,7 +4,7 @@ import { Kbd } from './ui'
 const GROUPS: { title: string; items: [string, string][] }[] = [
   { title: 'sc.g.general', items: [['⌘K', 'sc.palette'], ['⌘,', 'sc.settings'], ['⇧⌘R', 'sc.rules'], ['⌘/', 'sc.shortcuts'], ['⌘F', 'sc.find']] },
   { title: 'sc.g.tabs', items: [['⌘T', 'sc.newTab'], ['⌘W', 'sc.closeTab'], ['⇧⌘T', 'sc.reopen'], ['⌘1–9', 'sc.goTab'], ['⌃Tab', 'sc.nextTab'], ['⌘L', 'sc.address'], ['⌘R', 'sc.reload'], ['⌘D', 'sc.bookmark']] },
-  { title: 'sc.g.panels', items: [['⌥⌘1', 'sc.timeline'], ['⌥⌘2', 'sc.network'], ['⌥⌘3', 'sc.console'], ['⌥⌘4', 'sc.elements'], ['⌥⌘5', 'sc.storage'], ['⌥⌘6', 'sc.perf'], ['⌥⌘7', 'sc.coverage'], ['⌥⌘8', 'sc.a11y'], ['⌥⌘9', 'sc.seo'], ['⌥⌘I', 'sc.devtools']] }
+  { title: 'sc.g.panels', items: [['⌥⌘1', 'sc.timeline'], ['⌥⌘2', 'sc.network'], ['⌥⌘3', 'sc.console'], ['⌥⌘4', 'sc.elements'], ['⌥⌘5', 'sc.sources'], ['⌥⌘6', 'sc.storage'], ['⌥⌘7', 'sc.perf'], ['⌥⌘8', 'sc.coverage'], ['⌥⌘9', 'sc.a11y'], ['⌥⌘I', 'sc.devtools']] }
 ]
 
 export function Shortcuts({ onClose }: { onClose(): void }) {

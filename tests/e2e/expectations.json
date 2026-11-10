@@ -1714,5 +1714,37 @@
       "contains",
       "label: 42 null undefined true Array(3) [1, 2, 3]"
     ]
+  ],
+  "sources": [
+    [
+      "sub",
+      "contains",
+      "App.tsx"
+    ],
+    [
+      "hasCode",
+      "eq",
+      true
+    ],
+    [
+      "kwSpans",
+      "gte",
+      5
+    ],
+    [
+      "matches",
+      "contains",
+      "/"
+    ],
+    [
+      "stackLinks",
+      "gte",
+      1
+    ],
+    [
+      "jumpTab",
+      "eq",
+      "Sources"
+    ]
   ]
 }

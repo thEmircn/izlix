@@ -81,7 +81,7 @@ function Line({ r, open, onToggle, editor }: { r: ConsoleRow; open: boolean; onT
         {r.count > 1 && <b key={r.count} className="count">{r.count}</b>}
         {r.origin && <a className="src" href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); void window.izlix.openSource({ file: r.origin!.file, line: r.origin!.line, column: r.origin!.column, editor }) }}>{r.origin.file.split('/').slice(-2).join('/')}:{r.origin.line}</a>}
       </div>
-      {open && r.stack && <div className="stack-trace">{r.stack.map((f, i) => <div key={i}><span>{f.fn}</span><code>{f.url.split('/').slice(-2).join('/')}:{f.line}:{f.col}</code></div>)}</div>}
+      {open && r.stack && <div className="stack-trace">{r.stack.map((f, i) => <div key={i}><span>{f.fn}</span>{/^https?:/.test(f.url) ? <a href="#" className="stlink" onClick={(e) => { e.preventDefault(); useStore.getState().set({ panelTab: 'sources', sourceTarget: { url: f.url, line: f.line, col: f.col } }) }}>{f.url.split('/').slice(-2).join('/')}:{f.line}:{f.col}</a> : <code>{f.url.split('/').slice(-2).join('/')}:{f.line}:{f.col}</code>}</div>)}</div>}
     </div>
   )
 }
