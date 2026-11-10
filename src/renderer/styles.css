@@ -347,3 +347,14 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .tk-kw { color: #f4f4f5; font-weight: 600; } .tk-str { color: #d6b98a; } .tk-com { color: #6b7280; font-style: italic; } .tk-num { color: #fdba74; } .tk-fn { color: #e4e4e7; }
 
 .stlink { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; font: 11px ui-monospace, Menlo, monospace; }
+
+/* ---- Debugger ---- */
+.dbgbar { display: flex; gap: 6px; align-items: center; padding: 4px 10px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02); min-height: 30px; flex-wrap: wrap; }
+.pausedbadge { color: #0e0e0f; background: var(--warn); font-weight: 600; font-size: 10.5px; border-radius: 999px; padding: 1px 10px; animation: breathe 1.6s ease-in-out infinite; }
+.ln { cursor: pointer; } .ln:hover { color: var(--fg); } .ln.bp { background: #f87171; color: #0e0e0f; font-weight: 700; border-radius: 3px 0 0 3px; }
+.cl.pausedline { background: rgba(251,191,36,.22); box-shadow: inset 3px 0 0 var(--warn); }
+.dbgpanel { border-top: 1px solid var(--line2); height: 42%; min-height: 150px; display: flex; flex-direction: column; background: #121213; animation: slideup .25s var(--ease); } .dbgpanel .seg2 { margin: 6px 10px; align-self: flex-start; } .dbgbody { flex: 1; overflow: auto; padding: 0 10px 10px; font: 11.5px ui-monospace, Menlo, monospace; }
+.frame { display: flex; justify-content: space-between; gap: 10px; padding: 3px 6px; border-radius: 6px; cursor: default; } .frame:hover { background: rgba(255,255,255,.05); } .frame.on { background: rgba(251,191,36,.12); } .frame span { color: var(--dim); }
+.scope .sh { padding: 3px 0; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+.arw-s { display: inline-block; width: 8px; height: 8px; position: relative; flex: none; cursor: pointer; } .arw-s::after { content: ''; position: absolute; left: 1px; top: 1px; border: solid var(--dim); border-width: 0 1.5px 1.5px 0; width: 4px; height: 4px; transform: rotate(-45deg); transition: transform .15s; } .arw-s.open::after { transform: rotate(45deg); } .arw-sp2 { display: inline-block; width: 8px; flex: none; }
+.vr { display: flex; gap: 8px; padding: 1px 0 1px 8px; align-items: baseline; } .vn { color: #e4e4e7; } .vt { color: #bef264; word-break: break-all; }

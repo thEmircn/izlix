@@ -21,6 +21,7 @@ import { buildHar } from './report-data'
 import { maskDeep } from '../shared/mask'
 import { CdpProxy } from './cdpproxy'
 import { DevServers } from './devserver'
+import { DebuggerService } from './debugger'
 import { A11Y_AUDIT } from './a11y-audit'
 import { CSS_SNAPSHOT } from './css-snapshot'
 import { SEO_SCRIPT } from './seo-script'
@@ -51,6 +52,7 @@ let demo: DemoServer
 let samplesDir = ''
 let proxy: CdpProxy
 let servers: DevServers
+let dbg: DebuggerService
 let polledOnce = false
 let downloads: Downloads
 let activeWorkspaceId = 'default'
@@ -102,7 +104,7 @@ async function newTab(url?: string): Promise<string> { return tabs.create({ url,
 
 function registerIpc(): void {
   handle(Ch.tabsCreate, schemas.tabsCreate, ({ url }) => newTab(url))
-  handle(Ch.tabsClose, schemas.tabId, ({ id }) => { proxy.drop(id); tabs.close(id) })
+  handle(Ch.tabsClose, schemas.tabId, ({ id }) => { proxy.drop(id); dbg.drop(id); tabs.close(id) })
   handle(Ch.tabsActivate, schemas.tabId, ({ id }) => tabs.activate(id))
   handle(Ch.navGo, schemas.navGo, ({ id, input }) => tabs.go(id, input))
   handle(Ch.navBack, schemas.tabId, ({ id }) => tabs.back(id))
@@ -311,6 +313,14 @@ function registerIpc(): void {
     return loadBundle(fetchText, url)
   })
   handle(Ch.srcPos, schemas.srcPos, async ({ id, url, line, col }) => tabs.get(id)?.cdp?.resolver.resolveFrame(undefined, line - 1, col - 1, url) ?? null)
+  // Debugger: Sources paneli acikken Debugger alani etkindir (kesme noktasi, duraklatma, adimlama)
+  handle(Ch.dbgEnable, schemas.tabId, ({ id }) => dbg.enable(id))
+  handle(Ch.dbgDisable, schemas.tabId, ({ id }) => dbg.disable(id))
+  handle(Ch.dbgBp, schemas.dbgBp, ({ id, action, bpId, ...a }) => action === 'remove' ? (bpId ? dbg.removeBreakpoint(id, bpId) : undefined) : (a.line ? dbg.setBreakpoint(id, { url: a.url, file: a.file, line: a.line, condition: a.condition }) : { error: 'no line' }))
+  handle(Ch.dbgCtl, schemas.dbgCtl, ({ id, cmd }) => dbg.control(id, cmd))
+  handle(Ch.dbgExc, schemas.dbgExc, ({ id, state }) => dbg.setExceptions(id, state))
+  handle(Ch.dbgScope, schemas.dbgScope, ({ id, objectId }) => dbg.scope(id, objectId))
+  handle(Ch.dbgEval, schemas.dbgEval, ({ id, frameId, expression }) => dbg.evalOnFrame(id, frameId, expression))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -405,6 +415,7 @@ async function createWindow(): Promise<void> {
     return workspaces.get(wsId)?.rootDir ?? null
   }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
+  dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
   proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
   registerIpc()

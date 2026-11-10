@@ -1,7 +1,7 @@
 import type { WebContents } from 'electron'
 import { existsSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
-import { TraceMap, FlattenMap, originalPositionFor } from '@jridgewell/trace-mapping'
+import { TraceMap, FlattenMap, originalPositionFor, allGeneratedPositionsFor } from '@jridgewell/trace-mapping'
 
 export interface SrcLoc { file: string; line: number; column: number } // line 1-bazli, orijinal kaynak
 
@@ -25,6 +25,8 @@ export class SourceResolver {
   private queue = new Map<number, { name: string; resolve: (l: SrcLoc | null) => void }>()
   private typeLoc = new Map<number, Promise<SrcLoc | null>>()
   private pending = new Set<Promise<unknown>>()
+  /** Debugger paneli acikken Debugger alani acik kalir: gecici enable/disable penceresi kapatmaz */
+  holdDebugger = false
   readonly knownFiles = new Set<string>() // editor'e acilmasina izin verilen dosyalar
   readonly components = new Map<number, SrcLoc & { name: string }>()
 
@@ -167,9 +169,37 @@ export class SourceResolver {
         } catch { resolve(null) }
       }
     } finally {
-      if (!this.wc.isDestroyed()) await dbg.sendCommand('Debugger.disable').catch(() => {})
-      this.scripts.clear()
+      if (!this.holdDebugger) {
+        if (!this.wc.isDestroyed()) await dbg.sendCommand('Debugger.disable').catch(() => {})
+        this.scripts.clear()
+      }
     }
+  }
+
+  /** Yuklenmis betik adresleri (scriptId bilinen) */
+  scriptUrls(): string[] { return [...this.byUrl.keys()].filter(Boolean) }
+  scriptIdOf(url: string): string | undefined { return this.byUrl.get(url)?.scriptId }
+
+  /**
+   * Orijinal kaynak konumu (dosya adi, 1-bazli satir) -> uretilen betik konumu (url, 0-bazli satir/sutun).
+   * Tum yuklu betiklerin source map'lerine bakar; kaynak adi `endsWith` ile eslenir.
+   */
+  async generatedFor(name: string, line: number, col = 0): Promise<{ url: string; line0: number; col0: number } | null> {
+    const base = name.replace(/\\/g, '/').replace(/^\.?\//, '')
+    for (const sc of this.byUrl.values()) {
+      if (!sc.url) continue
+      const map = await this.loadMap(sc)
+      if (!map) continue
+      const src = (map.sources as (string | null)[]).find((x) => !!x && decodeURIComponent(x).replace(/\?.*$/, '').replace(/\\/g, '/').endsWith(base))
+      if (!src) continue
+      // satirda eslesme yoksa (bos satir/yorum) sonraki birkac satira bak (DevTools gibi)
+      for (let l = line; l <= line + 6; l++) {
+        const all = allGeneratedPositionsFor(map, { source: src, line: l, column: col })
+        const g = all.filter((x) => x.line != null).sort((a, b) => (a.line! - b.line!) || (a.column! - b.column!))[0]
+        if (g && g.line != null && g.column != null) return { url: sc.url, line0: g.line - 1, col0: g.column }
+      }
+    }
+    return null
   }
 
   /** Ayni dosyada, verilen satirdan once baslayan en yakin bilesen */

@@ -19,6 +19,9 @@ interface State {
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
   panelTab: PanelTab
   flash: boolean
+  /** Debugger: kesme noktalari (sekme bazli) ve duraklama durumu */
+  bps: { tabId: string; kind: 'file' | 'url'; target: string; line: number; condition?: string; bpId?: string }[]
+  paused: { tabId: string; reason: string; frames: any[]; sel: number } | null
   /** Sources'a gitme istegi (konsol stack'i vb.): betik URL'si ve uretilen konum */
   sourceTarget: { url: string; line: number; col: number } | null
   /** salt okunur anlik goruntu incelemesi (canli olaylarin yerine gecer) */
@@ -42,7 +45,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) ? read('panelTab', 'timeline') : 'timeline') as PanelTab, flash: false, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) ? read('panelTab', 'timeline') : 'timeline') as PanelTab, flash: false, bps: [], paused: null, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
   set: (p) => { if (p.panelTab) writePref('panelTab', p.panelTab); set(p) },
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)
