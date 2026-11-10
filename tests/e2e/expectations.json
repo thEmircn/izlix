@@ -1244,5 +1244,32 @@
       "eq",
       true
     ]
+  ],
+  "jwt": [
+    [
+      "reqJwt",
+      "contains",
+      "user42"
+    ],
+    [
+      "reqValid",
+      "contains",
+      "valid"
+    ],
+    [
+      "bodyJwt",
+      "contains",
+      "expired"
+    ],
+    [
+      "tag",
+      "eq",
+      true
+    ],
+    [
+      "storageCard",
+      "eq",
+      true
+    ]
   ]
 }

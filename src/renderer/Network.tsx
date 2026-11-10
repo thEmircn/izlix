@@ -5,6 +5,8 @@ import { toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, 
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
 import { Seg } from './ui'
+import { JwtList } from './Jwt'
+import { findJwts } from '../shared/jwt'
 import { toast, useStore, useT, writePref } from './store'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
@@ -136,7 +138,8 @@ function KV({ title, data }: { title: string; data?: Record<string, string> }) {
 function Headers({ r, req, res }: { r: NetRow; req?: BusEvent; res?: BusEvent }) {
   const t = useT()
   const general: Record<string, string> = { URL: r.url, Method: r.method, Status: r.failed ? r.failed : `${r.status ?? ''} ${res?.payload.statusText ?? ''}`.trim(), ...(res?.payload.remote ? { Remote: res.payload.remote } : {}), ...(res?.payload.protocol ? { Protocol: res.payload.protocol } : {}), ...(r.modified ? { Modified: 'by Request Rules' } : {}) }
-  return <><KV title={t('net.general')} data={general} /><KV title={t('net.resHeaders')} data={res?.payload.headers} /><KV title={t('net.reqHeaders')} data={req?.payload.headers} /></>
+  const jwts = useMemo(() => findJwts(JSON.stringify([req?.payload.headers, res?.payload.headers])), [req, res])
+  return <><JwtList jwts={jwts} /><KV title={t('net.general')} data={general} /><KV title={t('net.resHeaders')} data={res?.payload.headers} /><KV title={t('net.reqHeaders')} data={req?.payload.headers} /></>
 }
 
 function Messages({ r, byId }: { r: NetRow; byId: Map<number, BusEvent> }) {
@@ -184,7 +187,7 @@ function Body({ r }: { r: NetRow }) {
   }, [tabId, r.requestId, r.resId])
   if (state.loading) return <div className="skel-wrap">{[90, 70, 82, 55].map((w, i) => <div key={i} className="skeleton" style={{ width: `${w}%`, height: 12, marginBottom: 8 }} />)}</div>
   if (state.text == null) return <div className="empty-hint">{t('net.noBody')}</div>
-  return <pre className="code">{pretty(state.text)}</pre>
+  return <><JwtList jwts={findJwts(state.text)} /><pre className="code">{pretty(state.text)}</pre></>
 }
 
 function Timing({ r, res }: { r: NetRow; res?: BusEvent }) {

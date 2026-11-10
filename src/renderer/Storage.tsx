@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast, useStore, useT } from './store'
 import { Seg } from './ui'
+import { JwtList } from './Jwt'
+import { findJwts } from '../shared/jwt'
 
 type STab = 'cookies' | 'local' | 'session' | 'idb' | 'cache'
 type Dt = (m: string, p?: Record<string, unknown>) => Promise<any>
@@ -86,12 +88,13 @@ function KeyValues({ dt, origin, local, rev, refresh }: { dt: Dt; origin: string
         <button className="btn danger" disabled={!items?.length} onClick={() => void dt('DOMStorage.clear', { storageId: id }).then(() => { toast(t('st.cleared')); refresh() })}>{t('st.clear')}</button></div>
       <table className="tbl st-tbl"><thead><tr><th>Key</th><th>Value</th><th /></tr></thead>
         <tbody>{rows.map(([k, v]) => (
-          <tr key={k}><td className="k">{k}</td>
+          <tr key={k}><td className="k">{k}{findJwts(v).length > 0 && <u className="jtag" title="JWT">JWT</u>}</td>
             <td><input defaultValue={v} spellCheck={false} onBlur={(e) => { if (e.target.value !== v) void set(k, e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter') { const nv = (e.target as HTMLInputElement).value; if (nv !== v) void set(k, nv) } }} /></td>
             <td><button className="icon-btn" aria-label="delete" onClick={() => void dt('DOMStorage.removeDOMStorageItem', { storageId: id, key: k }).then(refresh)}>×</button></td></tr>))}
           <tr className="addrow"><td><input placeholder="key" value={draft.k} onChange={(e) => setDraft({ ...draft, k: e.target.value })} /></td><td><input placeholder="value" value={draft.v} onChange={(e) => setDraft({ ...draft, v: e.target.value })} /></td>
             <td><button className="btn" disabled={!draft.k.trim()} onClick={() => { void set(draft.k.trim(), draft.v); setDraft({ k: '', v: '' }) }}>+</button></td></tr>
         </tbody></table>
+      <div style={{ padding: '0 10px' }}><JwtList jwts={(items ?? []).flatMap(([, v]) => findJwts(v)).filter((j, i, a) => a.findIndex((x) => x.raw === j.raw) === i)} /></div>
       {items && !rows.length && <div className="empty-hint">{t('st.empty')}</div>}
     </>
   )

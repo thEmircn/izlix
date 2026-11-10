@@ -284,3 +284,11 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 
 .hookinp { background: var(--bg2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font: 11px ui-monospace, Menlo, monospace; width: 60%; outline: none; color: #bef264; } .hookinp:focus { border-color: rgba(255,255,255,.4); }
 .hookrow { padding: 1px 0; }
+
+/* ---- JWT ---- */
+.jwt { padding: 0; } .jwtcard { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 6px 0; background: rgba(255,255,255,.025); animation: bump .3s var(--ease) both; }
+.jwtcard.valid { border-color: rgba(163,230,53,.3); } .jwtcard.expired { border-color: rgba(248,113,113,.45); } .jwtcard.notyet { border-color: rgba(251,191,36,.4); }
+.jhead { display: flex; gap: 10px; align-items: center; } .jhead .link { margin-left: auto; }
+.jbadge { font-size: 10.5px; border-radius: 999px; padding: 0 9px; background: rgba(255,255,255,.08); } .valid .jbadge { background: rgba(163,230,53,.14); color: #bef264; } .expired .jbadge { background: rgba(248,113,113,.16); color: #fca5a5; } .notyet .jbadge { background: rgba(251,191,36,.14); color: #fcd34d; }
+.jclaims > div { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 1px 0; } .jclaims span { color: var(--dim); } .jclaims code { background: none; padding: 0; word-break: break-all; font: 11.5px ui-monospace, Menlo, monospace; }
+.jnote { margin-top: 6px; color: var(--dim); font-size: 10.5px; } .jtag { text-decoration: none; margin-left: 8px; font-size: 9.5px; border: 1px solid var(--line2); border-radius: 999px; padding: 0 6px; color: var(--dim); }
