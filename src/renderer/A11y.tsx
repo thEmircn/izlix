@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast, useStore, useT } from './store'
-import { CountUp } from './ui'
+import { CountUp, Seg } from './ui'
+import { AxTree } from './AxTree'
 import { trAudit } from '../shared/audit-tr'
 
 interface Issue { rule: string; sev: 'error' | 'warn'; selector: string; html: string; detail: string; wcag: string }
@@ -16,6 +17,7 @@ export function A11y() {
   const [busy, setBusy] = useState(false)
   const [sev, setSev] = useState<'all' | 'error' | 'warn'>('all')
   const [open, setOpen] = useState<string | null>(null)
+  const [view, setView] = useState<'rules' | 'tree'>('rules')
   const dt = useCallback((m: string, p?: Record<string, unknown>) => (tabId ? window.izlix.dt(tabId, m, p).catch(() => null) : Promise.resolve(null)) as Promise<any>, [tabId])
 
   const run = useCallback(async () => {
@@ -42,9 +44,11 @@ export function A11y() {
   const groups = useMemo(() => { const g = new Map<string, Issue[]>(); for (const i of list) g.set(i.rule, [...(g.get(i.rule) ?? []), i]); return [...g.entries()].sort((a, b) => (b[1][0].sev === 'error' ? 1 : 0) - (a[1][0].sev === 'error' ? 1 : 0) || b[1].length - a[1].length) }, [list])
   const errors = (issues ?? []).filter((i) => i.sev === 'error').length, warns = (issues ?? []).filter((i) => i.sev === 'warn').length
 
+  if (view === 'tree') return <div className="a11y"><div className="net-bar"><Seg<'rules' | 'tree'> small value={view} onChange={setView} items={[{ key: 'rules', label: t('ax.rules') }, { key: 'tree', label: t('ax.tree') }]} /></div><AxTree /></div>
   return (
     <div className="a11y">
       <div className="net-bar">
+        <Seg<'rules' | 'tree'> small value={view} onChange={setView} items={[{ key: 'rules', label: t('ax.rules') }, { key: 'tree', label: t('ax.tree') }]} />
         <div className="chips">
           {(['all', 'error', 'warn'] as const).map((k) => <button key={k} className={`fchip ${sev === k ? 'on' : ''} ${k === 'error' ? 'lv-error' : k === 'warn' ? 'lv-warn' : ''}`} onClick={() => setSev(k)}>{t(`a11y.${k}` as any)}</button>)}
         </div>

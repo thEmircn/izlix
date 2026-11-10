@@ -8,7 +8,7 @@ export const ALLOWED_METHODS = new Set([
   'DOM.getDocument', 'DOM.requestChildNodes', 'DOM.describeNode', 'DOM.getBoxModel', 'DOM.resolveNode', 'DOM.pushNodesByBackendIdsToFrontend', 'DOM.getOuterHTML',
   'DOM.setAttributeValue', 'DOM.removeAttribute', 'DOM.removeNode', 'DOM.setNodeValue', 'DOM.setOuterHTML', 'DOM.querySelector', 'DOM.getAttributes',
   'CSS.getComputedStyleForNode', 'CSS.getMatchedStylesForNode', 'CSS.getInlineStylesForNode',
-  'Overlay.highlightNode', 'Overlay.hideHighlight', 'Overlay.setInspectMode',
+  'Accessibility.getFullAXTree', 'Overlay.highlightNode', 'Overlay.hideHighlight', 'Overlay.setInspectMode',
   'Performance.getMetrics', 'Profiler.startPreciseCoverage', 'Profiler.takePreciseCoverage', 'Profiler.stopPreciseCoverage', 'Profiler.start', 'Profiler.stop', 'Profiler.setSamplingInterval', 'CSS.startRuleUsageTracking', 'CSS.stopRuleUsageTracking', 'CSS.getStyleSheetText', 'DOMStorage.getDOMStorageItems', 'DOMStorage.setDOMStorageItem', 'DOMStorage.removeDOMStorageItem', 'DOMStorage.clear',
   'Network.getCookies', 'Network.setCookie', 'Network.deleteCookies',
   'Storage.getStorageKeyForFrame', 'Page.getFrameTree', 'IndexedDB.requestDatabaseNames', 'IndexedDB.requestDatabase', 'IndexedDB.deleteDatabase',

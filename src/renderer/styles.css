@@ -581,3 +581,11 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .tab.split::before { content: ''; width: 5px; height: 11px; border: 1.5px solid var(--dim); border-radius: 2px; margin-right: 7px; flex: none; background: linear-gradient(90deg, var(--dim) 50%, transparent 50%); opacity: .8; } .tab.split.active::before { border-color: var(--ac); background: linear-gradient(90deg, var(--ac) 50%, transparent 50%); }
 
 .link { background: none; border: 0; color: var(--ac); cursor: pointer; padding: 0; font: inherit; } .link:hover { text-decoration: underline; } .sessrow em { text-transform: none; letter-spacing: 0; font-family: inherit; }
+
+/* a11y agaci */
+.axt { display: flex; flex-direction: column; flex: 1; min-height: 0; } .ax-list { flex: 1; overflow: auto; padding: 4px 4px 14px; font: 11.5px/1.5 var(--mono); }
+.ax-row { display: flex; align-items: baseline; gap: 8px; padding: 2px 8px 2px 0; border-radius: 6px; white-space: nowrap; } .ax-row:hover { background: var(--hover); }
+.ax-t { width: 10px; color: var(--dim); cursor: pointer; transition: transform .15s; flex: none; } .ax-t.open { transform: rotate(90deg); } .ax-t.leaf { opacity: 0; cursor: default; }
+.ax-role { padding: 0 7px; border-radius: 999px; border: 1px solid var(--line2); color: var(--dim); font-size: 10.5px; flex: none; } .ax-role.lm { color: #2dd4bf; border-color: rgba(45,212,191,.4); } .ax-role.ia { color: var(--ac); border-color: rgba(255,106,43,.45); } .ax-role.hd { color: var(--warn); border-color: rgba(245,184,61,.4); } .ax-role.im { color: #d6a0ff; border-color: rgba(214,160,255,.4); }
+.ax-name { overflow: hidden; text-overflow: ellipsis; color: var(--fg); } .ax-name em { color: var(--dim); font-style: normal; } .ax-prop { color: var(--dim); font-size: 10.5px; } .ax-prop::before { content: '·'; margin-right: 6px; }
+.ax-row.issue { background: rgba(255,92,92,.07); } .ax-issue { margin-left: auto; padding: 0 8px; border-radius: 999px; background: rgba(255,92,92,.15); color: var(--bad); font-size: 10.5px; flex: none; }

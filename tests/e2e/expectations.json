@@ -2146,5 +2146,37 @@
       "eq",
       0
     ]
+  ],
+  "axtree": [
+    [
+      "rows",
+      "gte",
+      8
+    ],
+    [
+      "roles",
+      "contains",
+      "navigation"
+    ],
+    [
+      "roles",
+      "contains",
+      "main"
+    ],
+    [
+      "issues",
+      "contains",
+      "heading level jump"
+    ],
+    [
+      "statIssues",
+      "eq",
+      "3"
+    ],
+    [
+      "filtered[0]",
+      "eq",
+      "“Save”"
+    ]
   ]
 }
