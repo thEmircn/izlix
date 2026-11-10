@@ -37,7 +37,8 @@ export class TabManager {
     /** sayfanin dev sunucusunun proje kokunu bulur (Workspace kokunun yoksa port -> cwd) */
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
-    private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] })) {
+    private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
+    private hooks: { onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
   }
 
@@ -50,6 +51,7 @@ export class TabManager {
   async create(opts: { url?: string; workspaceId: string; activate?: boolean }): Promise<string> {
     const id = `tab-${++this.seq}`
     const ses = session.fromPartition(partitionFor(opts.workspaceId))
+    this.hooks.onSession?.(ses)
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
     const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false } }
@@ -89,7 +91,8 @@ export class TabManager {
     })
     wc.on('did-navigate', () => { e.interceptor?.setPageUrl(null); void e.interceptor?.refresh() })
     for (const ev of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'] as const) wc.on(ev as any, sync)
-    wc.on('did-stop-loading', () => this.persist())
+    wc.on('did-stop-loading', () => { this.persist(); this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
+    wc.on('page-title-updated', () => this.hooks.onVisit?.(wc.getURL(), wc.getTitle()))
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
     wc.on('render-process-gone', (_ev, d) => { if (d.reason !== 'clean-exit') setTimeout(() => { if (!wc.isDestroyed()) wc.reload() }, 300) })
     // target=_blank ve window.open: yeni sekmede ac (ayni Workspace)

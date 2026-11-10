@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { rank } from '../shared/fuzzy'
 import { buildCommands } from './commands'
+import { useStore } from './store'
 
 /** Command Palette (⌘K): tüm eylemler, sekmeler, Workspace'ler. Hedef: sonuç < 50 ms. */
 export function Palette({ onClose }: { onClose(): void }) {
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
-  const all = useMemo(buildCommands, [])
+  const [hist, setHist] = useState<{ url: string; title: string }[]>([])
+  useEffect(() => { void window.izlix.history().then((h: any) => setHist(h ?? [])) }, [])
+  const all = useMemo(() => [
+    ...buildCommands(),
+    ...hist.map((h) => ({ id: `hist:${h.url}`, title: `History: ${h.title}`, hint: h.url, run: () => { useStore.getState().set({ overlay: null }); void window.izlix.createTab(h.url) } }))
+  ], [hist])
   const shown = useMemo(() => rank(all, q, (c) => c.title + ' ' + (c.hint ?? ''), 50), [all, q])
   const list = useRef<HTMLDivElement>(null)
   useEffect(() => setSel(0), [q])

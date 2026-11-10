@@ -20,6 +20,7 @@ export function buildCommands(): Command[] {
     { id: 'rules.open', title: 'Request Rules: Edit…', hint: '⇧⌘R', run: () => s.set({ overlay: 'rules' }) },
     { id: 'ws.new', title: 'Workspace: New from Folder…', run: () => void api.createWorkspace('', null) },
     { id: 'tl.clear', title: 'Timeline: Clear Selection', run: () => s.set({ selectedEventId: null }) },
+    { id: 'bookmark.toggle', title: 'Bookmark: Toggle This Page', hint: '⌘D', run: () => active && void api.toggleBookmark(active.id) },
     { id: 'report.make', title: 'Bug Report: Export zip', run: () => void api.exportReport() }
   ]
   // Responsive Lab (#7)
@@ -42,6 +43,8 @@ export function buildCommands(): Command[] {
   for (const w of s.workspaces) {
     cmds.push({ id: `ws:${w.id}`, title: `Workspace: ${w.name}`, hint: w.id === s.activeWorkspaceId ? 'active' : w.rootDir ?? '', run: () => void api.switchWorkspace(w.id) })
   }
+  for (const b of s.bookmarks[s.activeWorkspaceId] ?? []) cmds.push({ id: `bm:${b.url}`, title: `Bookmark: ${b.title}`, hint: b.url, run: () => void api.createTab(b.url) })
+  for (const d of s.downloads.slice().reverse()) cmds.push({ id: `dl:${d.id}`, title: `Download: ${d.name}`, hint: d.state === 'progressing' && d.total ? `${Math.round((d.received / d.total) * 100)}%` : d.state, run: () => void api.showDownload(d.id) })
   for (const d of s.detected) {
     cmds.push({ id: `srv:${d.port}`, title: `Open localhost:${d.port}${d.framework ? ' (' + d.framework + ')' : ''}`, hint: d.cwd ?? '', run: () => void api.createTab(`localhost:${d.port}`) })
   }

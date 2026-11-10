@@ -8,7 +8,7 @@ export function installMenu(run: (cmd: string) => void): void {
   const c = (label: string, accelerator: string, cmd: string): MenuItemConstructorOptions => ({ label, accelerator, click: () => run(cmd) })
   const template: MenuItemConstructorOptions[] = [
     { role: 'appMenu' },
-    { label: 'File', submenu: [c('New Tab', 'CmdOrCtrl+T', 'tab.new'), c('Close Tab', 'CmdOrCtrl+W', 'tab.close'), { type: 'separator' }, c('Open Location…', 'CmdOrCtrl+L', 'addr.focus')] },
+    { label: 'File', submenu: [c('New Tab', 'CmdOrCtrl+T', 'tab.new'), c('Close Tab', 'CmdOrCtrl+W', 'tab.close'), c('Bookmark This Page', 'CmdOrCtrl+D', 'bookmark.toggle'), { type: 'separator' }, c('Open Location…', 'CmdOrCtrl+L', 'addr.focus')] },
     { role: 'editMenu' },
     {
       label: 'View',

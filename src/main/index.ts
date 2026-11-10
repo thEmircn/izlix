@@ -7,18 +7,22 @@ import type { Editor } from '../shared/events'
 import { EventBus } from './bus'
 import { TabManager } from './tabs'
 import { RuleStore } from './rules'
+import { Library } from './library'
+import { Downloads } from './downloads'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
 
 // Test/izolasyon: calisma verisini ayri bir dizine yonlendir (gercek kullanici verisine dokunmaz)
-if (process.env.DB_USER_DATA) app.setPath('userData', process.env.DB_USER_DATA)
+if (process.env.DB_USER_DATA) { app.setPath('userData', process.env.DB_USER_DATA); app.setPath('downloads', join(process.env.DB_USER_DATA, 'downloads')) }
 
 const bus = new EventBus()
 let win: BrowserWindow
 let tabs: TabManager
 let workspaces: WorkspaceStore
 let rules: RuleStore
+let library: Library
+let downloads: Downloads
 let activeWorkspaceId = 'default'
 let detected: DetectedServer[] = []
 
@@ -30,6 +34,7 @@ function editorUrl(editor: Editor, file: string, line: number, col: number): str
 const send = (channel: string, payload: unknown): void => { if (win && !win.isDestroyed()) win.webContents.send(channel, payload) }
 const pushTabs = (): void => send(Ch.tabsState, { ...tabs.list(), dock: tabs.dock })
 const pushRules = (): void => send(Ch.rulesState, rules.all())
+const pushLibrary = (): void => send(Ch.libState, { bookmarks: Object.fromEntries(workspaces.list().map((w) => [w.id, library.bookmarks(w.id)])), downloads: downloads.list() })
 const pushWorkspaces = (): void => send(Ch.wsState, { workspaces: workspaces.list(), activeId: activeWorkspaceId, detected })
 
 /** IPC izin listesi: her kanal zod semasiyla dogrulanir; gecersiz mesaj reddedilir. */
@@ -95,6 +100,13 @@ function registerIpc(): void {
   })
   handle(Ch.reportExport, null, () => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id))
   handle(Ch.labSet, schemas.labSet, ({ id, devices }) => tabs.setLab(id, devices))
+  handle(Ch.libHistory, null, () => library.recent(300))
+  handle(Ch.bookmarkToggle, schemas.tabId, ({ id }) => {
+    const e = tabs.get(id); if (!e) return false
+    const on = library.toggleBookmark(e.info.workspaceId, e.view.webContents.getURL(), e.view.webContents.getTitle())
+    pushLibrary(); return on
+  })
+  handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -129,11 +141,13 @@ async function createWindow(): Promise<void> {
   })
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
+  library = new Library()
+  downloads = new Downloads(() => pushLibrary())
   tabs = new TabManager(win, bus, workspaces, pushTabs, (url, wsId) => {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId))
+  }, (wsId) => rules.get(wsId), { onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => downloads.attach(ses) })
   installMenu((cmd) => send(Ch.cmd, cmd))
   registerIpc()
   bus.subscribe((ev, change) => send(change === 'new' ? Ch.evNew : Ch.evUpdate, ev))
@@ -144,13 +158,13 @@ async function createWindow(): Promise<void> {
   const restored = process.env.DB_SCRIPT ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
   void pollServers(); setInterval(pollServers, 1500)
-  pushWorkspaces(); pushTabs(); pushRules()
+  pushWorkspaces(); pushTabs(); pushRules(); pushLibrary()
 
   // Otomatik test modu: DB_SCRIPT = ({ctx}) => Promise<any>; sonuc ve olaylar DB_DUMP'a yazilir
   if (process.env.DB_SCRIPT) {
     const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
     const ctx = {
-      app, win, tabs, bus, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
+      app, win, tabs, bus, library, downloads, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
       newTab,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
@@ -171,4 +185,5 @@ async function createWindow(): Promise<void> {
 }
 
 app.whenReady().then(createWindow)
+app.on('before-quit', () => library?.flush())
 app.on('window-all-closed', () => app.quit())

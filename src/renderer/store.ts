@@ -10,6 +10,8 @@ interface State {
   editor: Editor
   panelRatio: number
   rules: Record<string, RulesConfig>
+  bookmarks: Record<string, { url: string; title: string }[]>
+  downloads: { id: string; name: string; received: number; total: number; state: string }[]
   overlay: 'palette' | 'rules' | null
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void
@@ -24,7 +26,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: 'right', workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')),
-  rules: {}, overlay: null,
+  rules: {}, bookmarks: {}, downloads: [], overlay: null,
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)

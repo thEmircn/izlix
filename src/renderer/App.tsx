@@ -19,6 +19,8 @@ export function App() {
   const active = s.tabs.find((t) => t.id === s.activeTabId)
   const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId)
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
+  const bookmarked = !!active && (s.bookmarks[s.activeWorkspaceId] ?? []).some((b) => b.url === active.url)
+  const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
   const chromeH = CHROME_H + (active?.lab ? LAB_BAR_H : 0)
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 
@@ -29,11 +31,13 @@ export function App() {
       api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId, dock: p.dock })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
+      api.onLibrary((l: any) => s.set({ bookmarks: l.bookmarks, downloads: l.downloads })),
       api.onCommand((cmd: string) => {
         const st = useStore.getState(); const act = st.tabs.find((t) => t.id === st.activeTabId)
         switch (cmd) {
           case 'palette.open': st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
+          case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
           case 'tab.new': void api.createTab(); break
           case 'tab.close': if (act) void api.closeTab(act.id); break
           case 'nav.reload': if (act) void api.reload(act.id); break
@@ -79,6 +83,7 @@ export function App() {
         <button aria-label="Geri" disabled={!active?.canGoBack} onClick={nav(api.back)}>‹</button>
         <button aria-label="İleri" disabled={!active?.canGoForward} onClick={nav(api.forward)}>›</button>
         <button aria-label="Yenile" disabled={!active} onClick={nav(api.reload)}>↻</button>
+        <button aria-label="Yer imi" title="Yer imi (⌘D)" disabled={!active?.url} style={{ color: bookmarked ? '#ffd24a' : undefined }} onClick={nav(api.toggleBookmark)}>{bookmarked ? '★' : '☆'}</button>
         <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
  <input className="addr" value={addr} placeholder="Adres ara ya da gir (localhost:5173)" spellCheck={false}
             onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => setEditing(false)} onChange={(e) => setAddr(e.target.value)} />
@@ -86,6 +91,11 @@ export function App() {
             <button type="button" className="rule-badge nodrag" title="Aktif Request Rules — tıkla: düzenle" onClick={() => s.set({ overlay: 'rules' })}>⚡ {nActive} kural</button>
           )}
         </form>
+        {s.downloads.length > 0 && (
+          <button className="chip" title={s.downloads.map((d) => `${d.name} (${d.state})`).join('\n')} onClick={() => s.set({ overlay: 'palette' })}>
+            ⬇ {busyDl ? `${busyDl} iniyor` : s.downloads.length}
+          </button>
+        )}
         <select aria-label="Workspace" value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
           {s.workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
           <option value="__new">＋ Klasörden Workspace…</option>
