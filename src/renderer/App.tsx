@@ -17,6 +17,7 @@ const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
 export function App() {
   const s = useStore()
   const t = useT()
+  const [dragging, setDragging] = useState(false)
   const [findText, setFindText] = useState('')
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [addr, setAddr] = useState('')
@@ -76,6 +77,21 @@ export function App() {
   const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH, split: s.split })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }
   const api = window.izlix
+  // Panel boyutlandirma: surukleme sirasinda native gorunumler gizlenir (aksi halde fare olaylarini yutarlar)
+  const startDrag = (axis: 'x' | 'y') => (e: React.PointerEvent): void => {
+    e.preventDefault(); setDragging(true); void api.setOverlay(true)
+    const bodyH = size.h - chromeH
+    const move = (ev: PointerEvent): void => {
+      if (axis === 'x') s.set({ panelRatio: Math.min(0.8, Math.max(0.2, 1 - ev.clientX / size.w)) })
+      else s.set({ split: Math.min(0.8, Math.max(0.2, (ev.clientY - chromeH) / bodyH)) })
+    }
+    const up = (): void => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up)
+      const st = useStore.getState(); writePref('panelRatio', String(+st.panelRatio.toFixed(3))); writePref('split', String(+st.split.toFixed(3)))
+      setDragging(false); void api.setOverlay(useStore.getState().overlay !== null)
+    }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
+  }
   const nav = (fn: (id: string) => unknown) => (): void => { if (active) void fn(active.id) }
 
   return (
@@ -148,6 +164,9 @@ export function App() {
       <div className="panel" style={{ left: layout.timeline.x, top: layout.timeline.y, width: layout.timeline.width, height: layout.timeline.height }}>
         <Timeline width={layout.timeline.width} height={layout.timeline.height} />
       </div>
+      {s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}
+      <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />
+      {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'palette' && <Palette onClose={() => s.set({ overlay: null })} />}

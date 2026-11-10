@@ -642,5 +642,22 @@
       "eq",
       true
     ]
+  ],
+  "resize": [
+    [
+      "afterX.panelRatio",
+      "gt",
+      0.45
+    ],
+    [
+      "afterX.panelRatio",
+      "lt",
+      0.55
+    ],
+    [
+      "afterY.split",
+      "gt",
+      0.55
+    ]
   ]
 }

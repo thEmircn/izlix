@@ -222,8 +222,8 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
       {p.modified && <div style={{ color: '#ffb454' }}>{t('tl.modified', { kinds: p.modified.kinds.join(' + ') })}{p.modified.mocked ? t('tl.mockedRes') : ''}</div>}
       {p.origin && <div>{t('tl.source')}: <OpenBtn file={p.origin.file} line={p.origin.line} col={p.origin.column} /> {p.origin.component && <span>({p.origin.component})</span>}</div>}
       {ev.kind === 'render' && (
-        <table style={{ marginTop: 6, borderCollapse: 'collapse', width: '100%' }}>
-          <thead><tr style={{ textAlign: 'left', opacity: 0.6 }}><th>{t('tl.col.component')}</th><th>{t('tl.col.reason')}</th><th>{t('tl.col.changed')}</th><th>{t('tl.col.ms')}</th><th>{t('tl.col.source')}</th></tr></thead>
+        <table className="tbl" style={{ marginTop: 6 }}>
+          <thead><tr><th>{t('tl.col.component')}</th><th>{t('tl.col.reason')}</th><th>{t('tl.col.changed')}</th><th>{t('tl.col.ms')}</th><th>{t('tl.col.source')}</th></tr></thead>
           <tbody>
             {(p.components ?? []).slice(0, 60).map((c: any, i: number) => (
               <tr key={i}>

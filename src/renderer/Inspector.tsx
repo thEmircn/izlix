@@ -79,7 +79,7 @@ export function Inspector({ height }: { height: number }) {
           {shown.slice(first, last).map((n, i) => {
             const row = counts.get(n.t != null ? `t${n.t}` : `n:${n.name}`)
             return (
-              <div key={n.id} onClick={() => void pick(n)} style={{ position: 'absolute', top: (first + i) * ROW_H, height: ROW_H, left: 0, right: 0, paddingLeft: 8 + (filter ? 0 : Math.min(n.depth, 40) * 10), whiteSpace: 'nowrap', cursor: 'default', background: sel?.id === n.id ? '#3a4a66' : undefined, lineHeight: `${ROW_H}px` }}>
+              <div key={n.id} onClick={() => void pick(n)} style={{ position: 'absolute', top: (first + i) * ROW_H, height: ROW_H, left: 0, right: 0, paddingLeft: 8 + (filter ? 0 : Math.min(n.depth, 40) * 10), whiteSpace: 'nowrap', cursor: 'default', background: sel?.id === n.id ? 'rgba(255,255,255,.1)' : undefined, lineHeight: `${ROW_H}px` }}>
                 <span style={{ color: '#e4e4e7' }}>{n.name}</span>{n.key != null && <span style={{ color: '#d6b98a' }}> key="{n.key}"</span>}
                 {row && <span style={{ color: row.renders > 5 ? '#ffb454' : 'var(--dim)' }}> ×{row.renders}</span>}
               </div>
@@ -113,13 +113,13 @@ export function RenderTracker({ events, range }: { events: BusEvent[]; range: [n
   const open = (r: TrackerRow): void => { if (r.file && r.line) void window.izlix.openSource({ file: r.file, line: r.line, column: r.column, editor }) }
   return (
     <div style={{ overflow: 'auto', flex: 1 }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', font: '11px ui-monospace, Menlo, monospace' }}>
-        <thead><tr style={{ textAlign: 'left', color: 'var(--dim)', position: 'sticky', top: 0, background: 'var(--bg)' }}>
-          <th style={{ padding: '3px 8px' }}>{t('trk.component')}</th><th>{t('trk.renders')}</th><th>{t('trk.total')}</th><th>{t('trk.max')}</th><th>{t('trk.reason')}</th><th>{t('trk.changed')}</th><th>{t('trk.wasted')}</th><th>{t('trk.source')}</th></tr></thead>
+      <table className="tbl">
+        <thead><tr>
+          <th>{t('trk.component')}</th><th className="num">{t('trk.renders')}</th><th className="num">{t('trk.total')}</th><th className="num">{t('trk.max')}</th><th>{t('trk.reason')}</th><th>{t('trk.changed')}</th><th>{t('trk.wasted')}</th><th>{t('trk.source')}</th></tr></thead>
         <tbody>
           {rows.slice(0, 300).map((r) => (
             <tr key={r.key}>
-              <td style={{ padding: '2px 8px', color: '#e4e4e7' }}>{r.name}</td><td>{r.renders}</td><td>{r.totalMs.toFixed(1)}</td><td>{r.maxMs.toFixed(1)}</td>
+              <td style={{ color: '#e4e4e7', fontWeight: 500 }}>{r.name}</td><td className="num">{r.renders}</td><td className="num">{r.totalMs.toFixed(1)}</td><td className="num">{r.maxMs.toFixed(1)}</td>
               <td>{Object.entries(r.reasons).map(([k, v]) => `${k}×${v}`).join(' ')}</td>
               <td>{[...r.changedProps.map((p) => `props.${p}`), ...r.changedHooks.map((h) => `hook[${h}]`)].join(', ')}</td>
               <td style={{ color: wastedRatio(r) > 0.5 && r.renders > 2 ? '#ffb454' : 'var(--dim)' }}>{r.renders > 1 ? `${Math.round(wastedRatio(r) * 100)}%` : ''}</td>
