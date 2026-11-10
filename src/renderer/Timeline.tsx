@@ -94,6 +94,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
           </select>
         </>}
       </div>
+      {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
       {tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />

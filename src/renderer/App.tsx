@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { computeLayout } from '../shared/layout'
 import type { DevToolsDock } from '../shared/events'
-import { useStore, writePref, useT } from './store'
+import { useStore, writePref, useT, toast } from './store'
 import { Welcome } from './Welcome'
+import { Toasts } from './Toasts'
 import { Back, Forward, Reload, Plus, Close, Star, Download, Spinner } from './icons'
 import { RenameWorkspace } from './RenameWorkspace'
 import { Timeline } from './Timeline'
@@ -110,7 +111,7 @@ export function App() {
         <button aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}><Back /></button>
         <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}><Forward /></button>
         <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}><Reload /></button>
-        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#ffd24a' : undefined }} onClick={nav(api.toggleBookmark)}><Star filled={bookmarked} /></button>
+        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#fbbf24' : undefined }} onClick={() => { if (active) void api.toggleBookmark(active.id).then((on: boolean) => toast(t(on ? 'toast.bookmarked' : 'toast.unbookmarked'))) }}><Star filled={bookmarked} /></button>
         <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
  <input className="addr" value={addr} placeholder={t('addr.placeholder')} spellCheck={false}
             onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => setEditing(false)} onChange={(e) => setAddr(e.target.value)} />
@@ -167,6 +168,7 @@ export function App() {
       {s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}
       <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
+      <Toasts />
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'palette' && <Palette onClose={() => s.set({ overlay: null })} />}

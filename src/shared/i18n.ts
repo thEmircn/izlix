@@ -44,6 +44,7 @@ const en = {
   'find.placeholder': 'Find in page', 'find.close': 'Close find', 'cmd.find': 'Find in Page…',
   'cmd.reopen': 'Reopen Closed Tab',
   'cmd.autoOpenOn': 'Auto-open new dev servers: turn on', 'cmd.autoOpenOff': 'Auto-open new dev servers: turn off',
+  'toast.report': 'Report saved: {p}', 'toast.snapshot': 'Snapshot saved: {p}', 'toast.rules': 'Rules saved', 'toast.copied': 'Copied to clipboard', 'toast.bookmarked': 'Bookmarked', 'toast.unbookmarked': 'Bookmark removed', 'tl.empty': 'No events yet. Interact with the page and the timeline fills in.',
   'cmd.dockHide': 'DevTools: Hide', 'cmd.dockAt': 'DevTools: Dock {pos}', 'cmd.tab': 'Tab: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Bookmark: {t}', 'cmd.download': 'Download: {t}', 'cmd.history': 'History: {t}', 'cmd.openServer': 'Open localhost:{port}{fw}',
   'cmd.ruleOff': 'Rule: Disable “{n}”', 'cmd.ruleOn': 'Rule: Enable “{n}”'
 } as const
@@ -93,6 +94,7 @@ const tr: Record<Key, string> = {
   'find.placeholder': 'Sayfada bul', 'find.close': 'Aramayı kapat', 'cmd.find': 'Sayfada Bul…',
   'cmd.reopen': 'Kapatılan Sekmeyi Geri Aç',
   'cmd.autoOpenOn': 'Yeni dev sunucularını otomatik aç: aç', 'cmd.autoOpenOff': 'Yeni dev sunucularını otomatik aç: kapat',
+  'toast.report': 'Rapor kaydedildi: {p}', 'toast.snapshot': 'Anlık görüntü kaydedildi: {p}', 'toast.rules': 'Kurallar kaydedildi', 'toast.copied': 'Panoya kopyalandı', 'toast.bookmarked': 'Yer imi eklendi', 'toast.unbookmarked': 'Yer imi kaldırıldı', 'tl.empty': 'Henüz olay yok. Sayfayla etkileşime geç, Timeline dolsun.',
   'cmd.dockHide': 'DevTools: Gizle', 'cmd.dockAt': 'DevTools: {pos} yerleştir', 'cmd.tab': 'Sekme: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Yer imi: {t}', 'cmd.download': 'İndirme: {t}', 'cmd.history': 'Geçmiş: {t}', 'cmd.openServer': 'localhost:{port} aç{fw}',
   'cmd.ruleOff': 'Kural: “{n}” kapat', 'cmd.ruleOn': 'Kural: “{n}” aç'
 }

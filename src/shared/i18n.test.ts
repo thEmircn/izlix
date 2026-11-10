@@ -10,7 +10,7 @@ describe('i18n', () => {
     for (const k of keys) expect(ph(translate('tr', k))).toEqual(ph(translate('en', k)))
   })
   it('yer tutucu doldurulur; eksik degisken oldugu gibi kalir', () => {
-    expect(translate('en', 'rules.badge', { n: 3 })).toBe('⚡ Rules: 3')
-    expect(translate('en', 'rules.badge')).toBe('⚡ Rules: {n}')
+    expect(translate('en', 'rules.badge', { n: 3 })).toBe('Rules: 3')
+    expect(translate('en', 'rules.badge')).toBe('Rules: {n}')
   })
 })

@@ -14,6 +14,7 @@ interface State {
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
+  toasts: { id: number; text: string }[]
   find: { open: boolean; active: number; total: number }
   overlay: 'palette' | 'rules' | 'welcome' | 'rename' | null
   settings: Settings
@@ -30,7 +31,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: 'right', workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)
@@ -49,3 +50,11 @@ export const useT = (): ((k: Key, v?: Vars) => string) => {
 }
 /** React disi baglamlar (komutlar) */
 export const tNow = (k: Key, v?: Vars): string => translate(useStore.getState().settings.language as Language, k, v)
+
+let toastSeq = 0
+/** Kisa omurlu bildirim (3 sn) */
+export const toast = (text: string): void => {
+  const id = ++toastSeq
+  useStore.setState((s) => ({ toasts: [...s.toasts.slice(-3), { id, text }] }))
+  setTimeout(() => useStore.setState((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })), 3200)
+}

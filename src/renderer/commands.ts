@@ -1,4 +1,4 @@
-import { useStore, writePref, tNow as t } from './store'
+import { useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
 import { DEVICES, MAX_VIEWPORTS, deviceById } from '../shared/lab'
 
@@ -23,8 +23,8 @@ export function buildCommands(): Command[] {
     { id: 'ws.new', title: t('cmd.wsNew'), run: () => void api.createWorkspace('', null) },
     { id: 'tl.clear', title: t('cmd.tlClear'), run: () => s.set({ selectedEventId: null }) },
     { id: 'bookmark.toggle', title: t('cmd.bookmark'), hint: '⌘D', run: () => active && void api.toggleBookmark(active.id) },
-    { id: 'report.make', title: t('cmd.report'), run: () => { void api.track('report.export'); void api.exportReport() } },
-    { id: 'snapshot.save', title: t('cmd.snapshot'), run: () => active && void api.saveSnapshot(active.id) },
+    { id: 'report.make', title: t('cmd.report'), run: () => { void api.track('report.export'); void api.exportReport().then((p: string | null) => { if (p) toast(t('toast.report', { p: p.split('/').pop() ?? p })) }) } },
+    { id: 'snapshot.save', title: t('cmd.snapshot'), run: () => { if (active) void api.saveSnapshot(active.id).then((p: string) => toast(t('toast.snapshot', { p: p.split('/').pop() ?? p }))) } },
     { id: 'ws.rename', title: t('cmd.wsRename'), run: () => s.set({ overlay: 'rename' }) },
     ...(s.activeWorkspaceId !== 'default' ? [{ id: 'ws.delete', title: t('cmd.wsDelete'), run: () => void api.deleteWorkspace(s.activeWorkspaceId) }] : []),
     { id: 'find.open', title: t('cmd.find'), hint: '⌘F', run: () => s.set({ find: { open: true, active: 0, total: 0 } }) },

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { parseRulesJson, newRule, type Rule, type RuleAction, type RulesConfig } from '../shared/rules'
-import { useStore, useT } from './store'
+import { useStore, useT, toast } from './store'
 import { Trash } from './icons'
 
 const TYPES: RuleAction['type'][] = ['mock', 'delay', 'status', 'redirect', 'headers']
@@ -31,7 +31,7 @@ export function RulesPanel({ onClose }: { onClose(): void }) {
     if (!r) { setBad(true); return }
     setCfg((c) => ({ rules: [...c.rules, ...r.rules], domains: r.domains?.length ? r.domains : c.domains })); setImporting(null); setBad(false)
   }
-  const save = async (): Promise<void> => { await window.izlix.setRules(wsId, cfg); void window.izlix.track('rules.saved', { rules: cfg.rules.length }); onClose() }
+  const save = async (): Promise<void> => { await window.izlix.setRules(wsId, cfg); void window.izlix.track('rules.saved', { rules: cfg.rules.length }); toast(t('toast.rules')); onClose() }
 
   return (
     <div className="overlay" style={{ paddingTop: '6vh' }} onMouseDown={onClose}>
@@ -40,7 +40,7 @@ export function RulesPanel({ onClose }: { onClose(): void }) {
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 10, alignItems: 'center' }}>
           <b style={{ flex: 1 }}>{t('rr.title', { ws: wsName ?? '' })}</b>
           <button className="btn" onClick={() => setCfg((c) => ({ ...c, rules: [...c.rules, newRule()] }))}>{t('rr.add')}</button>
-          <button className="btn" onClick={() => void navigator.clipboard?.writeText(JSON.stringify(cfg, null, 1)).catch(() => {})}>{t('rr.copy')}</button>
+          <button className="btn" onClick={() => void navigator.clipboard?.writeText(JSON.stringify(cfg, null, 1)).then(() => toast(t('toast.copied'))).catch(() => {})}>{t('rr.copy')}</button>
           <button className="btn" onClick={() => setImporting(importing === null ? '' : null)}>{t('rr.import')}</button>
           <button className="btn primary" onClick={save}>{t('rr.save')}</button>
           <button className="btn" onClick={onClose}>{t('rr.close')}</button>
