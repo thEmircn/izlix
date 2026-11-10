@@ -13,6 +13,8 @@ exports.default = async function afterPack(context) {
     [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
     [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
     [FuseV1Options.OnlyLoadAppFromAsar]: true,
-    [FuseV1Options.EnableCookieEncryption]: true
+    // Cerez sifreleme macOS Keychain erisimi ister; imzasiz/ad-hoc yerel paketlerde onay bekleyip sayfa yuklemesini kilitler.
+    // Yalnizca imzali (CSC_LINK/CSC_NAME) veya acikca istenen derlemelerde acilir.
+    [FuseV1Options.EnableCookieEncryption]: !!(process.env.CSC_LINK || process.env.CSC_NAME || process.env.IZLIX_COOKIE_ENCRYPTION === '1')
   })
 }
