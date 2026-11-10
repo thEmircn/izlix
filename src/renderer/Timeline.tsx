@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
-import { useStore, writePref, useT, type PanelTab } from './store'
+import { useStore, writePref, useT, useThrottled, type PanelTab } from './store'
 import { Inspector, RenderTracker } from './Inspector'
 import { Network } from './Network'
 import { Seg } from './ui'
@@ -51,7 +51,8 @@ type PTab = PanelTab
 export function Timeline({ width, height }: { width: number; height: number }) {
   const t = useT()
   curLang = useStore((s) => s.settings.language) as 'en' | 'tr'
-  const events = useStore((s) => s.events)
+  const rawEvents = useStore((s) => s.events)
+  const events = useThrottled(rawEvents, rawEvents.size > 600 ? 300 : 0) // yogun akista agir paneller yavaslatilir; az olayda aninda
   const activeTabId = useStore((s) => s.activeTabId)
   const selected = useStore((s) => s.selectedEventId)
   const editor = useStore((s) => s.editor)
@@ -140,8 +141,17 @@ function Lanes(props: {
   const span = Math.max(1, to - from)
   const x = (ts: number): number => PAD_L + ((ts - from) / span) * (W - PAD_L - PAD_R)
   const tsAt = (px: number): number => from + ((px - PAD_L) / (W - PAD_L - PAD_R)) * span
+  // cok olay varsa cizim sinirlanir: hata/render/girdi/secili her zaman, geri kalan en yeniler
+  const MAXN = 360
+  let shown = events
+  if (events.length > MAXN) {
+    const key = (e: Ev): boolean => e.kind === 'error' || e.kind === 'render' || e.kind === 'input' || e.id === selected
+    const keep = events.filter(key).slice(-160), rest = events.filter((e) => !key(e)).slice(-(MAXN - keep.length))
+    shown = [...keep, ...rest].sort((a, b) => a.ts - b.ts)
+  }
+  const many = shown.length > 120
   const pos = new Map<number, { x: number; y: number }>()
-  for (const e of events) { const l = laneOf(e, allReq); if (l) pos.set(e.id, { x: x(e.ts), y: laneY(l) }) }
+  for (const e of shown) { const l = laneOf(e, allReq); if (l) pos.set(e.id, { x: x(e.ts), y: laneY(l) }) }
 
   const step = [100, 250, 500, 1000, 2000, 5000, 10000, 30000].find((s) => span / s <= 10) ?? 60000
   const ticks: number[] = []
@@ -187,12 +197,12 @@ function Lanes(props: {
           </g>
         ))}
         {/* nedensellik oklari: kesin = duz, tahmini = kesikli */}
-        {events.flatMap((e) => e.links.map((lk) => {
+        {shown.flatMap((e) => e.links.map((lk) => {
           const a = pos.get(lk.from), b = pos.get(e.id)
           if (!a || !b) return null
           const mx = (a.x + b.x) / 2
           return (
-            <path className="link" key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
+            <path className={many ? '' : 'link'} key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
               fill="none" stroke={lk.certainty === 'exact' ? '#ddd' : '#999'} strokeWidth={1.2}
               strokeDasharray={lk.certainty === 'estimated' ? '4 3' : undefined} markerEnd={`url(#ar-${lk.certainty})`}
               opacity={selected == null || selected === e.id || selected === lk.from ? 0.9 : 0.35}>
@@ -200,14 +210,14 @@ function Lanes(props: {
             </path>
           )
         }))}
-        {events.map((e) => {
+        {shown.map((e) => {
           const p = pos.get(e.id); const l = laneOf(e, allReq)
           if (!p || !l) return null
           const r = e.kind === 'render' ? Math.min(9, 4 + Math.sqrt(e.payload.count)) : 5
           return (
             <g key={e.id}>
               {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="#ffb454" strokeWidth={2} strokeDasharray="3 2" />}
-            <circle className="node" cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
+            <circle className={many ? '' : 'node'} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
               style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)}>
               <title>{label(e)}</title>
             </circle>

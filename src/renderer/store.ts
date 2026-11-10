@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useEffect, useRef, useState } from 'react'
 import type { RulesConfig } from '../shared/rules'
 import type { BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
 import { translate, type Key } from '../shared/i18n'
@@ -72,4 +73,19 @@ export const toast = (text: string): void => {
   const id = ++toastSeq
   useStore.setState((s) => ({ toasts: [...s.toasts.slice(-3), { id, text }] }))
   setTimeout(() => useStore.setState((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })), 3200)
+}
+
+/** Degeri en cok her ms'de bir gunceller (ms=0: aninda). Yogun olay akisinda agir panellerin her ingest'te yeniden cizilmesini onler. */
+export function useThrottled<T>(value: T, ms: number): T {
+  const [shown, setShown] = useState(value)
+  const last = useRef(0), timer = useRef<ReturnType<typeof setTimeout> | null>(null), latest = useRef(value)
+  latest.current = value
+  useEffect(() => {
+    if (ms <= 0) { if (timer.current) { clearTimeout(timer.current); timer.current = null } setShown(value); return }
+    const wait = ms - (Date.now() - last.current)
+    if (wait <= 0) { last.current = Date.now(); setShown(value) }
+    else if (!timer.current) timer.current = setTimeout(() => { timer.current = null; last.current = Date.now(); setShown(latest.current) }, wait)
+  })
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+  return ms <= 0 ? value : shown
 }

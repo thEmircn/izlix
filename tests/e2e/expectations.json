@@ -1909,5 +1909,37 @@
       "eq",
       16
     ]
+  ],
+  "load": [
+    [
+      "Overview.fps",
+      "gte",
+      25
+    ],
+    [
+      "Network.fps",
+      "gte",
+      25
+    ],
+    [
+      "Timeline.fps",
+      "gte",
+      25
+    ],
+    [
+      "Network.maxGapMs",
+      "lt",
+      250
+    ],
+    [
+      "Timeline.maxGapMs",
+      "lt",
+      250
+    ],
+    [
+      "eventsInStore",
+      "gte",
+      2000
+    ]
   ]
 }

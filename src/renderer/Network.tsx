@@ -1,5 +1,5 @@
 import { LiveTraffic } from './LiveTraffic'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import type { BusEvent } from '../shared/events'
 import { SENSITIVE_KEYS } from '../shared/mask'
 import { sortRows, type SortKey, typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
@@ -12,6 +12,7 @@ import { toast, useStore, useT, writePref, tNow } from './store'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
 
+const ROW_H = 28
 /** Network paneli: canli akan satirlar, waterfall ve aşagidan acilan ayrinti cekmecesi. */
 export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number, BusEvent> }) {
   const t = useT()
@@ -25,6 +26,10 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
   const noCache = useStore((s) => !!s.tabs.find((x) => x.id === s.activeTabId)?.noCache)
   const set = useStore((s) => s.set)
   const [now, setNow] = useState(Date.now())
+  const listRef = useRef<HTMLDivElement>(null)
+  const [scrollTop, setScrollTop] = useState(0)
+  const [viewH, setViewH] = useState(600)
+  useEffect(() => { const el = listRef.current; if (!el) return; const ro = new ResizeObserver(() => setViewH(el.clientHeight)); ro.observe(el); setViewH(el.clientHeight); return () => ro.disconnect() }, [])
 
   const all = useMemo(() => buildNetworkRows(events.filter((e) => e.ts >= clearedAt)), [events, clearedAt])
   const counts = useMemo(() => { const c: Record<string, number> = { all: all.length }; for (const r of all) c[r.type] = (c[r.type] ?? 0) + 1; return c }, [all])
@@ -35,8 +40,9 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
   const pending = rows.some((r) => r.end == null && !r.failed)
   useEffect(() => { if (!pending) return; const h = setInterval(() => setNow(Date.now()), 120); return () => clearInterval(h) }, [pending])
 
-  const t0 = rows.length ? Math.min(...rows.map((r) => r.start)) : 0
-  const tEnd = rows.length ? Math.max(...rows.map((r) => r.end ?? now)) : 1
+  let t0 = rows.length ? Infinity : 0, tEnd = rows.length ? -Infinity : 1
+  for (const r of rows) { if (r.start < t0) t0 = r.start; const e = r.end ?? now; if (e > tEnd) tEnd = e }
+  const first = Math.max(0, Math.floor(scrollTop / ROW_H) - 6), last = Math.min(rows.length, first + Math.ceil(viewH / ROW_H) + 14)
   const span = Math.max(400, tEnd - t0)
   const totalSize = rows.reduce((a, r) => a + (r.size ?? 0), 0)
   const errors = rows.filter((r) => r.failed || (r.status ?? 0) >= 400).length
@@ -76,8 +82,12 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         ))}
         <button className={`hsort ${sort.key === 'time' ? 'on' : ''}`} onClick={() => setSort({ key: 'time', dir: 'asc' })}>{t('net.waterfall')}</button>
       </div>
-      <div className="net-list">
-        {rows.map((r) => <Row key={r.id} r={r} t0={t0} span={span} now={now} selected={r.id === selectedId} onClick={() => set({ selectedEventId: r.id === selectedId ? null : r.id })} />)}
+      <div className="net-list" ref={listRef} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}>
+        <div style={{ height: rows.length * ROW_H, position: 'relative' }}>
+          <div style={{ position: 'absolute', top: first * ROW_H, left: 0, right: 0 }}>
+            {rows.slice(first, last).map((r) => <Row key={r.id} r={r} t0={t0} span={span} now={now} selected={r.id === selectedId} onClick={() => set({ selectedEventId: r.id === selectedId ? null : r.id })} />)}
+          </div>
+        </div>
         {!rows.length && <div className="empty-hint">{t('net.empty')}</div>}
       </div>
       {sel && <Drawer key={sel.id} r={sel} byId={byId} onClose={() => set({ selectedEventId: null })} />}
