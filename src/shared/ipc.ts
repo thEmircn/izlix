@@ -43,5 +43,6 @@ export const schemas = {
   mediaSet: z.object({ id: z.string().max(64), colorScheme: z.enum(['light', 'dark']).nullable(), reducedMotion: z.boolean() }),
   reqBody: z.object({ id: z.string().max(64), requestId: z.string().max(128) }),
   wsRename: z.object({ id: z.string().max(64), name: z.string().min(1).max(64) }),
+  findStart: z.object({ id: z.string().max(64), text: z.string().min(1).max(200), forward: z.boolean(), next: z.boolean() }),
   overlay: z.object({ open: z.boolean() })
 }

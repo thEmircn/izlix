@@ -14,6 +14,7 @@ interface State {
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
+  find: { open: boolean; active: number; total: number }
   overlay: 'palette' | 'rules' | 'welcome' | 'rename' | null
   settings: Settings
   set(p: Partial<State>): void
@@ -29,7 +30,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: 'right', workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.42')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '' },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '' },
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)

@@ -555,5 +555,17 @@
       "eq",
       ""
     ]
+  ],
+  "find": [
+    [
+      "barOpen",
+      "eq",
+      true
+    ],
+    [
+      "barClosed",
+      "eq",
+      true
+    ]
   ]
 }

@@ -16,6 +16,7 @@ const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
 export function App() {
   const s = useStore()
   const t = useT()
+  const [findText, setFindText] = useState('')
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [addr, setAddr] = useState('')
   const [editing, setEditing] = useState(false)
@@ -34,6 +35,7 @@ export function App() {
       api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId, dock: p.dock })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
+      api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
       api.onSettings((st: any) => { s.set({ settings: st }); if (!st.onboarded && useStore.getState().overlay === null) s.set({ overlay: 'welcome' }) }),
       api.onLibrary((l: any) => s.set({ bookmarks: l.bookmarks, downloads: l.downloads })),
       api.onCommand((cmd: string) => {
@@ -41,6 +43,7 @@ export function App() {
         switch (cmd) {
           case 'palette.open': void api.track('palette.open'); st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
+          case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
           case 'tab.new': void api.createTab(); break
@@ -97,6 +100,18 @@ export function App() {
             <button type="button" className="rule-badge nodrag" title={t('rules.badge.title')} onClick={() => s.set({ overlay: 'rules' })}>{t('rules.badge', { n: nActive })}</button>
           )}
         </form>
+        {s.find.open && active && (
+          <span className="nodrag" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <input autoFocus className="addr" style={{ width: 170, flex: 'none' }} placeholder={t('find.placeholder')} value={findText}
+              onChange={(e) => { setFindText(e.target.value); if (e.target.value) void api.findStart(active.id, e.target.value, true, false); else void api.findStop(active.id) }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && findText) void api.findStart(active.id, findText, !e.shiftKey, true)
+                if (e.key === 'Escape') { void api.findStop(active.id); s.set({ find: { open: false, active: 0, total: 0 } }) }
+              }} />
+            <span style={{ color: 'var(--dim)', minWidth: 36 }}>{findText ? `${s.find.active}/${s.find.total}` : ''}</span>
+            <button aria-label={t('find.close')} onClick={() => { void api.findStop(active.id); s.set({ find: { open: false, active: 0, total: 0 } }) }}>×</button>
+          </span>
+        )}
         {s.downloads.length > 0 && (
           <button className="chip" title={s.downloads.map((d) => `${d.name} (${d.state})`).join('\n')} onClick={() => s.set({ overlay: 'palette' })}>
             {busyDl ? t('dl.busy', { n: busyDl }) : t('dl.count', { n: s.downloads.length })}
