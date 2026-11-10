@@ -110,6 +110,17 @@ export class SourceResolver {
     return path
   }
 
+  /** Hassas mod: bilesenin konumu derleme zamaninda eklenmis ("dosya:satir:sutun"); source map cozumlemesi atlanir. */
+  setPrecise(typeId: number, name: string, spec: string): SrcLoc | null {
+    const m = /^(.*):(\d+):(\d+)$/.exec(spec)
+    if (!m || this.typeLoc.has(typeId)) return this.components.get(typeId) ?? null
+    const loc: SrcLoc = { file: m[1], line: Number(m[2]), column: Number(m[3]) }
+    this.typeLoc.set(typeId, Promise.resolve(loc))
+    this.components.set(typeId, { ...loc, name })
+    this.knownFiles.add(loc.file)
+    return loc
+  }
+
   /** React tip kimligi -> bilesenin tanimlandigi yer. Konum yalnizca Debugger penceresinde (scriptId->url) cozulebilir;
    *  bu yuzden istekler kuyruga alinir ve sayfa bosken tek seferde cozulur (sayfa yuklemesine yuk bindirmez). */
   resolveType(typeId: number, name: string): Promise<SrcLoc | null> {

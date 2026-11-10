@@ -122,7 +122,11 @@ function registerIpc(): void {
   handle(Ch.inspTree, schemas.tabId, ({ id }) => evalInPage(id, 'window.__IZLIX_TREE__ ? window.__IZLIX_TREE__() : null'))
   handle(Ch.inspNode, schemas.inspNode, async ({ id, node, t, name }) => {
     const d = await evalInPage(id, `window.__IZLIX_INSPECT__ ? window.__IZLIX_INSPECT__(${node}) : null`)
-    if (d && t !== undefined) d.source = await tabs.get(id)?.cdp?.resolver.resolveType(t, name).catch(() => null) ?? null
+    const resolver = tabs.get(id)?.cdp?.resolver
+    if (d && resolver) {
+      if (d.src && t !== undefined) d.source = resolver.setPrecise(t, name, d.src) // hassas mod
+      else if (t !== undefined) d.source = await resolver.resolveType(t, name).catch(() => null) ?? null
+    }
     return d
   })
   handle(Ch.reportExport, null, () => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id))

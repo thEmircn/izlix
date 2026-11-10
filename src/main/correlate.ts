@@ -6,6 +6,7 @@ import type { SrcLoc } from './sources'
 export interface SourceLookup {
   settled(): Promise<void>
   resolveType(typeId: number, name: string): Promise<SrcLoc | null>
+  setPrecise?(typeId: number, name: string, spec: string): SrcLoc | null
   components: Map<number, SrcLoc & { name: string }>
   firstAppFrame(stack: any): Promise<SrcLoc | null>
   componentAt(file: string, line: number): (SrcLoc & { name: string }) | null
@@ -94,6 +95,7 @@ export class Correlator {
     await Promise.all(comps.map(async (c) => {
       if (c.t == null || seen.has(c.t)) return
       seen.add(c.t)
+      if (c.src && this.src.setPrecise?.(c.t, c.name, c.src)) return // hassas mod: konum derleme zamaninda biliniyor
       await this.src.resolveType(c.t, c.name)
     }))
     const resolved = comps.map((c) => {

@@ -94,9 +94,18 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     return id;
   }
 
+  // hassas mod: tools/izlix-source donusumu bilesene __izlix_src ("dosya:satir:sutun") ekler
+  function srcOf(f) {
+    const t = f.type, e = f.elementType;
+    if (!t) return undefined;
+    const c = [t, t.type, t.render, t.type && t.type.render, e, e && e.type, e && e.render];
+    for (let i = 0; i < c.length; i++) { if (c[i] && typeof c[i].__izlix_src === 'string') return c[i].__izlix_src; }
+    return undefined;
+  }
+  const srcSent = new Set();
   function describe(f) {
     const prev = f.alternate;
-    if (!prev) return { name: nameOf(f), reason: 'mount', t: typeIdOf(f) };
+    if (!prev) { const m = { name: nameOf(f), reason: 'mount', t: typeIdOf(f) }; if (m.t !== undefined && !srcSent.has(m.t)) { const sp = srcOf(f); if (sp) { m.src = sp; srcSent.add(m.t); } } return m; }
     const props = changedKeys(f.memoizedProps, prev.memoizedProps);
     let hooks = [], state = false;
     if (f.tag === CLASS) { state = !Object.is(f.memoizedState, prev.memoizedState); }
@@ -105,6 +114,7 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     if (props.length) reason = 'props';
     if (hooks.length || state) reason = props.length ? 'props+state' : 'state';
     const d = { name: nameOf(f), reason: reason, t: typeIdOf(f) };
+    if (d.t !== undefined && !srcSent.has(d.t)) { const sp = srcOf(f); if (sp) { d.src = sp; srcSent.add(d.t); } }
     if (props.length) d.props = props;
     if (hooks.length) d.hooks = hooks;
     if (typeof f.actualDuration === 'number') d.ms = Math.round(f.actualDuration * 100) / 100;
@@ -176,7 +186,7 @@ export const BRIDGE_SOURCE = String.raw`(() => {
   window.__IZLIX_INSPECT__ = function (id) {
     const f = inspected[id];
     if (!f) return null;
-    const d = { name: nameOf(f), props: ser(f.memoizedProps, 0, []), ms: typeof f.actualDuration === 'number' ? Math.round(f.actualDuration * 100) / 100 : undefined };
+    const d = { name: nameOf(f), src: srcOf(f), props: ser(f.memoizedProps, 0, []), ms: typeof f.actualDuration === 'number' ? Math.round(f.actualDuration * 100) / 100 : undefined };
     if (f.tag === CLASS) d.state = ser(f.memoizedState, 0, []);
     else {
       const hooks = []; let c = f.memoizedState, i = 0;
