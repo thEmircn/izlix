@@ -2,7 +2,7 @@ appId: dev.izlix.app
 productName: Izlix
 directories: { output: dist, buildResources: build }
 files: ['out/**', 'package.json']
-extraResources: [{ from: extension, to: extension }, { from: bin, to: bin }]
+extraResources: [{ from: samples, to: samples }, { from: extension, to: extension }, { from: bin, to: bin }]
 asar: true
 afterPack: scripts/after-pack.cjs
 protocols: [{ name: Izlix, schemes: [izlix] }]

@@ -37,5 +37,7 @@ export const schemas = {
   inspNode: z.object({ id: z.string().max(64), node: z.number().int().min(0), t: z.number().int().optional(), name: z.string().max(200) }),
   labSet: z.object({ id: z.string().max(64), devices: z.array(z.string().max(40)).max(4).nullable() }),
   downloadShow: z.object({ id: z.string().max(64) }),
+  settingsSet: z.object({ telemetry: z.enum(['unset', 'granted', 'denied']).optional(), onboarded: z.boolean().optional(), language: z.enum(['en', 'tr']).optional() }),
+  track: z.object({ name: z.string().max(40), props: z.record(z.string().max(40), z.union([z.string().max(40), z.number(), z.boolean()])).optional() }),
   overlay: z.object({ open: z.boolean() })
 }

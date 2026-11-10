@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "pack": "electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --dir -c.mac.target=dir",
-    "dist": "electron-vite build && electron-builder --mac"
+    "dist": "electron-vite build && electron-builder --mac",
+    "build:demo": "vite build -c samples/demo-src/vite.config.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

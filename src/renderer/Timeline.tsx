@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
-import { useStore, writePref } from './store'
+import { useStore, writePref, useT } from './store'
 import { Inspector, RenderTracker } from './Inspector'
 
 // ---- sabitler ----
@@ -39,6 +39,7 @@ const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
 /** Unified Developer Timeline v0: 6 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
 export function Timeline({ width, height }: { width: number; height: number }) {
+  const t = useT()
   const events = useStore((s) => s.events)
   const activeTabId = useStore((s) => s.activeTabId)
   const selected = useStore((s) => s.selectedEventId)
@@ -49,7 +50,15 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const [allReq, setAllReq] = useState(false)
   const [range, setRange] = useState<[number, number] | null>(null)
 
+  // kuzey yildizi metrigi (plan bolum 10): Timeline'in acildigi Workspace; sekme basina bir kez, yalnizca sayilar
+  const sent = useRef(new Set<string>())
+  const wsId = useStore((s) => s.activeWorkspaceId)
   const all = useMemo(() => [...events.values()].filter((e) => e.tabId === activeTabId).sort((a, b) => a.ts - b.ts), [events, activeTabId])
+  useEffect(() => {
+    if (!activeTabId || tab !== 'timeline' || !all.length) return
+    if (!sent.current.has('open:' + wsId)) { sent.current.add('open:' + wsId); void window.izlix.track('timeline.open', { events: all.length }) }
+    if (!sent.current.has('chain') && all.some((e) => e.links.some((l) => l.certainty === 'exact'))) { sent.current.add('chain'); void window.izlix.track('chain.seen') }
+  }, [all, tab, activeTabId, wsId])
   const tMax = all.length ? all[all.length - 1].ts : Date.now()
   const [from, to] = range ?? [tMax - DEFAULT_WINDOW, tMax]
   const visible = useMemo(
@@ -64,16 +73,16 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <b onClick={() => setTab('timeline')} style={{ cursor: 'pointer', opacity: tab === 'timeline' ? 1 : 0.5 }}>Timeline</b>
-        <b onClick={() => setTab('components')} style={{ cursor: 'pointer', opacity: tab === 'components' ? 1 : 0.5 }}>Components</b>
-        <b onClick={() => setTab('renders')} style={{ cursor: 'pointer', opacity: tab === 'renders' ? 1 : 0.5 }}>Renders</b>
-        <b onClick={() => setTab('raw')} style={{ cursor: 'pointer', opacity: tab === 'raw' ? 1 : 0.5 }}>Raw ({all.length})</b>
+        <b onClick={() => setTab('timeline')} style={{ cursor: 'pointer', opacity: tab === 'timeline' ? 1 : 0.5 }}>{t('tl.timeline')}</b>
+        <b onClick={() => setTab('components')} style={{ cursor: 'pointer', opacity: tab === 'components' ? 1 : 0.5 }}>{t('tl.components')}</b>
+        <b onClick={() => setTab('renders')} style={{ cursor: 'pointer', opacity: tab === 'renders' ? 1 : 0.5 }}>{t('tl.renders')}</b>
+        <b onClick={() => setTab('raw')} style={{ cursor: 'pointer', opacity: tab === 'raw' ? 1 : 0.5 }}>{t('tl.raw')} ({all.length})</b>
         {tab === 'timeline' && <>
           {LANES.map((l) => (
             <label key={l} style={{ color: COLOR[l] }}><input type="checkbox" checked={!hidden.has(l)} onChange={() => toggle(l)} /> {l}</label>
           ))}
-          <label><input type="checkbox" checked={allReq} onChange={(e) => setAllReq(e.target.checked)} /> tüm istekler</label>
-          {range && <button onClick={() => setRange(null)}>canlı</button>}
+          <label><input type="checkbox" checked={allReq} onChange={(e) => setAllReq(e.target.checked)} /> {t('tl.allRequests')}</label>
+          {range && <button onClick={() => setRange(null)}>{t('tl.live')}</button>}
           <select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as any }) }}>
             <option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option>
           </select>
@@ -150,7 +159,7 @@ function Lanes(props: {
               fill="none" stroke={lk.certainty === 'exact' ? '#ddd' : '#999'} strokeWidth={1.2}
               strokeDasharray={lk.certainty === 'estimated' ? '4 3' : undefined} markerEnd={`url(#ar-${lk.certainty})`}
               opacity={selected == null || selected === e.id || selected === lk.from ? 0.9 : 0.35}>
-              <title>{lk.type} ({lk.certainty === 'exact' ? 'kesin' : 'tahmini'})</title>
+              <title>{lk.type} ({lk.certainty === 'exact' ? 'exact' : 'estimated'})</title>
             </path>
           )
         }))}
@@ -176,7 +185,8 @@ function Lanes(props: {
 
 function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: number, c?: number): void; onSelect(id: number): void }) {
   const { ev, byId, onOpen, onSelect } = props
-  if (!ev) return <div style={{ padding: 8, opacity: 0.6 }}>Bir olaya tıkla. Sürükleyerek zaman aralığı seç. Düz ok = kesin, kesikli ok = tahmini bağ.</div>
+  const t = useT()
+  if (!ev) return <div style={{ padding: 8, opacity: 0.6 }}>{t('tl.hint')}</div>
   const p = ev.payload
   const OpenBtn = (a: { file?: string; line?: number; col?: number }) =>
     a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: '#4ea1ff' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
@@ -186,14 +196,14 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
       {ev.links.map((l) => (
         <div key={l.from} style={{ opacity: 0.85 }}>
           ← <a href="#" onClick={(e) => { e.preventDefault(); onSelect(l.from) }} style={{ color: '#ddd' }}>#{l.from} {byId.get(l.from) ? label(byId.get(l.from)!) : ''}</a>{' '}
-          <span style={{ color: l.certainty === 'exact' ? '#3ecf8e' : '#ffb454' }}>{l.type} · {l.certainty === 'exact' ? 'kesin' : 'tahmini'}</span>
+          <span style={{ color: l.certainty === 'exact' ? '#3ecf8e' : '#ffb454' }}>{l.type} · {l.certainty === 'exact' ? t('tl.exact') : t('tl.estimated')}</span>
         </div>
       ))}
-      {p.modified && <div style={{ color: '#ffb454' }}>⚡ Request Rules ile değiştirildi: {p.modified.kinds.join(' + ')}{p.modified.mocked ? ' (yanıt mock)' : ''}</div>}
-      {p.origin && <div>kaynak: <OpenBtn file={p.origin.file} line={p.origin.line} col={p.origin.column} /> {p.origin.component && <span>({p.origin.component})</span>}</div>}
+      {p.modified && <div style={{ color: '#ffb454' }}>{t('tl.modified', { kinds: p.modified.kinds.join(' + ') })}{p.modified.mocked ? t('tl.mockedRes') : ''}</div>}
+      {p.origin && <div>{t('tl.source')}: <OpenBtn file={p.origin.file} line={p.origin.line} col={p.origin.column} /> {p.origin.component && <span>({p.origin.component})</span>}</div>}
       {ev.kind === 'render' && (
         <table style={{ marginTop: 6, borderCollapse: 'collapse', width: '100%' }}>
-          <thead><tr style={{ textAlign: 'left', opacity: 0.6 }}><th>component</th><th>neden</th><th>değişen</th><th>ms</th><th>kaynak</th></tr></thead>
+          <thead><tr style={{ textAlign: 'left', opacity: 0.6 }}><th>{t('tl.col.component')}</th><th>{t('tl.col.reason')}</th><th>{t('tl.col.changed')}</th><th>{t('tl.col.ms')}</th><th>{t('tl.col.source')}</th></tr></thead>
           <tbody>
             {(p.components ?? []).slice(0, 60).map((c: any, i: number) => (
               <tr key={i}>

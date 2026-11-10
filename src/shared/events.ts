@@ -40,3 +40,6 @@ export interface WorkspaceInfo {
 
 export type Editor = 'vscode' | 'cursor' | 'webstorm'
 export type DevToolsDock = 'right' | 'bottom' | 'off'
+
+export type Language = 'en' | 'tr'
+export interface Settings { telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string }

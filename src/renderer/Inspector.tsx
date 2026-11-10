@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { aggregateRenders, wastedRatio, type TrackerRow } from '../shared/tracker'
-import { useStore } from './store'
+import { useStore, useT } from './store'
 
 interface Node { id: number; depth: number; name: string; t?: number; key?: string }
 const ROW_H = 20
@@ -27,6 +27,7 @@ const latestRenderId = (events: Map<number, BusEvent>, tab: string | null): numb
 
 /** React Inspector: bileşen ağacı (sanallaştırılmış, 2.000+ bileşende akıcı), props / state / hooks ve kaynak. */
 export function Inspector({ height }: { height: number }) {
+  const t = useT()
   const tabId = useStore((s) => s.activeTabId)
   const events = useStore((s) => s.events)
   const editor = useStore((s) => s.editor)
@@ -66,10 +67,10 @@ export function Inspector({ height }: { height: number }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', gap: 8, padding: '4px 8px', alignItems: 'center' }}>
-        <input placeholder="Bileşen ara…" value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: '#121214', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
-        <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> otomatik</label>
-        <button className="btn" onClick={() => void refresh()}>Yenile</button>
-        <span style={{ color: 'var(--dim)' }}>{nodes.length} bileşen{truncated ? '+' : ''}</span>
+        <input placeholder={t('insp.search')} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: '#121214', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
+        <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {t('insp.auto')}</label>
+        <button className="btn" onClick={() => void refresh()}>{t('insp.refresh')}</button>
+        <span style={{ color: 'var(--dim)' }}>{t('insp.count', { n: nodes.length })}{truncated ? '+' : ''}</span>
       </div>
       <div data-testid="tree" style={{ height: viewH, overflow: 'auto', borderTop: '1px solid var(--line)', font: '11px ui-monospace, Menlo, monospace' }} onScroll={(e) => setScroll(e.currentTarget.scrollTop)}>
         <div style={{ height: shown.length * ROW_H, position: 'relative' }}>
@@ -85,12 +86,12 @@ export function Inspector({ height }: { height: number }) {
         </div>
       </div>
       <div style={{ flex: 1, overflow: 'auto', borderTop: '1px solid var(--line)', padding: 8, font: '11px ui-monospace, Menlo, monospace' }}>
-        {!sel && <div style={{ color: 'var(--dim)' }}>Bir bileşen seç: props, state, hooks ve kaynak burada.</div>}
-        {sel && !detail && <div style={{ color: 'var(--dim)' }}>yükleniyor…</div>}
+        {!sel && <div style={{ color: 'var(--dim)' }}>{t('insp.pick')}</div>}
+        {sel && !detail && <div style={{ color: 'var(--dim)' }}>{t('insp.loading')}</div>}
         {sel && detail && (
           <>
-            <div><b>{detail.name}</b>{detail.ms != null && <span style={{ color: 'var(--dim)' }}> · son render {detail.ms} ms</span>}</div>
-            {detail.source && <div>kaynak: <a href="#" style={{ color: '#4ea1ff' }} onClick={(e) => { e.preventDefault(); open(detail.source) }}>{String(detail.source.file).split('/').slice(-2).join('/')}:{detail.source.line}</a></div>}
+            <div><b>{detail.name}</b>{detail.ms != null && <span style={{ color: 'var(--dim)' }}> · {t('insp.lastRender', { ms: detail.ms })}</span>}</div>
+            {detail.source && <div>{t('tl.source')}: <a href="#" style={{ color: '#4ea1ff' }} onClick={(e) => { e.preventDefault(); open(detail.source) }}>{String(detail.source.file).split('/').slice(-2).join('/')}:{detail.source.line}</a></div>}
             <div style={{ marginTop: 6, color: 'var(--dim)' }}>props</div><Val v={detail.props} />
             {detail.state !== undefined && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>state</div><Val v={detail.state} /></>}
             {detail.hooks?.length > 0 && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>hooks</div>
@@ -104,6 +105,7 @@ export function Inspector({ height }: { height: number }) {
 
 /** Render Tracker: bileşen başına render sayısı, süresi ve nedeni (seçili zaman aralığında). */
 export function RenderTracker({ events, range }: { events: BusEvent[]; range: [number, number] | null }) {
+  const t = useT()
   const editor = useStore((s) => s.editor)
   const rows = useMemo(() => aggregateRenders(events, range ?? undefined), [events, range])
   const open = (r: TrackerRow): void => { if (r.file && r.line) void window.izlix.openSource({ file: r.file, line: r.line, column: r.column, editor }) }
@@ -111,7 +113,7 @@ export function RenderTracker({ events, range }: { events: BusEvent[]; range: [n
     <div style={{ overflow: 'auto', flex: 1 }}>
       <table style={{ borderCollapse: 'collapse', width: '100%', font: '11px ui-monospace, Menlo, monospace' }}>
         <thead><tr style={{ textAlign: 'left', color: 'var(--dim)', position: 'sticky', top: 0, background: 'var(--bg)' }}>
-          <th style={{ padding: '3px 8px' }}>bileşen</th><th>render</th><th>toplam ms</th><th>maks ms</th><th>neden</th><th>değişen</th><th>gereksiz?</th><th>kaynak</th></tr></thead>
+          <th style={{ padding: '3px 8px' }}>{t('trk.component')}</th><th>{t('trk.renders')}</th><th>{t('trk.total')}</th><th>{t('trk.max')}</th><th>{t('trk.reason')}</th><th>{t('trk.changed')}</th><th>{t('trk.wasted')}</th><th>{t('trk.source')}</th></tr></thead>
         <tbody>
           {rows.slice(0, 300).map((r) => (
             <tr key={r.key}>
@@ -124,7 +126,7 @@ export function RenderTracker({ events, range }: { events: BusEvent[]; range: [n
           ))}
         </tbody>
       </table>
-      {!rows.length && <div style={{ padding: 8, color: 'var(--dim)' }}>Henüz render kaydı yok. Sayfayla etkileş.</div>}
+      {!rows.length && <div style={{ padding: 8, color: 'var(--dim)' }}>{t('trk.empty')}</div>}
     </div>
   )
 }

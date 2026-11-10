@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { RulesConfig } from '../shared/rules'
-import type { BusEvent, DevToolsDock, Editor, TabInfo, WorkspaceInfo } from '../shared/events'
+import type { BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
+import { translate, type Key } from '../shared/i18n'
 
 interface State {
   tabs: TabInfo[]; activeTabId: string | null; dock: DevToolsDock
@@ -12,7 +13,8 @@ interface State {
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
-  overlay: 'palette' | 'rules' | null
+  overlay: 'palette' | 'rules' | 'welcome' | null
+  settings: Settings
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void
   reset(list: BusEvent[]): void
@@ -26,7 +28,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: 'right', workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null,
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '' },
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)
@@ -36,3 +38,12 @@ export const useStore = create<State>((set) => ({
   }),
   reset: (list) => set({ events: new Map(list.map((e) => [e.id, e])), selectedEventId: null })
 }))
+
+type Vars = Record<string, string | number>
+/** React icinde dil degisince yeniden cizim icin hook */
+export const useT = (): ((k: Key, v?: Vars) => string) => {
+  const lang = useStore((s) => s.settings.language)
+  return (k, v) => translate(lang, k, v)
+}
+/** React disi baglamlar (komutlar) */
+export const tNow = (k: Key, v?: Vars): string => translate(useStore.getState().settings.language as Language, k, v)

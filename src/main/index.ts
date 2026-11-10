@@ -11,6 +11,9 @@ import { Library } from './library'
 import { Downloads } from './downloads'
 import { parseLaunch, type Launch } from './launch'
 import { registerAppScheme, serveApp, lockPermissions, lockShell } from './security'
+import { SettingsStore } from './settings'
+import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
+import { DemoServer } from './demo'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
@@ -25,6 +28,9 @@ let tabs: TabManager
 let workspaces: WorkspaceStore
 let rules: RuleStore
 let library: Library
+let settings: SettingsStore
+let telemetry: Telemetry
+let demo: DemoServer
 let downloads: Downloads
 let activeWorkspaceId = 'default'
 let detected: DetectedServer[] = []
@@ -36,6 +42,7 @@ function editorUrl(editor: Editor, file: string, line: number, col: number): str
 
 const send = (channel: string, payload: unknown): void => { if (win && !win.isDestroyed()) win.webContents.send(channel, payload) }
 const pushTabs = (): void => send(Ch.tabsState, { ...tabs.list(), dock: tabs.dock })
+const pushSettings = (): void => send(Ch.settingsState, settings.get())
 const pushRules = (): void => send(Ch.rulesState, rules.all())
 const pushLibrary = (): void => send(Ch.libState, { bookmarks: Object.fromEntries(workspaces.list().map((w) => [w.id, library.bookmarks(w.id)])), downloads: downloads.list() })
 const pushWorkspaces = (): void => send(Ch.wsState, { workspaces: workspaces.list(), activeId: activeWorkspaceId, detected })
@@ -127,6 +134,14 @@ function registerIpc(): void {
     pushLibrary(); return on
   })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
+  handle(Ch.settingsGet, null, () => settings.get())
+  handle(Ch.settingsSet, schemas.settingsSet, (p) => { settings.set(p); pushSettings(); return settings.get() })
+  handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
+  handle(Ch.demoOpen, null, async () => {
+    const port = await demo.start()
+    telemetry.track('demo.open')
+    return newTab(`http://127.0.0.1:${port}/`)
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -162,10 +177,15 @@ async function createWindow(): Promise<void> {
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
+  settings = new SettingsStore()
+  if (process.env.DB_SCRIPT && !process.env.DB_ONBOARD) settings.set({ onboarded: true }) // testlerde karsilama ekrani sayfa gorunumlerini gizlemesin
+  telemetry = new Telemetry(app.getPath('userData'), () => settings.get().telemetry, () => settings.get().installId)
+  const samples = join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'samples')
+  demo = new DemoServer(join(samples, 'demo'))
   downloads = new Downloads(() => pushLibrary())
   tabs = new TabManager(win, bus, workspaces, pushTabs, (url, wsId) => {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
-    try { const port = Number(new URL(url).port); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
+    try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
   }, (wsId) => rules.get(wsId), { onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
@@ -179,13 +199,14 @@ async function createWindow(): Promise<void> {
   const restored = process.env.DB_SCRIPT ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
   void pollServers(); setInterval(pollServers, 1500)
-  pushWorkspaces(); pushTabs(); pushRules(); pushLibrary()
+  pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSettings()
+  telemetry.track('app.start')
 
   // Otomatik test modu: DB_SCRIPT = ({ctx}) => Promise<any>; sonuc ve olaylar DB_DUMP'a yazilir
   if (process.env.DB_SCRIPT) {
     const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
     const ctx = {
-      app, win, tabs, bus, library, downloads, handleLaunch, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
+      app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
       newTab,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },

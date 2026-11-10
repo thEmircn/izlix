@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { rank } from '../shared/fuzzy'
 import { buildCommands } from './commands'
-import { useStore } from './store'
+import { useStore, useT, tNow } from './store'
 
 /** Command Palette (⌘K): tüm eylemler, sekmeler, Workspace'ler. Hedef: sonuç < 50 ms. */
 export function Palette({ onClose }: { onClose(): void }) {
+  const t = useT()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const [hist, setHist] = useState<{ url: string; title: string }[]>([])
   useEffect(() => { void window.izlix.history().then((h: any) => setHist(h ?? [])) }, [])
   const all = useMemo(() => [
     ...buildCommands(),
-    ...hist.map((h) => ({ id: `hist:${h.url}`, title: `History: ${h.title}`, hint: h.url, run: () => { useStore.getState().set({ overlay: null }); void window.izlix.createTab(h.url) } }))
+    ...hist.map((h) => ({ id: `hist:${h.url}`, title: tNow('cmd.history', { t: h.title }), hint: h.url, run: () => { useStore.getState().set({ overlay: null }); void window.izlix.createTab(h.url) } }))
   ], [hist])
   const shown = useMemo(() => rank(all, q, (c) => c.title + ' ' + (c.hint ?? ''), 50), [all, q])
   const list = useRef<HTMLDivElement>(null)
@@ -27,14 +28,14 @@ export function Palette({ onClose }: { onClose(): void }) {
   return (
     <div className="overlay" onMouseDown={onClose}>
       <div className="dialog" role="dialog" aria-label="Command Palette" onMouseDown={(e) => e.stopPropagation()} onKeyDown={key}>
-        <input className="pal-input" autoFocus placeholder="Komut, sekme veya Workspace ara…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="pal-input" autoFocus placeholder={t('pal.placeholder')} value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="pal-list" ref={list} role="listbox">
           {shown.map((c, i) => (
             <div key={c.id} role="option" aria-selected={i === sel} className={`pal-item ${i === sel ? 'sel' : ''}`} onMouseMove={() => setSel(i)} onClick={() => c.run()}>
               <span>{c.title}</span><span className="hint">{c.hint}</span>
             </div>
           ))}
-          {!shown.length && <div style={{ padding: 14, color: 'var(--dim)' }}>Eşleşme yok</div>}
+          {!shown.length && <div style={{ padding: 14, color: 'var(--dim)' }}>{t('pal.none')}</div>}
         </div>
       </div>
     </div>

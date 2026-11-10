@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { computeLayout } from '../shared/layout'
 import type { DevToolsDock } from '../shared/events'
-import { useStore, writePref } from './store'
+import { useStore, writePref, useT } from './store'
+import { Welcome } from './Welcome'
 import { Timeline } from './Timeline'
 import { Palette } from './Palette'
 import { RulesPanel } from './RulesPanel'
@@ -13,6 +14,7 @@ const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
 
 export function App() {
   const s = useStore()
+  const t = useT()
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [addr, setAddr] = useState('')
   const [editing, setEditing] = useState(false)
@@ -31,11 +33,12 @@ export function App() {
       api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId, dock: p.dock })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
+      api.onSettings((st: any) => { s.set({ settings: st }); if (!st.onboarded && useStore.getState().overlay === null) s.set({ overlay: 'welcome' }) }),
       api.onLibrary((l: any) => s.set({ bookmarks: l.bookmarks, downloads: l.downloads })),
       api.onCommand((cmd: string) => {
         const st = useStore.getState(); const act = st.tabs.find((t) => t.id === st.activeTabId)
         switch (cmd) {
-          case 'palette.open': st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
+          case 'palette.open': void api.track('palette.open'); st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
           case 'tab.new': void api.createTab(); break
@@ -53,6 +56,7 @@ export function App() {
     return () => { offs.forEach((f) => f()); clearInterval(t); window.removeEventListener('resize', onResize) }
   }, [])
 
+  useEffect(() => { void window.izlix.getSettings().then((st: any) => { useStore.getState().set({ settings: st, ...(st.onboarded ? {} : { overlay: 'welcome' as const }) }) }) }, [])
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])
   // overlay acikken sayfa gorunumleri (native katman) gizlenir, aksi halde shell'in ustunde kalirlardi
@@ -70,61 +74,62 @@ export function App() {
   return (
     <>
       <div className="tabstrip drag">
-        {myTabs.map((t) => (
-          <div key={t.id} className={`tab nodrag ${t.id === s.activeTabId ? 'active' : ''}`} onClick={() => api.activateTab(t.id)} title={t.url}>
-            <span className="t">{t.loading ? '⟳ ' : ''}{t.title || 'New Tab'}</span>
-            <button aria-label="Sekmeyi kapat" onClick={(e) => { e.stopPropagation(); void api.closeTab(t.id) }}>×</button>
+        {myTabs.map((tb) => (
+          <div key={tb.id} className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''}`} onClick={() => api.activateTab(tb.id)} title={tb.url}>
+            <span className="t">{tb.loading ? '⟳ ' : ''}{tb.title || 'New Tab'}</span>
+            <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}>×</button>
           </div>
         ))}
-        <button className="nodrag" aria-label="Yeni sekme" onClick={() => api.createTab()} style={{ border: 0, background: 'none', color: 'var(--dim)', fontSize: 18, cursor: 'pointer', height: 30 }}>+</button>
+        <button className="nodrag" aria-label={t('tab.new')} onClick={() => api.createTab()} style={{ border: 0, background: 'none', color: 'var(--dim)', fontSize: 18, cursor: 'pointer', height: 30 }}>+</button>
       </div>
 
       <div className="toolbar">
-        <button aria-label="Geri" disabled={!active?.canGoBack} onClick={nav(api.back)}>‹</button>
-        <button aria-label="İleri" disabled={!active?.canGoForward} onClick={nav(api.forward)}>›</button>
-        <button aria-label="Yenile" disabled={!active} onClick={nav(api.reload)}>↻</button>
-        <button aria-label="Yer imi" title="Yer imi (⌘D)" disabled={!active?.url} style={{ color: bookmarked ? '#ffd24a' : undefined }} onClick={nav(api.toggleBookmark)}>{bookmarked ? '★' : '☆'}</button>
+        <button aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}>‹</button>
+        <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}>›</button>
+        <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}>↻</button>
+        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#ffd24a' : undefined }} onClick={nav(api.toggleBookmark)}>{bookmarked ? '★' : '☆'}</button>
         <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
- <input className="addr" value={addr} placeholder="Adres ara ya da gir (localhost:5173)" spellCheck={false}
+ <input className="addr" value={addr} placeholder={t('addr.placeholder')} spellCheck={false}
             onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => setEditing(false)} onChange={(e) => setAddr(e.target.value)} />
           {nActive > 0 && (
-            <button type="button" className="rule-badge nodrag" title="Aktif Request Rules — tıkla: düzenle" onClick={() => s.set({ overlay: 'rules' })}>⚡ {nActive} kural</button>
+            <button type="button" className="rule-badge nodrag" title={t('rules.badge.title')} onClick={() => s.set({ overlay: 'rules' })}>{t('rules.badge', { n: nActive })}</button>
           )}
         </form>
         {s.downloads.length > 0 && (
           <button className="chip" title={s.downloads.map((d) => `${d.name} (${d.state})`).join('\n')} onClick={() => s.set({ overlay: 'palette' })}>
-            ⬇ {busyDl ? `${busyDl} iniyor` : s.downloads.length}
+            {busyDl ? t('dl.busy', { n: busyDl }) : t('dl.count', { n: s.downloads.length })}
           </button>
         )}
-        <select aria-label="Workspace" value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
+        <select aria-label={t('workspace')} value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
           {s.workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-          <option value="__new">＋ Klasörden Workspace…</option>
+          <option value="__new">{t('ws.fromFolder')}</option>
         </select>
         {(s.detected.length ? s.detected : []).map((d) => (
           <button key={d.port} className="chip" title={d.cwd ?? ''} onClick={() => api.createTab(`localhost:${d.port}`)}>
             ● {d.port}{d.framework ? ` ${d.framework}` : ''}{ws?.servers.some((x) => x.port === d.port) ? ' ✓' : ''}
           </button>
         ))}
-        <select aria-label="DevTools" value={s.dock} onChange={(e) => setDock(e.target.value as DevToolsDock)}>
-          <option value="right">DevTools sağda</option><option value="bottom">DevTools altta</option><option value="off">DevTools kapalı</option>
+        <select aria-label={t('devtools')} value={s.dock} onChange={(e) => setDock(e.target.value as DevToolsDock)}>
+          <option value="right">{t('dock.right')}</option><option value="bottom">{t('dock.bottom')}</option><option value="off">{t('dock.off')}</option>
         </select>
       </div>
 
       {active?.lab && (
         <div className="labbar" data-testid="labbar">
-          <b>Responsive Lab</b>
+          <b>{t('lab.title')}</b>
           {active.lab.map((id, i) => {
             const d = deviceById(id)
             return <span key={i} className="chip" style={{ cursor: 'default' }}>{d?.label ?? id} {d ? `${d.width}×${d.height}` : ''}</span>
           })}
-          <button className="chip" onClick={() => void api.setLab(active.id, null)}>Çık</button>
-          <span style={{ color: 'var(--dim)' }}>⌘K → “Responsive Lab” ile cihaz ekle/çıkar · kaydırma, tıklama ve yazma tüm görünümlerde eşzamanlı</span>
+          <button className="chip" onClick={() => void api.setLab(active.id, null)}>{t('lab.exit')}</button>
+          <span style={{ color: 'var(--dim)' }}>{t('lab.hint')}</span>
         </div>
       )}
-      {!active && <div className="empty" style={{ left: 0, top: chromeH, width: layout.page.width, height: layout.page.height }}>Sekme yok. ＋ ile aç.</div>}
+      {!active && <div className="empty" style={{ left: 0, top: chromeH, width: layout.page.width, height: layout.page.height }}>{t('tabs.none')}</div>}
       <div className="panel" style={{ left: layout.timeline.x, top: layout.timeline.y, width: layout.timeline.width, height: layout.timeline.height }}>
         <Timeline width={layout.timeline.width} height={layout.timeline.height} />
       </div>
+      {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'palette' && <Palette onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rules' && <RulesPanel onClose={() => s.set({ overlay: null })} />}
     </>
