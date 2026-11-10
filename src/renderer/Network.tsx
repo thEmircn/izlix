@@ -1,3 +1,4 @@
+import { LiveTraffic } from './LiveTraffic'
 import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { SENSITIVE_KEYS } from '../shared/mask'
@@ -55,6 +56,7 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         <button className="btn" onClick={() => tabId && void window.izlix.saveHar(tabId).then((p: string | null) => p && toast(t('toast.har', { p: p.split('/').pop() ?? '' })))}>HAR</button>
         <button className="btn" onClick={() => { setClearedAt(Date.now()); set({ selectedEventId: null }) }}>{t('net.clear')}</button>
       </div>
+      <div className="net-live"><LiveTraffic events={events} height={92} compact /></div>
       <div className="net-stats">
         <Stat label={t('net.requests')} value={rows.length} />
         <Stat label={t('net.transferred')} text={formatBytes(totalSize) || '0 B'} />

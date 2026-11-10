@@ -4,7 +4,8 @@ import { LANE_COLOR, eventLabel, type Lane } from '../shared/label'
 import { formatBytes, formatMs } from '../shared/network'
 import { summarizeOverview } from '../shared/overview'
 import { useStore, useT, wsName } from './store'
-import { Bars, CountUp, Donut, Spark } from './ui'
+import { CountUp, Donut, Spark } from './ui'
+import { LiveTraffic } from './LiveTraffic'
 
 const TYPE_COLORS = ['#ff6a2b', '#f5b83d', '#5ad08a', '#a1a1aa', '#2dd4bf', '#d4d4d8', '#71717a', '#8b8b92']
 const laneOf = (e: BusEvent): Lane => (e.kind === 'navigation' || e.kind === 'marker' ? 'input' : (e.kind as Lane))
@@ -52,9 +53,9 @@ export function Overview({ events }: { events: BusEvent[] }) {
           <div className="tsub" title={o.lastError ?? ''}>{o.lastError ?? t('ov.warnings', { n: o.warns })}</div>
         </div>
 
-        <div className="tile wide">
-          <div className="mlabel">{t('ov.traffic')} <span className="mdim">{t('ov.last', { s: Math.round(o.spanMs / 1000) })}</span></div>
-          <Bars values={o.reqSeries} bad={o.failSeries} height={78} labels={[`-${Math.round(o.spanMs / 1000)}s`, t('ov.now')]} />
+        <div className="tile full live-tile">
+          <div className="mlabel">{t('ov.live')}</div>
+          <LiveTraffic events={events} height={150} />
         </div>
         <div className="tile wide">
           <div className="mlabel">{t('ov.byType')}</div>
