@@ -37,7 +37,7 @@ describe('DebuggerService', () => {
     await svc.enable('t')
     fire('Debugger.paused', { reason: 'other', hitBreakpoints: ['bp1'], callFrames: [{ callFrameId: 'f1', functionName: 'load', url: 'http://a/main.js', location: { scriptId: '1', lineNumber: 41, columnNumber: 2 }, scopeChain: [{ type: 'local', object: { objectId: 'o1' } }, { type: 'global', object: { objectId: 'g' } }] }] })
     await new Promise((r) => setTimeout(r, 10))
-    expect(events[0]).toMatchObject({ type: 'paused', reason: 'other', hit: ['bp1'] })
+    expect(events[0]).toMatchObject({ type: 'paused', reason: 'breakpoint', hit: ['bp1'] })
     expect(events[0].frames[0]).toMatchObject({ id: 'f1', fn: 'load', line: 42, orig: { file: '/p/App.tsx', line: 12 } }); expect(events[0].frames[0].scopes).toHaveLength(1)
     fire('Debugger.resumed', {}); expect(events[1]).toEqual({ type: 'resumed' })
   })

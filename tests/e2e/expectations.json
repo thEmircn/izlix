@@ -1845,5 +1845,37 @@
       "gte",
       1
     ]
+  ],
+  "profiler": [
+    [
+      "recording",
+      "eq",
+      true
+    ],
+    [
+      "rows[0]",
+      "contains",
+      "spin"
+    ],
+    [
+      "heavyRow",
+      "contains",
+      "heavyWork"
+    ],
+    [
+      "flameBoxes",
+      "gte",
+      3
+    ],
+    [
+      "flameHasHeavy",
+      "eq",
+      true
+    ],
+    [
+      "stats[0]",
+      "contains",
+      "ms"
+    ]
   ]
 }

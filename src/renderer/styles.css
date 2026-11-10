@@ -358,3 +358,10 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .scope .sh { padding: 3px 0; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
 .arw-s { display: inline-block; width: 8px; height: 8px; position: relative; flex: none; cursor: pointer; } .arw-s::after { content: ''; position: absolute; left: 1px; top: 1px; border: solid var(--dim); border-width: 0 1.5px 1.5px 0; width: 4px; height: 4px; transform: rotate(-45deg); transition: transform .15s; } .arw-s.open::after { transform: rotate(45deg); } .arw-sp2 { display: inline-block; width: 8px; flex: none; }
 .vr { display: flex; gap: 8px; padding: 1px 0 1px 8px; align-items: baseline; } .vn { color: #e4e4e7; } .vt { color: #bef264; word-break: break-all; }
+.flame { position: relative; width: 100%; overflow: hidden; border-radius: 4px; background: rgba(255,255,255,.03); }
+.flame .fl { position: absolute; height: 16px; box-sizing: border-box; border-right: 1px solid var(--bg, #0b0b0c); overflow: hidden; white-space: nowrap; font-size: 10.5px; line-height: 16px; padding: 0 3px; cursor: pointer; color: #e8e8ea; transition: filter .12s; }
+.flame .fl:hover { filter: brightness(1.35); }
+.flame .fl-tip { position: absolute; right: 6px; bottom: 4px; background: rgba(0,0,0,.75); padding: 2px 6px; border-radius: 4px; font-size: 11px; pointer-events: none; }
+.prof .profrow:hover { background: rgba(255,255,255,.04); } .prof .profrow .u em { font-style: normal; color: var(--dim); margin-left: 8px; font-size: 11px; }
+.prof .profhead { color: var(--dim); font-size: 11px; } .prof .prof-bar { background: rgba(255,255,255,.07); } .prof .prof-bar b { background: #d4d4d8; }
+.prof .covrow { grid-template-columns: minmax(80px, 1fr) minmax(70px, 120px) 64px 64px; }
