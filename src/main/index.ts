@@ -284,6 +284,7 @@ function registerIpc(): void {
     return r?.result?.value ?? null
   })
   handle(Ch.imageAudit, schemas.tabId, ({ id }) => evalInPage(id, IMAGE_AUDIT))
+  handle(Ch.tabMove, schemas.tabMove, ({ id, index }) => tabs.move(id, index))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

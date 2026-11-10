@@ -314,3 +314,11 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .seo-list { padding: 0 12px 16px; } .seoi { display: flex; gap: 10px; align-items: center; padding: 4px 0; animation: rowin .25s var(--ease) both; } .seoi.error .vdot { background: var(--bad); } .seoi.warn .vdot { background: var(--warn); } .seoi.ok { color: var(--dim); } .seoi .vdot { flex: none; }
 
 .toolres { margin: 10px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.02); animation: bump .3s var(--ease) both; } .toolres code { background: none; padding: 0; color: var(--dim); white-space: nowrap; }
+
+.tab.dragging { opacity: .4; } .tab.dropping { box-shadow: inset 2px 0 0 var(--accent); }
+
+.brk { padding: 6px 12px 8px; border-bottom: 1px solid var(--line); } .brkbar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 1px; background: rgba(255,255,255,.04); } .brkbar i { animation: grow .6s var(--ease) both; transform-origin: left; transition: width .5s var(--ease); }
+.brkleg { display: flex; gap: 14px; margin-top: 5px; color: var(--dim); font-size: 10.5px; flex-wrap: wrap; } .brkleg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.bt-js { background: #fbbf24; } .bt-css { background: #a3e635; } .bt-img { background: #f4f4f5; } .bt-doc { background: #a1a1aa; } .bt-xhr { background: #2dd4bf; } .bt-font { background: #d4d4d8; } .bt-ws { background: #fb923c; } .bt-other { background: #71717a; }
+
+.scgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 16px 18px 20px; overflow: auto; } .scrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 3px 0; }

@@ -31,6 +31,7 @@ export function buildCommands(): Command[] {
     { id: 'find.open', title: t('cmd.find'), hint: '⌘F', run: () => s.set({ find: { open: true, active: 0, total: 0 } }) },
     { id: 'autoopen', title: t(s.settings.autoOpen ? 'cmd.autoOpenOff' : 'cmd.autoOpenOn'), run: () => void api.setSettings({ autoOpen: !s.settings.autoOpen }) },
     { id: 'react.flash', title: t('tl.reactHl') + (s.flash ? ' (on)' : ''), run: () => { if (active) void api.flashRenders(active.id, !s.flash).then((on: boolean | null) => s.set({ flash: !!on })) } },
+    { id: 'shortcuts', title: t('cmd.shortcuts'), hint: '⌘/', run: () => s.set({ overlay: 'shortcuts' }) },
     { id: 'settings', title: t('cmd.settings'), hint: '⌘,', run: () => s.set({ overlay: 'settings' }) },
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },

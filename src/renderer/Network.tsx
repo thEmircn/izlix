@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { SENSITIVE_KEYS } from '../shared/mask'
-import { replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
+import { typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
 import { Seg } from './ui'
@@ -60,6 +60,12 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         <Stat label={t('net.finish')} text={formatMs(Math.round(span))} />
         <Stat label={t('net.errors')} value={errors} bad={errors > 0} />
       </div>
+      {totalSize > 0 && (
+        <div className="brk">
+          <div className="brkbar">{typeBreakdown(rows).filter((x) => x.bytes > 0).map((x) => <i key={x.type} className={`bt-${x.type}`} style={{ width: `${Math.max(1, x.pct)}%` }} title={`${x.type}: ${formatBytes(x.bytes)} (${x.count})`} />)}</div>
+          <div className="brkleg">{typeBreakdown(rows).filter((x) => x.bytes > 0).slice(0, 5).map((x) => <span key={x.type}><i className={`bt-${x.type}`} />{x.type} {formatBytes(x.bytes)}</span>)}</div>
+        </div>
+      )}
       <div className="net-head"><span>{t('net.method')}</span><span>{t('net.name')}</span><span>{t('net.status')}</span><span>{t('net.size')}</span><span>{t('net.time')}</span><span>{t('net.waterfall')}</span></div>
       <div className="net-list">
         {rows.map((r) => <Row key={r.id} r={r} t0={t0} span={span} now={now} selected={r.id === selectedId} onClick={() => set({ selectedEventId: r.id === selectedId ? null : r.id })} />)}

@@ -1493,5 +1493,27 @@
       "contains",
       "image"
     ]
+  ],
+  "ui-polish": [
+    [
+      "moved",
+      "eq",
+      true
+    ],
+    [
+      "afterUi[0]",
+      "eq",
+      "x=1"
+    ],
+    [
+      "shortcuts",
+      "gte",
+      20
+    ],
+    [
+      "breakdown",
+      "gte",
+      1
+    ]
   ]
 }

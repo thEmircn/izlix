@@ -5,6 +5,7 @@ import { useStore, writePref, useT, toast, PANEL_TABS } from './store'
 import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
 import { Settings } from './Settings'
+import { Shortcuts } from './Shortcuts'
 import { PermissionPrompt } from './PermissionPrompt'
 import { Back, Forward, Reload, Plus, Close, Star, Download, Spinner } from './icons'
 import { RenameWorkspace } from './RenameWorkspace'
@@ -22,6 +23,8 @@ export function App() {
   const s = useStore()
   const t = useT()
   const [dragging, setDragging] = useState(false)
+  const [dragTab, setDragTab] = useState<string | null>(null)
+  const [overTab, setOverTab] = useState<string | null>(null)
   const [findText, setFindText] = useState('')
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [addr, setAddr] = useState('')
@@ -50,6 +53,7 @@ export function App() {
         switch (cmd) {
           case 'palette.open': void api.track('palette.open'); st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
+          case 'shortcuts.open': st.set({ overlay: st.overlay === 'shortcuts' ? null : 'shortcuts' }); break
           case 'settings.open': st.set({ overlay: 'settings' }); break
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
@@ -112,7 +116,11 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''}`} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
+          <div key={tb.id} draggable className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+            onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
+            onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
+            onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
+            onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
             <span className="t">{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{tb.title || 'New Tab'}</span>
             <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
           </div>
@@ -188,6 +196,7 @@ export function App() {
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       <Toasts />
       <PermissionPrompt />
+      {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}

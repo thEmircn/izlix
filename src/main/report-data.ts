@@ -1,5 +1,6 @@
 import type { BusEvent } from '../shared/events'
 import { maskDeep, maskString } from '../shared/mask'
+import { summarizeVitals } from '../shared/vitals'
 
 /** Olay listesinden HAR 1.2 (istek/yanit cifti; baslik ve govde toplanmadigi icin sizinti yok). */
 export function buildHar(events: BusEvent[], version = '0.1'): object {
@@ -56,6 +57,12 @@ export function buildSummary(events: BusEvent[], env: ReportEnv): string {
     `- Nedensellik bağları: ${links.filter((l) => l.certainty === 'exact').length} kesin, ${links.filter((l) => l.certainty === 'estimated').length} tahmini`,
     `- Request Rules ile değiştirilen istek: ${modified.length}`, ''
   ]
+  const pf = summarizeVitals(events)
+  if (pf.vitals.length || pf.tbt) {
+    md.push('## Performans', '')
+    for (const v of pf.vitals) md.push(`- ${v.name}: ${v.unit === 'ms' ? Math.round(v.value) + ' ms' : v.value.toFixed(3)} (${v.rating})`)
+    md.push(`- TBT: ${pf.tbt} ms, uzun görev: ${pf.longTasks.length}`, '')
+  }
   if (errors.length) {
     md.push('## Hatalar', '')
     for (const e of errors.slice(-10)) { md.push(`- \`${maskString(line(e)).slice(0, 300)}\``); const c = chain(e); if (c.length) md.push(`  - zincir: ${c.join(' ')} **${e.kind}**`) }

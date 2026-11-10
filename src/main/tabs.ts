@@ -265,6 +265,17 @@ export class TabManager {
     cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open); cur?.lab?.setVisible(!open)
   }
 
+  /** Sekmeyi `toIndex` konumuna tasir (ayni Workspace icinde gorunen sira korunur; genel sira dizisinde yer degistirir) */
+  move(id: string, toIndex: number): boolean {
+    const from = this.order.indexOf(id)
+    if (from < 0) return false
+    const to = Math.max(0, Math.min(this.order.length - 1, toIndex))
+    if (from === to) return false
+    this.order.splice(from, 1); this.order.splice(to, 0, id)
+    this.onChange(); this.persist()
+    return true
+  }
+
   /** Sekmeyi cogaltir (ayni URL, ayni Workspace) */
   duplicate(id: string): Promise<string | null> { const e = this.tabs.get(id); return e && e.info.url ? this.create({ url: e.info.url, workspaceId: e.info.workspaceId }) : Promise.resolve(null) }
   /** Ayni Workspace'te `id` disindaki (veya yalnizca sagindaki) sekmeleri kapatir */

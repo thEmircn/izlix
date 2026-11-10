@@ -25,6 +25,10 @@ describe('rapor', () => {
     expect(toNdjson(events).trim().split('\n')).toHaveLength(5)
     expect(JSON.stringify(consoleDump(events))).not.toContain('"abc"')
   })
+  it('Web Vitals ozeti rapora girer', () => {
+    const md = buildSummary([ev(1, 'navigation', {}, { source: 'cdp:Page.frameNavigated', ts: 10 } as any), ev(2, 'vital', { name: 'LCP', value: 3100 }), ev(3, 'vital', { name: 'longtask', value: 150, start: 1 })], env)
+    expect(md).toContain('## Performans'); expect(md).toContain('LCP: 3100 ms (needs)'); expect(md).toContain('TBT: 100 ms')
+  })
   it('ozet hatalari, basarisiz istekleri ve zinciri icerir', () => {
     const md = buildSummary(events, env)
     expect(md).toContain('2 hata')

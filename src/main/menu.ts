@@ -7,7 +7,7 @@ import { Menu, type MenuItemConstructorOptions } from 'electron'
 export function installMenu(run: (cmd: string) => void): void {
   const c = (label: string, accelerator: string, cmd: string): MenuItemConstructorOptions => ({ label, accelerator, click: () => run(cmd) })
   const template: MenuItemConstructorOptions[] = [
-    { label: 'Izlix', submenu: [{ role: 'about' }, { type: 'separator' }, c('Settings…', 'CmdOrCtrl+,', 'settings.open'), { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
+    { label: 'Izlix', submenu: [{ role: 'about' }, { type: 'separator' }, c('Settings…', 'CmdOrCtrl+,', 'settings.open'), c('Keyboard Shortcuts', 'CmdOrCtrl+/', 'shortcuts.open'), { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
     { label: 'File', submenu: [c('New Tab', 'CmdOrCtrl+T', 'tab.new'), c('Close Tab', 'CmdOrCtrl+W', 'tab.close'), c('Reopen Closed Tab', 'CmdOrCtrl+Shift+T', 'tab.reopen'), c('Select Next Tab', 'Ctrl+Tab', 'tab.next'), c('Select Previous Tab', 'Ctrl+Shift+Tab', 'tab.prev'), ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => c(n === 9 ? 'Select Last Tab' : `Select Tab ${n}`, `CmdOrCtrl+${n}`, `tab.go.${n}`)), c('Bookmark This Page', 'CmdOrCtrl+D', 'bookmark.toggle'), { type: 'separator' }, c('Open Location…', 'CmdOrCtrl+L', 'addr.focus'), c('Find in Page…', 'CmdOrCtrl+F', 'find.open')] },
     { role: 'editMenu' },
     {

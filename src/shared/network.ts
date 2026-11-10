@@ -98,3 +98,11 @@ export function replayExpression(method: string, url: string, headers: Record<st
   if (body && !/^(GET|HEAD)$/i.test(method)) init.body = body
   return `await fetch(${JSON.stringify(url)}, ${JSON.stringify(init)}).then((r) => r.status + ' ' + r.statusText)` // REPL kipi: ust duzey await
 }
+
+/** Tur bazinda aktarilan bayt (buyukten kucuge) ve toplam */
+export function typeBreakdown(rows: Pick<NetRow, 'type' | 'size'>[]): { type: NetType; bytes: number; count: number; pct: number }[] {
+  const m = new Map<NetType, { bytes: number; count: number }>()
+  for (const r of rows) { const e = m.get(r.type) ?? { bytes: 0, count: 0 }; e.bytes += r.size ?? 0; e.count++; m.set(r.type, e) }
+  const total = [...m.values()].reduce((a, b) => a + b.bytes, 0)
+  return [...m.entries()].map(([type, v]) => ({ type, bytes: v.bytes, count: v.count, pct: total ? (v.bytes / total) * 100 : 0 })).sort((a, b) => b.bytes - a.bytes)
+}

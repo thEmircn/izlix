@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
+import { typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
 
 const ev = (id: number, ts: number, kind: BusEvent['kind'], payload: any): BusEvent => ({ id, tabId: 't', ts, kind, source: 's', payload, causeIds: [], links: [] })
 
@@ -67,5 +67,13 @@ describe('replayExpression', () => {
     expect(replayExpression('GET', 'http://a.com', {}, 'ignored')).not.toContain('body')
     const AsyncFn = Object.getPrototypeOf(async function () {}).constructor
     expect(() => new AsyncFn(`return ${e.replace(/^await /, '')}`)).not.toThrow(); expect(e.startsWith('await ')).toBe(true)
+  })
+})
+
+describe('typeBreakdown', () => {
+  it('bayt toplami ve yuzde; buyukten kucuge', () => {
+    const b = typeBreakdown([{ type: 'js', size: 3000 }, { type: 'js', size: 1000 }, { type: 'css', size: 1000 }, { type: 'img', size: null }])
+    expect(b.map((x) => [x.type, x.bytes, x.count])).toEqual([['js', 4000, 2], ['css', 1000, 1], ['img', 0, 1]])
+    expect(Math.round(b[0].pct)).toBe(80); expect(typeBreakdown([])).toEqual([])
   })
 })
