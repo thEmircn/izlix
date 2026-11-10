@@ -102,13 +102,22 @@ export class TabManager {
   activate(id: string): void {
     if (!this.tabs.has(id)) return
     const prev = this.active()
-    if (prev) { this.win.contentView.removeChildView(prev.view); prev.lab?.removeViews(); if (prev.devtools) this.win.contentView.removeChildView(prev.devtools) }
+    if (prev) { this.win.contentView.removeChildView(prev.view); prev.lab?.removeViews(); this.releaseDevTools(prev) }
     this.activeId = id
     const cur = this.tabs.get(id)!
     this.win.contentView.addChildView(cur.view)
     cur.lab?.addViews()
     this.ensureDevTools(cur)
     this.layout(); this.onChange(); this.persist()
+  }
+
+  /** Pasif sekmenin DevTools'u kapatilir: her DevTools ayri bir renderer sureci (bellek hedefi, plan bolum 10). Tekrar aktif olunca yeniden acilir. */
+  private releaseDevTools(e: Entry): void {
+    if (!e.devtools) return
+    this.win.contentView.removeChildView(e.devtools)
+    try { if (!e.view.webContents.isDestroyed()) e.view.webContents.closeDevTools() } catch { /* kapanmis */ }
+    if (!e.devtools.webContents.isDestroyed()) e.devtools.webContents.close()
+    e.devtools = undefined
   }
 
   /** DevTools: sekme basina tembel olusur; yalnizca aktif sekmeninki pencerede gorunur */
@@ -127,7 +136,7 @@ export class TabManager {
     this.layoutParams = p
     const cur = this.active()
     if (cur && dockChanged) {
-      if (p.dock === 'off' && cur.devtools) this.win.contentView.removeChildView(cur.devtools)
+      if (p.dock === 'off' && cur.devtools) this.releaseDevTools(cur)
       else this.ensureDevTools(cur)
     }
     this.layout()

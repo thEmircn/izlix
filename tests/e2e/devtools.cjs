@@ -12,5 +12,12 @@ module.exports = async ({ tabs, sleep, shellEval }) => {
   out.boundsBottom = tabs.get(a).devtools.getBounds()
   const b = await tabs.create({ url: 'localhost:5173', workspaceId: 'default' }); await sleep(2500)
   out.separateDevtools = tabs.get(b).devtools !== tabs.get(a).devtools
+  out.aReleased = !tabs.get(a).devtools
+  tabs.activate(a); await sleep(3000)
+  const dt2 = tabs.get(a).devtools
+  out.reopened = dt2 && dt2.webContents.getURL().slice(0, 40)
+  out.reopenedBounds = dt2 && dt2.getBounds()
+  tabs.activate(b); await sleep(500); tabs.activate(a); await sleep(2500)
+  out.reopenedAgain = !!tabs.get(a).devtools && !tabs.get(a).devtools.webContents.isDestroyed()
   return out
 }
