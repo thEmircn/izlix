@@ -9,3 +9,6 @@ export function resolveInput(raw: string): string {
   if (!/\s/.test(input) && /^[^\s/]+\.[a-z]{2,}([:/?#].*)?$/i.test(input)) return `https://${input}`
   return `https://duckduckgo.com/?q=${encodeURIComponent(input)}`
 }
+
+/** SAYFA kaynakli gezinme/pencere acma icin izinli adresler (kullanicinin adres cubuguna yazdiklari bundan etkilenmez). */
+export const isAllowedPageNavigation = (url: string): boolean => /^(https?:\/\/|about:blank$)/i.test(url.trim())

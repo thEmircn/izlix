@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { TabInfo, DevToolsDock } from '../shared/events'
 import { computeLayout, type LayoutParams } from '../shared/layout'
-import { resolveInput } from '../shared/url'
+import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
@@ -96,7 +96,11 @@ export class TabManager {
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
     wc.on('render-process-gone', (_ev, d) => { if (d.reason !== 'clean-exit') setTimeout(() => { if (!wc.isDestroyed()) wc.reload() }, 300) })
     // target=_blank ve window.open: yeni sekmede ac (ayni Workspace)
-    wc.setWindowOpenHandler(({ url }) => { void this.create({ url, workspaceId: e.info.workspaceId }); return { action: 'deny' } })
+    wc.setWindowOpenHandler(({ url }) => { if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId }); return { action: 'deny' } })
+    // sayfa kaynakli gezinmeler de http(s) ile sinirli (file://, izlix://, vscode:// vb. engellenir)
+    const guard = (event: Electron.Event, url: string): void => { if (!isAllowedPageNavigation(url)) event.preventDefault() }
+    wc.on('will-navigate', guard)
+    wc.on('will-redirect', guard)
   }
 
   activate(id: string): void {
