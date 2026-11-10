@@ -26,6 +26,8 @@ export interface TabInfo {
   loading: boolean
   canGoBack: boolean
   canGoForward: boolean
+  /** Responsive Lab acikken cihaz kimlikleri (ilki birincil gorunum) */
+  lab?: string[]
 }
 
 export interface WorkspaceInfo {

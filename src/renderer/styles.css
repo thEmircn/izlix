@@ -33,3 +33,4 @@ button, input, select { font: inherit; color: inherit; }
 .rule-badge { background: #5a3a00; color: #ffb454; border: 1px solid #8a5a10 !important; border-radius: 10px !important; font-size: 11px !important; padding: 2px 8px !important; }
 .btn { background: #3a3a40; border: 0; border-radius: 5px; padding: 4px 10px; cursor: pointer; }
 .btn.primary { background: var(--accent); color: #001; }
+.labbar { position: absolute; left: 0; right: 0; top: 84px; height: 26px; display: flex; gap: 8px; align-items: center; padding: 0 10px; background: #1f2a1f; border-bottom: 1px solid var(--line); font-size: 11px; white-space: nowrap; overflow: hidden; }

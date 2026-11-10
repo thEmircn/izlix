@@ -1,5 +1,6 @@
 import { useStore, writePref } from './store'
 import type { DevToolsDock } from '../shared/events'
+import { DEVICES, MAX_VIEWPORTS, deviceById } from '../shared/lab'
 
 export interface Command { id: string; title: string; hint?: string; run(): void }
 
@@ -21,6 +22,17 @@ export function buildCommands(): Command[] {
     { id: 'tl.clear', title: 'Timeline: Clear Selection', run: () => s.set({ selectedEventId: null }) },
     { id: 'report.make', title: 'Bug Report: Export zip', run: () => void api.exportReport() }
   ]
+  // Responsive Lab (#7)
+  const lab = active?.lab
+  const setLab = (ids: string[] | null): void => { if (active) void api.setLab(active.id, ids) }
+  if (!lab) {
+    cmds.push({ id: 'lab.start', title: 'Responsive Lab: Start (iPhone SE + iPad mini + Laptop)', run: () => setLab(['iphone-se', 'ipad-mini', 'laptop']) })
+    for (const d of DEVICES) cmds.push({ id: `lab.start.${d.id}`, title: `Responsive Lab: Start with ${d.label}`, hint: `${d.width}×${d.height}`, run: () => setLab([d.id]) })
+  } else {
+    cmds.push({ id: 'lab.exit', title: 'Responsive Lab: Exit', run: () => setLab(null) })
+    if (lab.length < MAX_VIEWPORTS) for (const d of DEVICES) cmds.push({ id: `lab.add.${d.id}`, title: `Responsive Lab: Add ${d.label}`, hint: `${d.width}×${d.height}`, run: () => setLab([...lab, d.id]) })
+    lab.forEach((id, i) => cmds.push({ id: `lab.rm.${i}`, title: `Responsive Lab: Remove ${deviceById(id)?.label ?? id}${lab.filter((x) => x === id).length > 1 ? ` (#${i + 1})` : ''}`, run: () => setLab(lab.length > 1 ? lab.filter((_, j) => j !== i) : null) }))
+  }
   for (const d of ['right', 'bottom', 'off'] as DevToolsDock[]) {
     cmds.push({ id: `dock.${d}`, title: `DevTools: ${d === 'off' ? 'Hide' : 'Dock ' + d}`, run: () => { writePref('dock', d); s.set({ dock: d }) } })
   }

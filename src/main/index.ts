@@ -94,6 +94,7 @@ function registerIpc(): void {
     return d
   })
   handle(Ch.reportExport, null, () => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id))
+  handle(Ch.labSet, schemas.labSet, ({ id, devices }) => tabs.setLab(id, devices))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

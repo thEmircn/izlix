@@ -6,8 +6,10 @@ import { Timeline } from './Timeline'
 import { Palette } from './Palette'
 import { RulesPanel } from './RulesPanel'
 import { activeRules } from '../shared/rules'
+import { deviceById } from '../shared/lab'
 
 const CHROME_H = 84 // sekme seridi 38 + arac cubugu 46
+const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
 
 export function App() {
   const s = useStore()
@@ -17,6 +19,7 @@ export function App() {
   const active = s.tabs.find((t) => t.id === s.activeTabId)
   const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId)
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
+  const chromeH = CHROME_H + (active?.lab ? LAB_BAR_H : 0)
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 
   useEffect(() => {
@@ -53,9 +56,9 @@ export function App() {
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
-  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: s.panelRatio, chromeHeight: CHROME_H }) }, [s.dock, s.panelRatio])
+  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH }) }, [s.dock, s.panelRatio, chromeH])
 
-  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: s.panelRatio, chromeHeight: CHROME_H })
+  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }
   const api = window.izlix
   const nav = (fn: (id: string) => unknown) => (): void => { if (active) void fn(active.id) }
@@ -97,7 +100,18 @@ export function App() {
         </select>
       </div>
 
-      {!active && <div className="empty" style={{ left: 0, top: CHROME_H, width: layout.page.width, height: layout.page.height }}>Sekme yok. ＋ ile aç.</div>}
+      {active?.lab && (
+        <div className="labbar" data-testid="labbar">
+          <b>Responsive Lab</b>
+          {active.lab.map((id, i) => {
+            const d = deviceById(id)
+            return <span key={i} className="chip" style={{ cursor: 'default' }}>{d?.label ?? id} {d ? `${d.width}×${d.height}` : ''}</span>
+          })}
+          <button className="chip" onClick={() => void api.setLab(active.id, null)}>Çık</button>
+          <span style={{ color: 'var(--dim)' }}>⌘K → “Responsive Lab” ile cihaz ekle/çıkar · kaydırma, tıklama ve yazma tüm görünümlerde eşzamanlı</span>
+        </div>
+      )}
+      {!active && <div className="empty" style={{ left: 0, top: chromeH, width: layout.page.width, height: layout.page.height }}>Sekme yok. ＋ ile aç.</div>}
       <div className="panel" style={{ left: layout.timeline.x, top: layout.timeline.y, width: layout.timeline.width, height: layout.timeline.height }}>
         <Timeline width={layout.timeline.width} height={layout.timeline.height} />
       </div>

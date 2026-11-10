@@ -8,6 +8,8 @@ import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
 import { Interceptor } from './interceptor'
+import { Lab } from './lab'
+import { deviceById, type Device } from '../shared/lab'
 import type { RulesConfig } from '../shared/rules'
 
 interface Entry {
@@ -15,6 +17,8 @@ interface Entry {
   view: WebContentsView
   cdp?: Tab
   interceptor?: Interceptor
+  lab?: Lab
+  /** DevTools gorunumu lab'da da birincil gorunumle birlikte kalir */
   devtools?: WebContentsView
   /** son bilinen http(s) adresi: sayfa commit olmadan (about:blank) gelen cozumlemeler icin yedek */
   lastHttpUrl?: string
@@ -95,10 +99,11 @@ export class TabManager {
   activate(id: string): void {
     if (!this.tabs.has(id)) return
     const prev = this.active()
-    if (prev) { this.win.contentView.removeChildView(prev.view); if (prev.devtools) this.win.contentView.removeChildView(prev.devtools) }
+    if (prev) { this.win.contentView.removeChildView(prev.view); prev.lab?.removeViews(); if (prev.devtools) this.win.contentView.removeChildView(prev.devtools) }
     this.activeId = id
     const cur = this.tabs.get(id)!
     this.win.contentView.addChildView(cur.view)
+    cur.lab?.addViews()
     this.ensureDevTools(cur)
     this.layout(); this.onChange(); this.persist()
   }
@@ -131,7 +136,7 @@ export class TabManager {
     if (!cur) return
     const [w, h] = this.win.getContentSize()
     const l = computeLayout(w, h, this.layoutParams)
-    cur.view.setBounds(l.page)
+    if (cur.lab) cur.lab.layout(l.page); else cur.view.setBounds(l.page)
     if (cur.devtools && l.devtools) cur.devtools.setBounds(l.devtools)
   }
 
@@ -141,7 +146,7 @@ export class TabManager {
     const idx = this.order.indexOf(id)
     this.win.contentView.removeChildView(e.view)
     if (e.devtools) this.win.contentView.removeChildView(e.devtools)
-    e.interceptor?.detach()
+    void e.lab?.dispose(); e.interceptor?.detach()
     e.cdp?.detach()
     this.bus.dropTab(id)
     e.view.webContents.close()
@@ -154,12 +159,30 @@ export class TabManager {
     this.onChange(); this.persist()
   }
 
+  /** Responsive Lab: cihaz kimlikleri listesi (ilki birincil gorunum); null = kapat */
+  async setLab(id: string, ids: string[] | null): Promise<void> {
+    const e = this.tabs.get(id)
+    if (!e) return
+    const devices = (ids ?? []).map(deviceById).filter((d): d is Device => !!d).slice(0, 4)
+    if (!devices.length) {
+      if (e.lab) { await e.lab.dispose(); e.lab = undefined }
+      e.info.lab = undefined
+      e.view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); this.layout()
+    } else {
+      e.lab ??= new Lab(this.win, e.view, session.fromPartition(partitionFor(e.info.workspaceId)))
+      await e.lab.setDevices(devices)
+      e.info.lab = devices.map((d) => d.id)
+      if (this.activeId === id) e.lab.addViews()
+    }
+    this.layout(); this.onChange()
+  }
+
   /** Kurallar degisince tum sekmelerde Fetch alanini yeniden degerlendir */
   refreshRules(): void { for (const e of this.tabs.values()) void e.interceptor?.refresh() }
   /** Overlay (palet, kural editoru) acikken sayfa gorunumleri native katman oldugu icin shell'in ustune cikar; gizlenir. */
   setOverlay(open: boolean): void {
     const cur = this.active()
-    cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open)
+    cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open); cur?.lab?.setVisible(!open)
   }
 
   go(id: string, input: string): void { void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input)).catch(() => {}) }
