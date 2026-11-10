@@ -8,13 +8,13 @@ const ROW_H = 20
 
 const Val = ({ v, depth = 0 }: { v: any; depth?: number }): React.ReactElement => {
   if (v && typeof v === 'object' && '$' in v) return <i style={{ color: '#9aa' }}>{v.$}</i>
-  if (v === null) return <span style={{ color: '#c792ea' }}>null</span>
-  if (typeof v === 'string') return <span style={{ color: '#ecc48d' }}>"{v}"</span>
+  if (v === null) return <span style={{ color: '#a1a1aa' }}>null</span>
+  if (typeof v === 'string') return <span style={{ color: '#d6b98a' }}>"{v}"</span>
   if (typeof v === 'number' || typeof v === 'boolean') return <span style={{ color: '#f78c6c' }}>{String(v)}</span>
   if (Array.isArray(v)) return v.length ? <div style={{ paddingLeft: depth ? 12 : 0 }}>{v.map((x, i) => <div key={i}>{i}: <Val v={x} depth={depth + 1} /></div>)}</div> : <span>[]</span>
   if (v && typeof v === 'object') {
     const ks = Object.keys(v)
-    return ks.length ? <div style={{ paddingLeft: depth ? 12 : 0 }}>{ks.map((k) => <div key={k}><span style={{ color: '#82aaff' }}>{k}</span>: <Val v={v[k]} depth={depth + 1} /></div>)}</div> : <span>{'{}'}</span>
+    return ks.length ? <div style={{ paddingLeft: depth ? 12 : 0 }}>{ks.map((k) => <div key={k}><span style={{ color: '#e4e4e7' }}>{k}</span>: <Val v={v[k]} depth={depth + 1} /></div>)}</div> : <span>{'{}'}</span>
   }
   return <span>{String(v)}</span>
 }
@@ -80,7 +80,7 @@ export function Inspector({ height }: { height: number }) {
             const row = counts.get(n.t != null ? `t${n.t}` : `n:${n.name}`)
             return (
               <div key={n.id} onClick={() => void pick(n)} style={{ position: 'absolute', top: (first + i) * ROW_H, height: ROW_H, left: 0, right: 0, paddingLeft: 8 + (filter ? 0 : Math.min(n.depth, 40) * 10), whiteSpace: 'nowrap', cursor: 'default', background: sel?.id === n.id ? '#3a4a66' : undefined, lineHeight: `${ROW_H}px` }}>
-                <span style={{ color: '#82aaff' }}>{n.name}</span>{n.key != null && <span style={{ color: '#ecc48d' }}> key="{n.key}"</span>}
+                <span style={{ color: '#e4e4e7' }}>{n.name}</span>{n.key != null && <span style={{ color: '#d6b98a' }}> key="{n.key}"</span>}
                 {row && <span style={{ color: row.renders > 5 ? '#ffb454' : 'var(--dim)' }}> ×{row.renders}</span>}
               </div>
             )
@@ -93,11 +93,11 @@ export function Inspector({ height }: { height: number }) {
         {sel && detail && (
           <>
             <div><b>{detail.name}</b>{detail.ms != null && <span style={{ color: 'var(--dim)' }}> · {t('insp.lastRender', { ms: detail.ms })}</span>}</div>
-            {detail.source && <div>{t('tl.source')}: <a href="#" style={{ color: '#4ea1ff' }} onClick={(e) => { e.preventDefault(); open(detail.source) }}>{String(detail.source.file).split('/').slice(-2).join('/')}:{detail.source.line}</a></div>}
+            {detail.source && <div>{t('tl.source')}: <a href="#" style={{ color: 'var(--fg)', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={(e) => { e.preventDefault(); open(detail.source) }}>{String(detail.source.file).split('/').slice(-2).join('/')}:{detail.source.line}</a></div>}
             <div style={{ marginTop: 6, color: 'var(--dim)' }}>props</div><Val v={detail.props} />
             {detail.state !== undefined && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>state</div><Val v={detail.state} /></>}
             {detail.hooks?.length > 0 && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>hooks</div>
-              {detail.hooks.map((h: any) => <div key={h.index}>#{h.index} <span style={{ color: '#c792ea' }}>{h.kind}</span> <Val v={h.value} depth={1} /></div>)}</>}
+              {detail.hooks.map((h: any) => <div key={h.index}>#{h.index} <span style={{ color: '#a1a1aa' }}>{h.kind}</span> <Val v={h.value} depth={1} /></div>)}</>}
           </>
         )}
       </div>
@@ -119,11 +119,11 @@ export function RenderTracker({ events, range }: { events: BusEvent[]; range: [n
         <tbody>
           {rows.slice(0, 300).map((r) => (
             <tr key={r.key}>
-              <td style={{ padding: '2px 8px', color: '#82aaff' }}>{r.name}</td><td>{r.renders}</td><td>{r.totalMs.toFixed(1)}</td><td>{r.maxMs.toFixed(1)}</td>
+              <td style={{ padding: '2px 8px', color: '#e4e4e7' }}>{r.name}</td><td>{r.renders}</td><td>{r.totalMs.toFixed(1)}</td><td>{r.maxMs.toFixed(1)}</td>
               <td>{Object.entries(r.reasons).map(([k, v]) => `${k}×${v}`).join(' ')}</td>
               <td>{[...r.changedProps.map((p) => `props.${p}`), ...r.changedHooks.map((h) => `hook[${h}]`)].join(', ')}</td>
               <td style={{ color: wastedRatio(r) > 0.5 && r.renders > 2 ? '#ffb454' : 'var(--dim)' }}>{r.renders > 1 ? `${Math.round(wastedRatio(r) * 100)}%` : ''}</td>
-              <td>{r.file ? <a href="#" style={{ color: '#4ea1ff' }} onClick={(e) => { e.preventDefault(); open(r) }}>{r.file.split('/').slice(-2).join('/')}:{r.line}</a> : ''}</td>
+              <td>{r.file ? <a href="#" style={{ color: 'var(--fg)', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={(e) => { e.preventDefault(); open(r) }}>{r.file.split('/').slice(-2).join('/')}:{r.line}</a> : ''}</td>
             </tr>
           ))}
         </tbody>

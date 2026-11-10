@@ -3,6 +3,7 @@ import { computeLayout } from '../shared/layout'
 import type { DevToolsDock } from '../shared/events'
 import { useStore, writePref, useT } from './store'
 import { Welcome } from './Welcome'
+import { Back, Forward, Reload, Plus, Close, Star, Download, Spinner } from './icons'
 import { RenameWorkspace } from './RenameWorkspace'
 import { Timeline } from './Timeline'
 import { Palette } from './Palette'
@@ -82,18 +83,18 @@ export function App() {
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
           <div key={tb.id} className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''}`} onClick={() => api.activateTab(tb.id)} title={tb.url}>
-            <span className="t">{tb.loading ? '⟳ ' : ''}{tb.title || 'New Tab'}</span>
-            <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}>×</button>
+            <span className="t">{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{tb.title || 'New Tab'}</span>
+            <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
           </div>
         ))}
-        <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}>+</button>
+        <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus /></button>
       </div>
 
       <div className="toolbar">
-        <button aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}>‹</button>
-        <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}>›</button>
-        <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}>↻</button>
-        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#ffd24a' : undefined }} onClick={nav(api.toggleBookmark)}>{bookmarked ? '★' : '☆'}</button>
+        <button aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}><Back /></button>
+        <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}><Forward /></button>
+        <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}><Reload /></button>
+        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#ffd24a' : undefined }} onClick={nav(api.toggleBookmark)}><Star filled={bookmarked} /></button>
         <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
  <input className="addr" value={addr} placeholder={t('addr.placeholder')} spellCheck={false}
             onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => setEditing(false)} onChange={(e) => setAddr(e.target.value)} />
@@ -110,12 +111,12 @@ export function App() {
                 if (e.key === 'Escape') { void api.findStop(active.id); s.set({ find: { open: false, active: 0, total: 0 } }) }
               }} />
             <span style={{ color: 'var(--dim)', minWidth: 36 }}>{findText ? `${s.find.active}/${s.find.total}` : ''}</span>
-            <button aria-label={t('find.close')} onClick={() => { void api.findStop(active.id); s.set({ find: { open: false, active: 0, total: 0 } }) }}>×</button>
+            <button aria-label={t('find.close')} onClick={() => { void api.findStop(active.id); s.set({ find: { open: false, active: 0, total: 0 } }) }}><Close /></button>
           </span>
         )}
         {s.downloads.length > 0 && (
           <button className="chip" title={s.downloads.map((d) => `${d.name} (${d.state})`).join('\n')} onClick={() => s.set({ overlay: 'palette' })}>
-            {busyDl ? t('dl.busy', { n: busyDl }) : t('dl.count', { n: s.downloads.length })}
+            <Download />{' '}{busyDl ? t('dl.busy', { n: busyDl }) : t('dl.count', { n: s.downloads.length })}
           </button>
         )}
         <select aria-label={t('workspace')} value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
@@ -124,7 +125,7 @@ export function App() {
         </select>
         {(s.detected.length ? s.detected : []).map((d) => (
           <button key={d.port} className="chip" title={d.cwd ?? ''} onClick={() => api.createTab(`localhost:${d.port}`)}>
-            ● {d.port}{d.framework ? ` ${d.framework}` : ''}{ws?.servers.some((x) => x.port === d.port) ? ' ✓' : ''}
+            <i className="dot" />{d.port}{d.framework ? ` ${d.framework}` : ''}{ws?.servers.some((x) => x.port === d.port) ? <span className="mine">workspace</span> : null}
           </button>
         ))}
         <select aria-label={t('devtools')} value={s.dock} onChange={(e) => setDock(e.target.value as DevToolsDock)}>

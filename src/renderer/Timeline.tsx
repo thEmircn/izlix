@@ -8,7 +8,7 @@ import { ruleFromRequest } from '../shared/rules'
 // ---- sabitler ----
 const LANES = ['input', 'hmr', 'request', 'response', 'render', 'console', 'error'] as const
 type Lane = (typeof LANES)[number]
-const COLOR: Record<Lane, string> = { input: '#c792ea', hmr: '#2dd4bf', request: '#4ea1ff', response: '#3ecf8e', render: '#ffb454', console: '#8fa3b8', error: '#ff5c5c' }
+const COLOR: Record<Lane, string> = { input: '#a1a1aa', hmr: '#2dd4bf', request: '#f4f4f5', response: '#a3e635', render: '#ffb454', console: '#71717a', error: '#f87171' }
 const LANE_H = 30, PAD_L = 62, PAD_R = 14, AXIS_H = 20, DEFAULT_WINDOW = 15_000
 const NET_TYPES = ['Fetch', 'XHR', 'Document']
 
@@ -29,7 +29,7 @@ function label(e: Ev): string {
   const p = e.payload
   switch (e.kind) {
     case 'input': return `${p.name} ${p.target}`
-    case 'request': return `${p.modified ? '⚡ ' : ''}${p.method} ${shortUrl(p.url)}`
+    case 'request': return `${p.modified ? 'modified · ' : ''}${p.method} ${shortUrl(p.url)}`
     case 'response': return `${p.status} ${shortUrl(p.url)}`
     case 'render': return `commit · ${p.count} render`
     case 'error': return String(p.text ?? p.errorText ?? 'error').split('\n')[0]
@@ -88,7 +88,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
             <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
           ))}
           <button type="button" aria-pressed={allReq} className={`lane-chip ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} onClick={() => setAllReq(!allReq)}>{t('tl.allRequests')}</button>
-          {range && <button className="btn" onClick={() => setRange(null)}>● {t('tl.live')}</button>}
+          {range && <button className="btn" onClick={() => setRange(null)}>{t('tl.live')}</button>}
           <select className="mini-select" value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as any }) }}>
             <option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option>
           </select>
@@ -183,7 +183,7 @@ function Lanes(props: {
             </g>
           )
         })}
-        {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={lanes.length * LANE_H} fill="#4ea1ff" opacity={0.15} />}
+        {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={lanes.length * LANE_H} fill="#f4f4f5" opacity={0.15} />}
       </svg>
     </div>
   )
@@ -195,7 +195,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
   if (!ev) return <div style={{ padding: 8, opacity: 0.6 }}>{t('tl.hint')}</div>
   const p = ev.payload
   const OpenBtn = (a: { file?: string; line?: number; col?: number }) =>
-    a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: '#4ea1ff' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
+    a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: '#f4f4f5' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
   return (
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
       <div><b style={{ color: COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
@@ -216,7 +216,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
       {ev.links.map((l) => (
         <div key={l.from} style={{ opacity: 0.85 }}>
           ← <a href="#" onClick={(e) => { e.preventDefault(); onSelect(l.from) }} style={{ color: '#ddd' }}>#{l.from} {byId.get(l.from) ? label(byId.get(l.from)!) : ''}</a>{' '}
-          <span style={{ color: l.certainty === 'exact' ? '#3ecf8e' : '#ffb454' }}>{l.type} · {l.certainty === 'exact' ? t('tl.exact') : t('tl.estimated')}</span>
+          <span style={{ color: l.certainty === 'exact' ? '#a3e635' : '#ffb454' }}>{l.type} · {l.certainty === 'exact' ? t('tl.exact') : t('tl.estimated')}</span>
         </div>
       ))}
       {p.modified && <div style={{ color: '#ffb454' }}>{t('tl.modified', { kinds: p.modified.kinds.join(' + ') })}{p.modified.mocked ? t('tl.mockedRes') : ''}</div>}
@@ -247,7 +247,7 @@ function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; onSelect
   if (steps.length < 2 && !effects.length) return null
   const row = (e: Ev, tag: string, color: string, dt?: number, exact?: boolean): React.ReactElement => (
     <div key={e.id + tag} style={{ display: 'flex', gap: 6, alignItems: 'baseline', paddingLeft: 4 }}>
-      <span style={{ color: exact === false ? '#ffb454' : '#3ecf8e', width: 10 }}>{exact === false ? '┄' : '│'}</span>
+      <span style={{ color: exact === false ? '#ffb454' : '#a3e635', width: 10 }}>{exact === false ? '┄' : '│'}</span>
       <span style={{ color: 'var(--dim)', minWidth: 48 }}>{dt != null ? `+${dt} ms` : ''}</span>
       <a href="#" onClick={(x) => { x.preventDefault(); onSelect(e.id) }} style={{ color }}>{e.kind} #{e.id} {label(e)}</a>
     </div>
