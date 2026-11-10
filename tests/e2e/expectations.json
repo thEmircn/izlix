@@ -904,5 +904,32 @@
       "eq",
       null
     ]
+  ],
+  "vitals": [
+    [
+      "names",
+      "contains",
+      "TTFB"
+    ],
+    [
+      "names",
+      "contains",
+      "FCP"
+    ],
+    [
+      "names",
+      "contains",
+      "LCP"
+    ],
+    [
+      "cards",
+      "contains",
+      "FCP"
+    ],
+    [
+      "tasks",
+      "gte",
+      1
+    ]
   ]
 }

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 // Sade yardimci bilesenler: hover'da hafifce belirginlesen kart ve tus etiketi.
 
@@ -23,4 +23,24 @@ export function Seg<T extends string>({ items, value, onChange, small }: { items
       {items.map((i) => <button key={i.key} role="tab" aria-selected={i.key === value} data-on={i.key === value ? '1' : '0'} className={i.key === value ? 'on' : ''} onClick={() => onChange(i.key)}>{i.label}</button>)}
     </div>
   )
+}
+
+/** Sayi degisince eski degerden yenisine akan sayac (reduced-motion'da aninda). */
+export function CountUp({ value, decimals = 0, ms = 600 }: { value: number; decimals?: number; ms?: number }) {
+  const [shown, setShown] = useState(value)
+  const from = useRef(value)
+  useEffect(() => {
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce || from.current === value) { setShown(value); from.current = value; return }
+    const a = from.current, t0 = performance.now()
+    let raf = 0
+    const step = (t: number): void => {
+      const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3)
+      setShown(a + (value - a) * e)
+      if (k < 1) raf = requestAnimationFrame(step); else from.current = value
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [value, ms])
+  return <>{shown.toFixed(decimals)}</>
 }

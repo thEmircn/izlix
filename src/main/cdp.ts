@@ -106,6 +106,7 @@ export function handleBridge(raw: string, tabId: string, bus: EventBus, correlat
     case 'commit': bus.emit({ tabId, kind: 'render', ts, source: 'bridge:commit', payload: rest }); break
     case 'input': bus.emit({ tabId, kind: 'input', ts, source: 'bridge:input', payload: rest }); break
     case 'bridge-error': bus.emit({ tabId, kind: 'error', ts, source: 'bridge:error', payload: rest }); break
+    case 'vital': bus.emit({ tabId, kind: 'vital', ts, source: 'bridge:vital', payload: rest }); break
     case 'inject': bus.emit({ tabId, kind: 'navigation', ts, source: 'bridge:inject', payload: rest }); break
   }
 }

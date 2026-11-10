@@ -242,3 +242,18 @@ pre.code { margin: 6px 0; padding: 10px 12px; border-radius: 8px; background: va
 .repl-out { padding-left: 14px; white-space: pre-wrap; word-break: break-word; color: #d9f99d; } .repl-out.err { color: #fca5a5; }
 
 .chip.emu { color: var(--warn) !important; border-color: rgba(251,191,36,.4) !important; background: rgba(251,191,36,.07) !important; } .chip.emu svg { opacity: .7; }
+
+/* ---- Performance ---- */
+.perf { flex: 1; overflow: auto; }
+.vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
+.vcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: rgba(255,255,255,.025); animation: bump .35s var(--ease) both; transition: border-color .2s; }
+.vcard.good { border-color: rgba(163,230,53,.28); } .vcard.needs { border-color: rgba(251,191,36,.35); } .vcard.poor { border-color: rgba(248,113,113,.45); }
+.vname { display: flex; justify-content: space-between; align-items: center; color: var(--dim); font-weight: 600; letter-spacing: .04em; }
+.vdot { width: 8px; height: 8px; border-radius: 50%; background: #a3e635; } .needs .vdot { background: var(--warn); } .poor .vdot { background: var(--bad); }
+.vnum { font-size: 28px; font-weight: 600; margin: 6px 0 8px; font-variant-numeric: tabular-nums; } .vnum small { font-size: 12px; color: var(--dim); margin-left: 3px; font-weight: 500; }
+.gauge { height: 5px; border-radius: 3px; background: rgba(255,255,255,.07); overflow: hidden; } .gauge b { display: block; height: 100%; border-radius: 3px; background: #a3e635; transition: width .7s var(--ease); animation: grow .7s var(--ease); transform-origin: left; }
+.needs .gauge b { background: var(--warn); } .poor .gauge b { background: var(--bad); }
+.vdetail { margin-top: 8px; color: var(--dim); font-size: 11px; }
+h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+.tasks { padding: 0 12px 14px; } .task { display: grid; grid-template-columns: 70px 1fr 60px; gap: 10px; align-items: center; padding: 2px 0; font-variant-numeric: tabular-nums; animation: rowin .25s var(--ease) both; }
+.task > div { height: 8px; background: rgba(255,255,255,.05); border-radius: 4px; overflow: hidden; } .task b { display: block; height: 100%; background: #d4d4d8; border-radius: 4px; animation: grow .5s var(--ease); transform-origin: left; } .task b.bad { background: var(--bad); } .task code { background: none; text-align: right; padding: 0; }
