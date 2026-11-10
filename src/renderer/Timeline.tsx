@@ -25,7 +25,7 @@ function label(e: Ev): string {
   const p = e.payload
   switch (e.kind) {
     case 'input': return `${p.name} ${p.target}`
-    case 'request': return `${p.method} ${shortUrl(p.url)}`
+    case 'request': return `${p.modified ? '⚡ ' : ''}${p.method} ${shortUrl(p.url)}`
     case 'response': return `${p.status} ${shortUrl(p.url)}`
     case 'render': return `commit · ${p.count} render`
     case 'error': return String(p.text ?? p.errorText ?? 'error').split('\n')[0]
@@ -156,10 +156,13 @@ function Lanes(props: {
           if (!p || !l) return null
           const r = e.kind === 'render' ? Math.min(9, 4 + Math.sqrt(e.payload.count)) : 5
           return (
-            <circle key={e.id} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
+            <g key={e.id}>
+              {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="#ffb454" strokeWidth={2} strokeDasharray="3 2" />}
+            <circle cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
               style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)}>
               <title>{label(e)}</title>
             </circle>
+            </g>
           )
         })}
         {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={lanes.length * LANE_H} fill="#4ea1ff" opacity={0.15} />}
@@ -183,6 +186,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
           <span style={{ color: l.certainty === 'exact' ? '#3ecf8e' : '#ffb454' }}>{l.type} · {l.certainty === 'exact' ? 'kesin' : 'tahmini'}</span>
         </div>
       ))}
+      {p.modified && <div style={{ color: '#ffb454' }}>⚡ Request Rules ile değiştirildi: {p.modified.kinds.join(' + ')}{p.modified.mocked ? ' (yanıt mock)' : ''}</div>}
       {p.origin && <div>kaynak: <OpenBtn file={p.origin.file} line={p.origin.line} col={p.origin.column} /> {p.origin.component && <span>({p.origin.component})</span>}</div>}
       {ev.kind === 'render' && (
         <table style={{ marginTop: 6, borderCollapse: 'collapse', width: '100%' }}>

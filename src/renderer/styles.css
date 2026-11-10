@@ -21,3 +21,15 @@ button, input, select { font: inherit; color: inherit; }
 .chip:hover { border-color: var(--accent); }
 .panel { position: absolute; border-left: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 .empty { position: absolute; display: flex; align-items: center; justify-content: center; color: var(--dim); }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; z-index: 50; }
+.dialog { width: min(640px, 92vw); max-height: 76vh; background: #26262a; border: 1px solid #44444a; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: hidden; }
+.dialog input[type=text], .dialog input:not([type]), .dialog select, .dialog textarea { background: #121214; border: 1px solid var(--line); border-radius: 5px; padding: 4px 8px; outline: none; }
+.dialog input:focus, .dialog select:focus, .dialog textarea:focus { border-color: var(--accent); }
+.pal-input { border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; padding: 12px 14px !important; font-size: 15px; background: transparent !important; }
+.pal-list { overflow: auto; }
+.pal-item { display: flex; justify-content: space-between; gap: 12px; padding: 7px 14px; cursor: default; }
+.pal-item.sel { background: #3a4a66; }
+.pal-item .hint { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.rule-badge { background: #5a3a00; color: #ffb454; border: 1px solid #8a5a10 !important; border-radius: 10px !important; font-size: 11px !important; padding: 2px 8px !important; }
+.btn { background: #3a3a40; border: 0; border-radius: 5px; padding: 4px 10px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: #001; }

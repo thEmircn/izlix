@@ -23,6 +23,7 @@ export const api = {
   createWorkspace: (name: string, rootDir: string | null) => call(Ch.wsCreate, { name, rootDir }),
   switchWorkspace: (id: string) => call(Ch.wsSwitch, { id }),
   setRules: (wsId: string, cfg: { rules: unknown[]; domains: string[] }) => call(Ch.rulesSet, { wsId, ...cfg }),
+  exportReport: () => call(Ch.reportExport),
   setOverlay: (open: boolean) => call(Ch.overlay, { open }),
   onRules: sub(Ch.rulesState), onCommand: sub(Ch.cmd),
   onEvent: sub(Ch.evNew), onUpdate: sub(Ch.evUpdate), onTabs: sub(Ch.tabsState), onWorkspaces: sub(Ch.wsState)

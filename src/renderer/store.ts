@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { RulesConfig } from '../shared/rules'
 import type { BusEvent, DevToolsDock, Editor, TabInfo, WorkspaceInfo } from '../shared/events'
 
 interface State {
@@ -8,6 +9,8 @@ interface State {
   selectedEventId: number | null
   editor: Editor
   panelRatio: number
+  rules: Record<string, RulesConfig>
+  overlay: 'palette' | 'rules' | null
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void
   reset(list: BusEvent[]): void
@@ -21,6 +24,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: 'right', workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')),
+  rules: {}, overlay: null,
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)

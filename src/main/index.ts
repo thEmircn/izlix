@@ -7,6 +7,7 @@ import type { Editor } from '../shared/events'
 import { EventBus } from './bus'
 import { TabManager } from './tabs'
 import { RuleStore } from './rules'
+import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
 
@@ -80,6 +81,7 @@ function registerIpc(): void {
     rules.set(wsId, { rules: list, domains: domains.map((d) => d.trim()).filter(Boolean) })
     tabs.refreshRules(); pushRules()
   })
+  handle(Ch.reportExport, null, () => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -135,7 +137,7 @@ async function createWindow(): Promise<void> {
   if (process.env.DB_SCRIPT) {
     const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
     const ctx = {
-      app, win, tabs, bus, workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
+      app, win, tabs, bus, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
       newTab,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
