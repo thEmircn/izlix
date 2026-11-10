@@ -66,6 +66,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const setTab = (k: PTab): void => set({ panelTab: k })
   const [hidden, setHidden] = useState<Set<Lane>>(new Set())
   const [allReq, setAllReq] = useState(false)
+  const [tq, setTq] = useState('')
   const [range, setRange] = useState<[number, number] | null>(null)
 
   // kuzey yildizi metrigi (plan bolum 10): Timeline'in acildigi Workspace; sekme basina bir kez, yalnizca sayilar
@@ -85,8 +86,8 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const autoSpan = Math.max(2000, tMax - recentStart)
   const [from, to] = range ?? [tMax - autoSpan * 1.06, tMax + autoSpan * 0.03]
   const visible = useMemo(
-    () => all.filter((e) => { const l = laneOf(e, allReq); return l && !hidden.has(l) && e.ts >= from && e.ts <= to }),
-    [all, hidden, allReq, from, to]
+    () => all.filter((e) => { const l = laneOf(e, allReq); return l && !hidden.has(l) && e.ts >= from && e.ts <= to && (!tq || label(e).toLowerCase().includes(tq.toLowerCase())) }),
+    [all, hidden, allReq, from, to, tq]
   )
   const toggle = (l: Lane): void => setHidden((h) => { const n = new Set(h); n.has(l) ? n.delete(l) : n.add(l); return n })
   const sel = selected != null ? src.get(selected) : undefined
@@ -105,6 +106,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
             <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
           ))}
           <button type="button" aria-pressed={allReq} className={`lane-chip ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} onClick={() => setAllReq(!allReq)}>{t('tl.allRequests')}</button>
+          <input className="search" style={{ maxWidth: 150 }} placeholder={t('tl.search')} value={tq} onChange={(e) => setTq(e.target.value)} />
           {range && <button className="btn" onClick={() => setRange(null)}>{t('tl.live')}</button>}
           <select className="mini-select" value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as any }) }}>
             <option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option>

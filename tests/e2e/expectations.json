@@ -1648,5 +1648,27 @@
       "eq",
       "running"
     ]
+  ],
+  "frecency": [
+    [
+      "errs",
+      "len",
+      0
+    ],
+    [
+      "firstAfter",
+      "contains",
+      "Keyboard"
+    ],
+    [
+      "filtered",
+      "lt",
+      999
+    ],
+    [
+      "filtered",
+      "gt",
+      0
+    ]
   ]
 }
