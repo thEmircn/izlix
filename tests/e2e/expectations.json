@@ -1271,5 +1271,32 @@
       "eq",
       true
     ]
+  ],
+  "memory-replay": [
+    [
+      "cards",
+      "len",
+      3
+    ],
+    [
+      "leak",
+      "eq",
+      true
+    ],
+    [
+      "spark",
+      "gte",
+      3
+    ],
+    [
+      "replayed",
+      "eq",
+      1
+    ],
+    [
+      "toast",
+      "contains",
+      "200"
+    ]
   ]
 }

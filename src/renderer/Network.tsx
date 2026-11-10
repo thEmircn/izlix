@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { SENSITIVE_KEYS } from '../shared/mask'
-import { toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
+import { replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
 import { Seg } from './ui'
@@ -105,6 +105,11 @@ function Drawer({ r, byId, onClose }: { r: NetRow; byId: Map<number, BusEvent>; 
       <div className="drawer-h">
         <span className={`m m-${r.method}`}>{r.method}</span><span className="url" title={r.url}>{r.url}</span>
         <span className={`pill ${statusClass(r)}`}>{r.failed ? 'failed' : r.status ?? '···'}</span>
+        <button className="btn sm" onClick={() => {
+          const tid = useStore.getState().activeTabId
+          if (!tid || (!/^(GET|HEAD|OPTIONS)$/i.test(r.method) && !window.confirm(t('net.replayConfirm', { m: r.method, u: r.url })))) return
+          void window.izlix.evalInPage(tid, replayExpression(r.method, r.url, req?.payload.headers, req?.payload.postData)).then((x: any) => toast(x?.ok ? t('net.replayed', { s: String(x.text).replace(/^"|"$/g, '') }) : t('net.replayFail')))
+        }}>{t('net.replay')}</button>
         <button className="btn sm" onClick={() => { void navigator.clipboard?.writeText(toCurl(r.method, r.url, req?.payload.headers, req?.payload.postData)); toast(t('toast.copied')) }}>cURL</button>
         <button className="btn sm" onClick={() => { void navigator.clipboard?.writeText(toFetch(r.method, r.url, req?.payload.headers, req?.payload.postData)); toast(t('toast.copied')) }}>fetch</button>
         <button className="icon-btn" aria-label={t('rr.close')} onClick={onClose}><Close /></button>

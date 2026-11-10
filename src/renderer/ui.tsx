@@ -44,3 +44,17 @@ export function CountUp({ value, decimals = 0, ms = 600 }: { value: number; deci
   }, [value, ms])
   return <>{shown.toFixed(decimals)}</>
 }
+
+/** Kucuk cizgi grafigi (son degerler). Reduced-motion disinda cizgi giriste cizilir. */
+export function Spark({ values, color = '#d4d4d8', height = 36 }: { values: number[]; color?: string; height?: number }) {
+  const w = 160
+  if (values.length < 2) return <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} />
+  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1
+  const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${height - 3 - ((v - lo) / span) * (height - 8)}`)
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" className="spark">
+      <polyline points={`0,${height} ${pts.join(' ')} ${w},${height}`} fill={color} fillOpacity=".08" stroke="none" />
+      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+    </svg>
+  )
+}

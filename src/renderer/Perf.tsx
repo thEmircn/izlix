@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { summarizeVitals } from '../shared/vitals'
 import { useStore, useT } from './store'
-import { CountUp } from './ui'
+import { CountUp, Spark } from './ui'
+import { leakHint, mb, metricMap } from '../shared/metrics'
 
 const fmt = (v: number, unit: string): { n: number; dec: number; u: string } => unit === 'ms' ? (v >= 1000 ? { n: v / 1000, dec: 2, u: 's' } : { n: v, dec: 0, u: 'ms' }) : { n: v, dec: 3, u: '' }
 
@@ -11,6 +12,27 @@ export function Perf({ events }: { events: BusEvent[] }) {
   const t = useT()
   const tabId = useStore((s) => s.activeTabId)
   const sum = useMemo(() => summarizeVitals(events), [events])
+  // Bellek / DOM izleme: panel acikken saniyede bir Performance.getMetrics
+  const [series, setSeries] = useState<Record<string, number[]>>({})
+  useEffect(() => {
+    if (!tabId) return
+    setSeries({})
+    let live = true
+    void window.izlix.dtEnable(tabId, 'perf')
+    const poll = async (): Promise<void> => {
+      const r: any = await window.izlix.dt(tabId, 'Performance.getMetrics').catch(() => null)
+      if (!live || !r?.metrics) return
+      const m = metricMap(r.metrics)
+      setSeries((prev) => {
+        const next = { ...prev }
+        for (const k of ['JSHeapUsedSize', 'Nodes', 'JSEventListeners', 'Documents']) next[k] = [...(prev[k] ?? []), m[k] ?? 0].slice(-90)
+        return next
+      })
+    }
+    void poll(); const h = setInterval(() => void poll(), 1000)
+    return () => { live = false; clearInterval(h); void window.izlix.dtDisable(tabId, 'perf') }
+  }, [tabId])
+  const cur = (k: string): number => (series[k] ?? [0]).slice(-1)[0] ?? 0
   const maxTask = Math.max(100, ...sum.longTasks.map((x) => x.ms))
   return (
     <div className="perf">
@@ -34,6 +56,16 @@ export function Perf({ events }: { events: BusEvent[] }) {
         <div className="stat"><span>DOMContentLoaded</span><b>{sum.dcl != null ? `${Math.round(sum.dcl)} ms` : '—'}</b></div>
         <div className="stat"><span>Load</span><b>{sum.load != null ? `${Math.round(sum.load)} ms` : '—'}</b></div>
         <div className="stat"><span>{t('perf.shifts')}</span><b>{sum.shifts}</b></div>
+      </div>
+      <h4 className="sec">{t('perf.memory')}</h4>
+      <div className="mgrid">
+        {([['JSHeapUsedSize', t('perf.heap'), (v: number) => mb(v)], ['Nodes', t('perf.nodes'), (v: number) => String(v)], ['JSEventListeners', t('perf.listeners'), (v: number) => String(v)]] as [string, string, (v: number) => string][]).map(([k, label, f]) => (
+          <div key={k} className={`mcard ${leakHint(series[k] ?? []) ? 'leak' : ''}`}>
+            <div className="vname">{label}{leakHint(series[k] ?? []) && <em className="leakbadge">{t('perf.leak')}</em>}</div>
+            <div className="vnum" style={{ fontSize: 20 }}>{f(cur(k))}</div>
+            <Spark values={series[k] ?? []} color={leakHint(series[k] ?? []) ? '#f87171' : '#d4d4d8'} />
+          </div>
+        ))}
       </div>
       <h4 className="sec">{t('perf.longTasks')} ({sum.longTasks.length})</h4>
       <div className="tasks">

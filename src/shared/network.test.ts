@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
+import { replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
 
 const ev = (id: number, ts: number, kind: BusEvent['kind'], payload: any): BusEvent => ({ id, tabId: 't', ts, kind, source: 's', payload, causeIds: [], links: [] })
 
@@ -57,5 +57,15 @@ describe('WebSocket satirlari', () => {
       ev(5, 1300, 'ws', { requestId: 'w', dir: 'closed' })
     ])
     expect(rows[0]).toMatchObject({ type: 'ws', status: 101, frames: 2, closed: true, durationMs: 300 })
+  })
+})
+
+describe('replayExpression', () => {
+  it('govde yalniz GET/HEAD disinda; cerez ve tarayici basliklari atlanir; gecerli JS', () => {
+    const e = replayExpression('POST', 'http://a.com/x', { 'X-A': '1', Cookie: 'c=1', Host: 'a' }, '{"a":1}')
+    expect(e).toContain('"body":"{\\"a\\":1}"'); expect(e).not.toContain('Cookie'); expect(e).toContain('"X-A":"1"')
+    expect(replayExpression('GET', 'http://a.com', {}, 'ignored')).not.toContain('body')
+    const AsyncFn = Object.getPrototypeOf(async function () {}).constructor
+    expect(() => new AsyncFn(`return ${e.replace(/^await /, '')}`)).not.toThrow(); expect(e.startsWith('await ')).toBe(true)
   })
 })

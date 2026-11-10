@@ -90,3 +90,11 @@ export function toFetch(method: string, url: string, headers: Record<string, str
   if (body) init.body = body
   return `fetch(${JSON.stringify(url)}, ${JSON.stringify(init, null, 2)})`
 }
+
+/** Istegi sayfa baglaminda yeniden gonderen ifade (cerezler sayfanin oturumundan gelir). Basliklar toFetch ile ayni suzgecten gecer. */
+export function replayExpression(method: string, url: string, headers: Record<string, string> = {}, body?: string): string {
+  const h = Object.fromEntries(Object.entries(headers).filter(([k]) => !SKIP_HEADERS.test(k)))
+  const init: Record<string, unknown> = { method, headers: h, credentials: 'include' }
+  if (body && !/^(GET|HEAD)$/i.test(method)) init.body = body
+  return `await fetch(${JSON.stringify(url)}, ${JSON.stringify(init)}).then((r) => r.status + ' ' + r.statusText)` // REPL kipi: ust duzey await
+}

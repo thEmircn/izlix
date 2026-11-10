@@ -292,3 +292,8 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .jbadge { font-size: 10.5px; border-radius: 999px; padding: 0 9px; background: rgba(255,255,255,.08); } .valid .jbadge { background: rgba(163,230,53,.14); color: #bef264; } .expired .jbadge { background: rgba(248,113,113,.16); color: #fca5a5; } .notyet .jbadge { background: rgba(251,191,36,.14); color: #fcd34d; }
 .jclaims > div { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 1px 0; } .jclaims span { color: var(--dim); } .jclaims code { background: none; padding: 0; word-break: break-all; font: 11.5px ui-monospace, Menlo, monospace; }
 .jnote { margin-top: 6px; color: var(--dim); font-size: 10.5px; } .jtag { text-decoration: none; margin-left: 8px; font-size: 9.5px; border: 1px solid var(--line2); border-radius: 999px; padding: 0 6px; color: var(--dim); }
+
+.mgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 4px 12px 8px; }
+.mcard { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.025); } .mcard.leak { border-color: rgba(248,113,113,.5); }
+.leakbadge { font-style: normal; font-size: 9.5px; color: var(--bad); border: 1px solid rgba(248,113,113,.5); border-radius: 999px; padding: 0 6px; animation: breathe 1.4s ease-in-out infinite; }
+.spark { display: block; margin-top: 4px; }
