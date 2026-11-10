@@ -56,6 +56,7 @@ export const api = {
   setHook: (id: string, node: number, index: number, json: string) => call(Ch.hookSet, { id, node, index, json }),
   setProp: (id: string, node: number, key: string, json: string) => call(Ch.propSet, { id, node, key, json }),
   dtReactIndex: (id: string, nodeId: number) => call(Ch.dtReactIdx, { id, nodeId }),
+  saveHar: (id: string) => call(Ch.harSave, { id }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

@@ -16,6 +16,8 @@ import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
 import { saveSnapshot } from './snapshot'
+import { buildHar } from './report-data'
+import { maskDeep } from '../shared/mask'
 import { CdpProxy } from './cdpproxy'
 import { A11Y_AUDIT } from './a11y-audit'
 import { captureShot, shotName } from './shots'
@@ -254,6 +256,16 @@ function registerIpc(): void {
   handle(Ch.hookSet, schemas.hookSet, ({ id, node, index, json }) => evalInPage(id, `window.__IZLIX_SET_HOOK__ ? window.__IZLIX_SET_HOOK__(${node}, ${index}, ${JSON.stringify(json)}) : null`))
   handle(Ch.propSet, schemas.propSet, ({ id, node, key, json }) => evalInPage(id, `window.__IZLIX_SET_PROP__ ? window.__IZLIX_SET_PROP__(${node}, ${JSON.stringify(key)}, ${JSON.stringify(json)}) : null`))
   handle(Ch.dtReactIdx, schemas.dtReact, ({ id, nodeId }) => proxy.reactIndex(id, nodeId))
+  // HAR 1.2 (maskeli): Downloads'a kaydedilir
+  handle(Ch.harSave, schemas.tabId, ({ id }) => {
+    const e = tabs.get(id); if (!e) return null
+    mkdirSync(app.getPath('downloads'), { recursive: true })
+    const base = shotName(e.view.webContents.getURL()).replace(/\.png$/, '.har').replace('izlix-', 'izlix-net-')
+    const file = uniquePath(app.getPath('downloads'), base)
+    writeFileSync(file, JSON.stringify(maskDeep(buildHar(bus.snapshot(id), app.getVersion())), null, 1))
+    if (!process.env.DB_SCRIPT) shell.showItemInFolder(file)
+    return file
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

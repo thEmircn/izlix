@@ -142,6 +142,14 @@ function Lanes(props: {
   return (
     <div ref={ref} style={{ flex: '0 0 auto', userSelect: 'none' }}>
       <svg width={W} height={H}
+        onWheel={(ev) => {
+          // tekerlek: imlec etrafinda yakinlastir/uzaklastir; shift+tekerlek: yatay kaydir
+          const x0 = ev.clientX - (ref.current?.getBoundingClientRect().left ?? 0)
+          if (ev.shiftKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) { const dt = ((ev.deltaX || ev.deltaY) / (W - PAD_L - PAD_R)) * span; onRange([from + dt, to + dt]); return }
+          const f = Math.exp(ev.deltaY * 0.0015), at = tsAt(x0)
+          const nf = at - (at - from) * f, nt = at + (to - at) * f
+          if (nt - nf >= 200) onRange([nf, nt])
+        }}
         onMouseDown={(ev) => setDrag([mouse(ev), mouse(ev)])}
         onMouseMove={(ev) => drag && setDrag([drag[0], mouse(ev)])}
         onMouseUp={() => {

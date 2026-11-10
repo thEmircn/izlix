@@ -1217,5 +1217,32 @@
       "contains",
       "Props edited"
     ]
+  ],
+  "har-zoom": [
+    [
+      "entries",
+      "gte",
+      5
+    ],
+    [
+      "hasItems",
+      "eq",
+      true
+    ],
+    [
+      "version",
+      "eq",
+      "1.2"
+    ],
+    [
+      "zoomed",
+      "eq",
+      true
+    ],
+    [
+      "live",
+      "eq",
+      true
+    ]
   ]
 }
