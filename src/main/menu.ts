@@ -1,0 +1,25 @@
+import { Menu, type MenuItemConstructorOptions } from 'electron'
+
+/**
+ * macOS uygulama menüsü. Kısayollar menü hızlandırıcısı olarak tanımlanır: odak sayfa görünümünde
+ * (ayrı webContents) olsa bile çalışırlar. Eylemleri shell yürütür (Command Palette ile aynı komut kimlikleri).
+ */
+export function installMenu(run: (cmd: string) => void): void {
+  const c = (label: string, accelerator: string, cmd: string): MenuItemConstructorOptions => ({ label, accelerator, click: () => run(cmd) })
+  const template: MenuItemConstructorOptions[] = [
+    { role: 'appMenu' },
+    { label: 'File', submenu: [c('New Tab', 'CmdOrCtrl+T', 'tab.new'), c('Close Tab', 'CmdOrCtrl+W', 'tab.close'), { type: 'separator' }, c('Open Location…', 'CmdOrCtrl+L', 'addr.focus')] },
+    { role: 'editMenu' },
+    {
+      label: 'View',
+      submenu: [
+        c('Command Palette…', 'CmdOrCtrl+K', 'palette.open'),
+        c('Reload', 'CmdOrCtrl+R', 'nav.reload'),
+        c('Request Rules…', 'CmdOrCtrl+Shift+R', 'rules.open'),
+        { type: 'separator' }, { role: 'togglefullscreen' }
+      ]
+    },
+    { role: 'windowMenu' }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}

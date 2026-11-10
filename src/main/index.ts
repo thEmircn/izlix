@@ -6,6 +6,8 @@ import { Ch, schemas } from '../shared/ipc'
 import type { Editor } from '../shared/events'
 import { EventBus } from './bus'
 import { TabManager } from './tabs'
+import { RuleStore } from './rules'
+import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
 
 // Test/izolasyon: calisma verisini ayri bir dizine yonlendir (gercek kullanici verisine dokunmaz)
@@ -15,6 +17,7 @@ const bus = new EventBus()
 let win: BrowserWindow
 let tabs: TabManager
 let workspaces: WorkspaceStore
+let rules: RuleStore
 let activeWorkspaceId = 'default'
 let detected: DetectedServer[] = []
 
@@ -25,6 +28,7 @@ function editorUrl(editor: Editor, file: string, line: number, col: number): str
 
 const send = (channel: string, payload: unknown): void => { if (win && !win.isDestroyed()) win.webContents.send(channel, payload) }
 const pushTabs = (): void => send(Ch.tabsState, { ...tabs.list(), dock: tabs.dock })
+const pushRules = (): void => send(Ch.rulesState, rules.all())
 const pushWorkspaces = (): void => send(Ch.wsState, { workspaces: workspaces.list(), activeId: activeWorkspaceId, detected })
 
 /** IPC izin listesi: her kanal zod semasiyla dogrulanir; gecersiz mesaj reddedilir. */
@@ -54,7 +58,7 @@ function registerIpc(): void {
     activeWorkspaceId = id
     const mine = tabs.list().tabs.filter((t) => t.workspaceId === id)
     if (mine.length) tabs.activate(mine[0].id); else await newTab()
-    pushWorkspaces(); pushTabs()
+    pushWorkspaces(); pushTabs(); pushRules()
   })
   // Klasor secerek Workspace kur (kabul kriteri: klasor secilerek Workspace kuruluyor)
   handle(Ch.wsCreate, schemas.wsCreate, async ({ name, rootDir }) => {
@@ -70,6 +74,13 @@ function registerIpc(): void {
     pushWorkspaces(); pushTabs()
     return w.id
   })
+  // Request Rules: kurallar Workspace'e bagli; degisince tum sekmelerde Fetch alani yeniden degerlendirilir
+  handle(Ch.rulesSet, schemas.rulesSet, ({ wsId, rules: list, domains }) => {
+    if (!workspaces.get(wsId)) return
+    rules.set(wsId, { rules: list, domains: domains.map((d) => d.trim()).filter(Boolean) })
+    tabs.refreshRules(); pushRules()
+  })
+  handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
     const known = tabs.list().tabs.some((t) => tabs.get(t.id)?.cdp?.resolver.knownFiles.has(file))
@@ -102,11 +113,13 @@ async function createWindow(): Promise<void> {
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
   workspaces = new WorkspaceStore()
+  rules = new RuleStore()
   tabs = new TabManager(win, bus, workspaces, pushTabs, (url, wsId) => {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  })
+  }, (wsId) => rules.get(wsId))
+  installMenu((cmd) => send(Ch.cmd, cmd))
   registerIpc()
   bus.subscribe((ev, change) => send(change === 'new' ? Ch.evNew : Ch.evUpdate, ev))
 
@@ -116,13 +129,13 @@ async function createWindow(): Promise<void> {
   const restored = process.env.DB_SCRIPT ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
   void pollServers(); setInterval(pollServers, 1500)
-  pushWorkspaces(); pushTabs()
+  pushWorkspaces(); pushTabs(); pushRules()
 
   // Otomatik test modu: DB_SCRIPT = ({ctx}) => Promise<any>; sonuc ve olaylar DB_DUMP'a yazilir
   if (process.env.DB_SCRIPT) {
     const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
     const ctx = {
-      app, win, tabs, bus, workspaces, sleep, detected: () => detected, pushTabs, detectServers,
+      app, win, tabs, bus, workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
       newTab,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },

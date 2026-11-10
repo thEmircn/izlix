@@ -7,11 +7,14 @@ import { resolveInput } from '../shared/url'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
+import { Interceptor } from './interceptor'
+import type { RulesConfig } from '../shared/rules'
 
 interface Entry {
   info: TabInfo
   view: WebContentsView
   cdp?: Tab
+  interceptor?: Interceptor
   devtools?: WebContentsView
   /** son bilinen http(s) adresi: sayfa commit olmadan (about:blank) gelen cozumlemeler icin yedek */
   lastHttpUrl?: string
@@ -28,7 +31,9 @@ export class TabManager {
 
   constructor(private win: BrowserWindow, private bus: EventBus, private workspaces: WorkspaceStore, private onChange: () => void,
     /** sayfanin dev sunucusunun proje kokunu bulur (Workspace kokunun yoksa port -> cwd) */
-    private rootFor: (url: string, workspaceId: string) => string | null = () => null) {
+    private rootFor: (url: string, workspaceId: string) => string | null = () => null,
+    /** Workspace'in Request Rules yapilandirmasi */
+    private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] })) {
     win.on('resize', () => this.layout())
   }
 
@@ -57,6 +62,8 @@ export class TabManager {
       const u = wc.getURL()
       return this.rootFor(/^https?:/.test(u) ? u : entry.lastHttpUrl ?? u, opts.workspaceId)
     })
+    entry.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(opts.workspaceId))
+    await entry.interceptor.refresh()
     if (target !== 'about:blank') void wc.loadURL(target).catch(() => {})
     this.persist()
     return id
@@ -72,6 +79,11 @@ export class TabManager {
       })
       this.onChange()
     }
+    wc.on('did-start-navigation', (d: any) => {
+      if (!d.isMainFrame || d.isSameDocument) return
+      e.interceptor?.setPageUrl(d.url); void e.interceptor?.refresh()
+    })
+    wc.on('did-navigate', () => { e.interceptor?.setPageUrl(null); void e.interceptor?.refresh() })
     for (const ev of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'] as const) wc.on(ev as any, sync)
     wc.on('did-stop-loading', () => this.persist())
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
@@ -129,6 +141,7 @@ export class TabManager {
     const idx = this.order.indexOf(id)
     this.win.contentView.removeChildView(e.view)
     if (e.devtools) this.win.contentView.removeChildView(e.devtools)
+    e.interceptor?.detach()
     e.cdp?.detach()
     this.bus.dropTab(id)
     e.view.webContents.close()
@@ -139,6 +152,14 @@ export class TabManager {
       if (next) this.activate(next)
     }
     this.onChange(); this.persist()
+  }
+
+  /** Kurallar degisince tum sekmelerde Fetch alanini yeniden degerlendir */
+  refreshRules(): void { for (const e of this.tabs.values()) void e.interceptor?.refresh() }
+  /** Overlay (palet, kural editoru) acikken sayfa gorunumleri native katman oldugu icin shell'in ustune cikar; gizlenir. */
+  setOverlay(open: boolean): void {
+    const cur = this.active()
+    cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open)
   }
 
   go(id: string, input: string): void { void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input)).catch(() => {}) }
