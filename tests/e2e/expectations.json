@@ -1515,5 +1515,22 @@
       "gte",
       1
     ]
+  ],
+  "errboundary": [
+    [
+      "card",
+      "eq",
+      true
+    ],
+    [
+      "shellAlive",
+      "eq",
+      true
+    ],
+    [
+      "recovered",
+      "eq",
+      true
+    ]
   ]
 }

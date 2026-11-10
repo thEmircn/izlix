@@ -322,3 +322,5 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .bt-js { background: #fbbf24; } .bt-css { background: #a3e635; } .bt-img { background: #f4f4f5; } .bt-doc { background: #a1a1aa; } .bt-xhr { background: #2dd4bf; } .bt-font { background: #d4d4d8; } .bt-ws { background: #fb923c; } .bt-other { background: #71717a; }
 
 .scgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 16px 18px 20px; overflow: auto; } .scrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 3px 0; }
+
+.errcard { margin: 18px; padding: 16px; border: 1px solid rgba(248,113,113,.45); border-radius: 12px; background: rgba(248,113,113,.06); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; } .errcard code { background: none; padding: 0; color: #fca5a5; white-space: pre-wrap; }
