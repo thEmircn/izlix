@@ -65,9 +65,9 @@ export function App() {
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
-  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH }) }, [s.dock, s.panelRatio, chromeH])
+  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH, split: s.split }) }, [s.dock, s.panelRatio, s.split, chromeH])
 
-  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH })
+  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: s.panelRatio, chromeHeight: chromeH, split: s.split })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }
   const api = window.izlix
   const nav = (fn: (id: string) => unknown) => (): void => { if (active) void fn(active.id) }

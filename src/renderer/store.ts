@@ -10,6 +10,7 @@ interface State {
   selectedEventId: number | null
   editor: Editor
   panelRatio: number
+  split: number
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
@@ -27,7 +28,7 @@ const MAX = 5000
 export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: 'right', workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
-  editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')),
+  editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.42')),
   rules: {}, bookmarks: {}, downloads: [], overlay: null, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '' },
   set: (p) => set(p),
   ingest: (batch) => set((s) => {

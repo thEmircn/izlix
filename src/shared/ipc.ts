@@ -15,7 +15,8 @@ export const schemas = {
   layoutSet: z.object({
     dock: z.enum(['right', 'bottom', 'off']),
     panelRatio: z.number().min(0.2).max(0.8),
-    chromeHeight: z.number().int().min(40).max(200)
+    chromeHeight: z.number().int().min(40).max(200),
+    split: z.number().min(0.2).max(0.8).optional()
   }),
   wsCreate: z.object({ name: z.string().min(1).max(64), rootDir: z.string().max(4096).nullable() }),
   wsSwitch: z.object({ id: z.string().max(64) }),

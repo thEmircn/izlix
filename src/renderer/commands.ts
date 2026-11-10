@@ -30,6 +30,15 @@ export function buildCommands(): Command[] {
       ? { id: 'telemetry.off', title: t('cmd.telemetryOff'), run: () => void api.setSettings({ telemetry: 'denied' }) }
       : { id: 'telemetry.on', title: t('cmd.telemetryOn'), run: () => void api.setSettings({ telemetry: 'granted' }) }
   ]
+  // Paneller: Timeline/DevTools bolunmesi ve yan panel genisligi (kalici)
+  const clamp = (v: number, a: number, b: number): number => Math.min(b, Math.max(a, +v.toFixed(2)))
+  const setPanel = (k: 'split' | 'panelRatio', v: number): void => { writePref(k, String(v)); s.set({ [k]: v } as any) }
+  cmds.push(
+    { id: 'panel.tlTaller', title: t('cmd.tlTaller'), run: () => setPanel('split', clamp(s.split + 0.1, 0.2, 0.8)) },
+    { id: 'panel.tlShorter', title: t('cmd.tlShorter'), run: () => setPanel('split', clamp(s.split - 0.1, 0.2, 0.8)) },
+    { id: 'panel.wider', title: t('cmd.panelWider'), run: () => setPanel('panelRatio', clamp(s.panelRatio + 0.1, 0.2, 0.8)) },
+    { id: 'panel.narrower', title: t('cmd.panelNarrower'), run: () => setPanel('panelRatio', clamp(s.panelRatio - 0.1, 0.2, 0.8)) }
+  )
   // Emulasyon (P3): tema ve azaltilmis hareket
   const media = active?.media
   const setMedia = (cs: 'light' | 'dark' | null, rm: boolean): void => { if (active) void api.setMedia(active.id, cs, rm) }
