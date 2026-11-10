@@ -119,7 +119,7 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} draggable className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable className={`tab nodrag ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}

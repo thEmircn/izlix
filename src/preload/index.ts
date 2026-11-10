@@ -81,6 +81,7 @@ export const api = {
   dbgControl: (id: string, cmd: 'resume' | 'stepOver' | 'stepInto' | 'stepOut' | 'pause') => call(Ch.dbgCtl, { id, cmd }),
   dbgExceptions: (id: string, state: 'none' | 'uncaught' | 'all') => call(Ch.dbgExc, { id, state }),
   dbgEventBp: (id: string, kind: 'event' | 'xhr', name: string, on: boolean) => call(Ch.dbgEvBp, { id, kind, name, on }),
+  splitTab: (other: string | null) => call(Ch.tabSplit, { other }),
   dbgScope: (id: string, objectId: string) => call(Ch.dbgScope, { id, objectId }),
   dbgEval: (id: string, frameId: string, expression: string) => call(Ch.dbgEval, { id, frameId, expression }),
   onDbg: sub(Ch.dbgEvent),

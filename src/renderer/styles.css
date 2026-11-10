@@ -577,3 +577,5 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .cmp { display: grid; gap: 6px; } .cmp-h { display: flex; gap: 10px; align-items: center; color: var(--dim); margin-bottom: 6px; } .cmp-h code { background: none; padding: 0; color: var(--fg); }
 .cmp-row { display: grid; grid-template-columns: 140px 1fr 16px 1fr; gap: 8px; align-items: start; padding: 6px 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); font-size: 11.5px; } .cmp-row b { font: 500 11px var(--mono); overflow-wrap: anywhere; } .cmp-row i { color: var(--dim); font-style: normal; text-align: center; }
 .cmp-row code { background: none; padding: 0; overflow-wrap: anywhere; } .cmp-row .old { color: var(--bad); } .cmp-row .new { color: var(--ok); }
+
+.tab.split::before { content: ''; width: 5px; height: 11px; border: 1.5px solid var(--dim); border-radius: 2px; margin-right: 7px; flex: none; background: linear-gradient(90deg, var(--dim) 50%, transparent 50%); opacity: .8; } .tab.split.active::before { border-color: var(--ac); background: linear-gradient(90deg, var(--ac) 50%, transparent 50%); }

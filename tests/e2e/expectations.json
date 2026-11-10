@@ -2052,5 +2052,62 @@
       "eq",
       true
     ]
+  ],
+  "split": [
+    [
+      "ok",
+      "eq",
+      true
+    ],
+    [
+      "sideBySide",
+      "eq",
+      true
+    ],
+    [
+      "halves",
+      "eq",
+      true
+    ],
+    [
+      "activeAfter",
+      "eq",
+      true
+    ],
+    [
+      "stable",
+      "eq",
+      true
+    ],
+    [
+      "splitCleared",
+      "eq",
+      true
+    ],
+    [
+      "fullAgain",
+      "eq",
+      true
+    ],
+    [
+      "splitIds",
+      "eq",
+      2
+    ],
+    [
+      "tabClasses",
+      "eq",
+      2
+    ],
+    [
+      "titles[0]",
+      "eq",
+      "a"
+    ],
+    [
+      "titles[1]",
+      "eq",
+      "b"
+    ]
   ]
 }

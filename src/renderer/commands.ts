@@ -105,6 +105,15 @@ export function buildCommands(): Command[] {
   for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId)) {
     cmds.push({ id: `tab:${tb.id}`, title: t('cmd.tab', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.activateTab(tb.id) })
   }
+  // Bolunmus gorunum (Split View)
+  const act = s.tabs.find((x) => x.id === s.activeTabId)
+  if (act && !act.lab) {
+    for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId && x.id !== act.id && !x.lab && x.split !== (act.split === 'left' ? 'right' : 'left'))) {
+      cmds.push({ id: `split:${tb.id}`, title: t('cmd.splitWith', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.splitTab(tb.id) })
+    }
+    cmds.push({ id: 'split.new', title: t('cmd.splitNew'), run: () => { void (async () => { const before = act.id; const nid = (await api.createTab()) as string; await api.activateTab(before); await api.splitTab(nid) })() } })
+    if (act.split) cmds.push({ id: 'split.close', title: t('cmd.splitClose'), run: () => void api.splitTab(null) })
+  }
   for (const w of s.workspaces) {
     cmds.push({ id: `ws:${w.id}`, title: t('cmd.workspace', { w: wsName(w) }), hint: w.id === s.activeWorkspaceId ? 'active' : w.rootDir ?? '', run: () => void api.switchWorkspace(w.id) })
   }

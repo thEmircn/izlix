@@ -2,7 +2,7 @@ import { BrowserWindow, WebContentsView, session, app } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { TabInfo, DevToolsDock } from '../shared/events'
-import { computeLayout, padRect, CARD_RADIUS, type LayoutParams } from '../shared/layout'
+import { computeLayout, padRect, CARD_RADIUS, GAP, type LayoutParams, type Rect } from '../shared/layout'
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
@@ -34,6 +34,8 @@ export class TabManager {
   private tabs = new Map<string, Entry>()
   private order: string[] = []
   private activeId: string | null = null
+  /** Bolunmus gorunum: iki sekme yan yana (a solda, b sagda); aktif sekme ikisinden biridir. */
+  private split: { a: string; b: string } | null = null
   private seq = 0
   private closed: { url: string; workspaceId: string }[] = []
   private layoutParams: LayoutParams = { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }
@@ -63,6 +65,8 @@ export class TabManager {
     const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
+    // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
+    view.webContents.on('focus', () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activate(id) })
     if (opts.activate !== false) this.activate(id)
 
     const wc = view.webContents
@@ -125,7 +129,19 @@ export class TabManager {
     if (!this.tabs.has(id)) return
     if (id === this.activeId) return // zaten aktif: DevTools'u yok edip yeniden kurma
     const prev = this.active()
-    if (prev) { this.win.contentView.removeChildView(prev.view); prev.lab?.removeViews(); this.releaseDevTools(prev) }
+    // bolunmus ciftin icindeki sekmeye gecis: gorunumler yerinde kalir, yalnizca odak (aktif sekme) degisir
+    if (prev && this.split && (id === this.split.a || id === this.split.b)) {
+      this.releaseDevTools(prev); this.activeId = id
+      const cur = this.tabs.get(id)!
+      this.ensureDevTools(cur); this.layout(); this.onChange(); this.persist(); return
+    }
+    if (prev) {
+      // bolunmus cift varsa: aktif sekmenin yuvasi yeni sekmeyle degisir
+      if (this.split && prev.info.id === this.split.a) this.split = { a: id, b: this.split.b }
+      else if (this.split && prev.info.id === this.split.b) this.split = { a: this.split.a, b: id }
+      this.win.contentView.removeChildView(prev.view); prev.lab?.removeViews(); this.releaseDevTools(prev)
+      this.syncSplitInfo()
+    }
     this.activeId = id
     const cur = this.tabs.get(id)!
     this.win.contentView.addChildView(cur.view)
@@ -172,7 +188,17 @@ export class TabManager {
     const [w, h] = this.win.getContentSize()
     const l = computeLayout(w, h, this.layoutParams)
     const page = padRect(l.page)
-    if (cur.lab) cur.lab.layout(page); else { cur.view.setBounds(page); try { cur.view.setBorderRadius(CARD_RADIUS) } catch { /* eski surum */ } }
+    const sp = this.split && !cur.lab ? this.split : null
+    const other = sp ? this.tabs.get(cur.info.id === sp.a ? sp.b : sp.a) : null
+    if (sp && other) {
+      // yan yana: sol ve sag yari (arada GAP boslugu)
+      const half = Math.floor((page.width - GAP) / 2)
+      const left: Rect = { x: page.x, y: page.y, width: half, height: page.height }, right: Rect = { x: page.x + half + GAP, y: page.y, width: page.width - half - GAP, height: page.height }
+      const [ra, rb] = [left, right]
+      const va = this.tabs.get(sp.a)!.view, vb = this.tabs.get(sp.b)!.view
+      va.setBounds(ra); vb.setBounds(rb)
+      for (const v of [va, vb]) try { v.setBorderRadius(CARD_RADIUS) } catch { /* yok say */ }
+    } else if (cur.lab) cur.lab.layout(page); else { cur.view.setBounds(page); try { cur.view.setBorderRadius(CARD_RADIUS) } catch { /* eski surum */ } }
     if (cur.devtools && l.devtools) { cur.devtools.setBounds(padRect(l.devtools)); try { cur.devtools.setBorderRadius(CARD_RADIUS) } catch { /* yok say */ } }
   }
 
@@ -181,6 +207,11 @@ export class TabManager {
     if (!e) return
     const idx = this.order.indexOf(id)
     if (e.info.url) { this.closed.push({ url: e.info.url, workspaceId: e.info.workspaceId }); if (this.closed.length > 20) this.closed.shift() }
+    if (this.split && (id === this.split.a || id === this.split.b)) {
+      const partner = this.tabs.get(id === this.split.a ? this.split.b : this.split.a)
+      this.split = null; this.syncSplitInfo()
+      if (this.activeId === id && partner) this.win.contentView.removeChildView(partner.view) // aktif sekme kapaniyor: ortak gorunum sonradan gerekirse yeniden eklenir
+    }
     this.win.contentView.removeChildView(e.view)
     if (e.retryTimer) clearTimeout(e.retryTimer)
     this.releaseDevTools(e)
@@ -194,7 +225,7 @@ export class TabManager {
       const next = this.order[Math.min(idx, this.order.length - 1)]
       if (next) this.activate(next)
     }
-    this.onChange(); this.persist()
+    this.layout(); this.onChange(); this.persist()
   }
 
   async setCacheDisabled(id: string, disabled: boolean): Promise<void> {
@@ -264,6 +295,30 @@ export class TabManager {
   setOverlay(open: boolean): void {
     const cur = this.active()
     cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open); cur?.lab?.setVisible(!open)
+    if (this.split) for (const id of [this.split.a, this.split.b]) this.tabs.get(id)?.view.setVisible(!open)
+  }
+
+  /** Aktif sekmeyi `otherId` ile yan yana gosterir (null: bolmeyi kapat). Responsive Lab acikken bolunmez. */
+  setSplit(otherId: string | null): boolean {
+    const cur = this.active()
+    if (!cur) return false
+    if (otherId == null || otherId === cur.info.id) {
+      if (!this.split) return true
+      const other = this.tabs.get(this.split.a === cur.info.id ? this.split.b : this.split.a)
+      this.split = null; if (other) this.win.contentView.removeChildView(other.view)
+      this.syncSplitInfo(); this.layout(); this.onChange(); return true
+    }
+    const other = this.tabs.get(otherId)
+    if (!other || cur.lab || other.lab) return false
+    if (this.split) { const old = this.tabs.get(this.split.a === cur.info.id ? this.split.b : this.split.a); if (old && old !== other) this.win.contentView.removeChildView(old.view) }
+    this.split = { a: cur.info.id, b: otherId }
+    this.win.contentView.addChildView(other.view)
+    this.syncSplitInfo(); this.layout(); this.onChange(); return true
+  }
+  get splitIds(): string[] { return this.split ? [this.split.a, this.split.b] : [] }
+  private syncSplitInfo(): void {
+    for (const e of this.tabs.values()) delete e.info.split
+    if (this.split) { const a = this.tabs.get(this.split.a), b = this.tabs.get(this.split.b); if (a) a.info.split = 'left'; if (b) b.info.split = 'right' }
   }
 
   /** Sekmeyi `toIndex` konumuna tasir (ayni Workspace icinde gorunen sira korunur; genel sira dizisinde yer degistirir) */

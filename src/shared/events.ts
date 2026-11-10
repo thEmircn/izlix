@@ -19,6 +19,8 @@ export interface BusEvent {
 }
 
 export interface TabInfo {
+  /** Bolunmus gorunumde sekmenin tarafi */
+  split?: 'left' | 'right'
   id: string
   workspaceId: string
   title: string
