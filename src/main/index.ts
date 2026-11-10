@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
 import { join } from 'node:path'
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
 import { Ch, schemas } from '../shared/ipc'
 import type { Editor } from '../shared/events'
@@ -8,7 +8,7 @@ import { EventBus } from './bus'
 import { TabManager } from './tabs'
 import { RuleStore } from './rules'
 import { Library } from './library'
-import { Downloads } from './downloads'
+import { Downloads, uniquePath } from './downloads'
 import { parseLaunch, type Launch } from './launch'
 import { registerAppScheme, serveApp, lockPermissions, lockShell, isInsideAny, trustLoopbackCerts } from './security'
 import { SettingsStore } from './settings'
@@ -17,6 +17,7 @@ import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
 import { saveSnapshot } from './snapshot'
 import { CdpProxy } from './cdpproxy'
+import { captureShot, shotName } from './shots'
 import { formatEval } from './evalformat'
 import { exportReport } from './report'
 import { installMenu } from './menu'
@@ -219,6 +220,18 @@ function registerIpc(): void {
     } catch (e) { return { ok: false, text: String((e as Error).message ?? e) } }
   })
   handle(Ch.emuSet, schemas.emuSet, ({ id, ...patch }) => tabs.setEmulation(id, patch))
+  // Ekran goruntusu: kaydet (~/Downloads) veya panoya kopyala. Dugum modu Elements'ten gelen nodeId ister (DOM etkin olmali).
+  handle(Ch.shot, schemas.shot, async ({ id, kind, nodeId, copy }) => {
+    const e = tabs.get(id); if (!e) return null
+    const png = await captureShot(e.view.webContents, kind, nodeId)
+    if (!png) return null
+    if (copy) return { b64: png.toString('base64'), bytes: png.length } // panoya shell yazar (navigator.clipboard)
+    mkdirSync(app.getPath('downloads'), { recursive: true })
+    const file = uniquePath(app.getPath('downloads'), shotName(e.view.webContents.getURL()))
+    writeFileSync(file, png)
+    if (!process.env.DB_SCRIPT) shell.showItemInFolder(file)
+    return { path: file, bytes: png.length }
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

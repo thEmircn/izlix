@@ -48,6 +48,7 @@ export const api = {
   onDt: sub(Ch.dtEvent),
   evalInPage: (id: string, expression: string) => call(Ch.dtEval, { id, expression }),
   setEmulation: (id: string, p: { network?: string | null; cpu?: number | null; geo?: string | null }) => call(Ch.emuSet, { id, ...p }),
+  screenshot: (id: string, kind: 'viewport' | 'full' | 'node', opts: { nodeId?: number; copy?: boolean } = {}) => call(Ch.shot, { id, kind, ...opts }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

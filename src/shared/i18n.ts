@@ -58,6 +58,7 @@ const en = {
   'cmd.autoOpenOn': 'Auto-open new dev servers: turn on', 'cmd.autoOpenOff': 'Auto-open new dev servers: turn off',
   'toast.report': 'Report saved: {p}', 'toast.snapshot': 'Snapshot saved: {p}', 'toast.rules': 'Rules saved', 'toast.copied': 'Copied to clipboard', 'toast.bookmarked': 'Bookmarked', 'toast.unbookmarked': 'Bookmark removed', 'tl.empty': 'No events yet. Interact with the page and the timeline fills in.',
   'cmd.net': 'Network: {p}', 'cmd.netOff': 'Network: No throttling', 'cmd.cpu': 'CPU: {r}× slowdown', 'cmd.cpuOff': 'CPU: No throttling', 'cmd.geo': 'Location: {p}', 'cmd.geoOff': 'Location: Real', 'emu.reset': 'Reset',
+  'cmd.shotView': 'Screenshot: Visible area (save)', 'cmd.shotFull': 'Screenshot: Full page (save)', 'cmd.shotCopy': 'Screenshot: Visible area (copy)', 'cmd.shotFullCopy': 'Screenshot: Full page (copy)', 'toast.shot': 'Screenshot saved: {p}', 'toast.shotCopied': 'Screenshot copied', 'toast.shotFail': 'Screenshot failed', 'el.shot': 'Screenshot',
   'cmd.dockHide': 'DevTools: Hide', 'cmd.dockAt': 'DevTools: Dock {pos}', 'cmd.tab': 'Tab: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Bookmark: {t}', 'cmd.download': 'Download: {t}', 'cmd.history': 'History: {t}', 'cmd.openServer': 'Open localhost:{port}{fw}',
   'cmd.ruleOff': 'Rule: Disable “{n}”', 'cmd.ruleOn': 'Rule: Enable “{n}”'
 } as const
@@ -121,6 +122,7 @@ const tr: Record<Key, string> = {
   'cmd.autoOpenOn': 'Yeni dev sunucularını otomatik aç: aç', 'cmd.autoOpenOff': 'Yeni dev sunucularını otomatik aç: kapat',
   'toast.report': 'Rapor kaydedildi: {p}', 'toast.snapshot': 'Anlık görüntü kaydedildi: {p}', 'toast.rules': 'Kurallar kaydedildi', 'toast.copied': 'Panoya kopyalandı', 'toast.bookmarked': 'Yer imi eklendi', 'toast.unbookmarked': 'Yer imi kaldırıldı', 'tl.empty': 'Henüz olay yok. Sayfayla etkileşime geç, Timeline dolsun.',
   'cmd.net': 'Ağ: {p}', 'cmd.netOff': 'Ağ: Kısıtlama yok', 'cmd.cpu': 'CPU: {r}× yavaşlatma', 'cmd.cpuOff': 'CPU: Kısıtlama yok', 'cmd.geo': 'Konum: {p}', 'cmd.geoOff': 'Konum: Gerçek', 'emu.reset': 'Sıfırla',
+  'cmd.shotView': 'Ekran görüntüsü: Görünen alan (kaydet)', 'cmd.shotFull': 'Ekran görüntüsü: Tam sayfa (kaydet)', 'cmd.shotCopy': 'Ekran görüntüsü: Görünen alan (kopyala)', 'cmd.shotFullCopy': 'Ekran görüntüsü: Tam sayfa (kopyala)', 'toast.shot': 'Ekran görüntüsü kaydedildi: {p}', 'toast.shotCopied': 'Ekran görüntüsü kopyalandı', 'toast.shotFail': 'Ekran görüntüsü alınamadı', 'el.shot': 'Ekran görüntüsü',
   'cmd.dockHide': 'DevTools: Gizle', 'cmd.dockAt': 'DevTools: {pos} yerleştir', 'cmd.tab': 'Sekme: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Yer imi: {t}', 'cmd.download': 'İndirme: {t}', 'cmd.history': 'Geçmiş: {t}', 'cmd.openServer': 'localhost:{port} aç{fw}',
   'cmd.ruleOff': 'Kural: “{n}” kapat', 'cmd.ruleOn': 'Kural: “{n}” aç'
 }

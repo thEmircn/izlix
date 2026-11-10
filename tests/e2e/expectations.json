@@ -963,5 +963,37 @@
       "gte",
       4
     ]
+  ],
+  "shots-feature": [
+    [
+      "viewport.sig",
+      "eq",
+      "PNG"
+    ],
+    [
+      "full.h",
+      "gt",
+      2900
+    ],
+    [
+      "copy.hasB64",
+      "eq",
+      true
+    ],
+    [
+      "node.w",
+      "lt",
+      200
+    ],
+    [
+      "node.w",
+      "gt",
+      20
+    ],
+    [
+      "files",
+      "eq",
+      true
+    ]
   ]
 }

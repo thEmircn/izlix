@@ -55,6 +55,20 @@ export function buildCommands(): Command[] {
     { id: 'emu.motion', title: media?.reducedMotion ? t('cmd.emuMotionOff') : t('cmd.emuMotionOn'), run: () => setMedia(media?.colorScheme ?? null, !media?.reducedMotion) }
   )
   if (media) cmds.push({ id: 'emu.reset', title: t('cmd.emuReset'), run: () => setMedia(null, false) })
+  // Ekran goruntusu
+  const shot = (kind: 'viewport' | 'full', copy: boolean): void => {
+    if (!active) return
+    void api.screenshot(active.id, kind, { copy }).then(async (r: any) => {
+      if (!r) return toast(t('toast.shotFail'))
+      if (r.b64) {
+        try { const blob = await (await fetch(`data:image/png;base64,${r.b64}`)).blob(); await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); toast(t('toast.shotCopied')) } catch { toast(t('toast.shotFail')) }
+      } else toast(t('toast.shot', { p: String(r.path).split('/').pop() ?? '' }))
+    })
+  }
+  cmds.push(
+    { id: 'shot.view', title: t('cmd.shotView'), run: () => shot('viewport', false) }, { id: 'shot.full', title: t('cmd.shotFull'), run: () => shot('full', false) },
+    { id: 'shot.viewCopy', title: t('cmd.shotCopy'), run: () => shot('viewport', true) }, { id: 'shot.fullCopy', title: t('cmd.shotFullCopy'), run: () => shot('full', true) }
+  )
   // Ag/CPU kisitlama ve konum emulasyonu
   const emu = active?.emu
   const setEmu = (p: { network?: string | null; cpu?: number | null; geo?: string | null }): void => { if (active) void api.setEmulation(active.id, p) }

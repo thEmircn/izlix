@@ -227,6 +227,7 @@ function Attrs({ node, dt, root, reload, onDeleted }: { node: DomNode; dt: Dt; r
       <div className="actions">
         <button className="btn" onClick={() => { void navigator.clipboard?.writeText(selectorOf(root, node.nodeId)); toast(t('toast.copied')) }}>{t('el.copySel')}</button>
         <button className="btn" onClick={() => void dt('DOM.getOuterHTML', { nodeId: node.nodeId }).then((d) => { if (d?.outerHTML) { void navigator.clipboard?.writeText(d.outerHTML); toast(t('toast.copied')) } })}>{t('el.copyHtml')}</button>
+        <button className="btn" onClick={() => void window.izlix.screenshot(useStore.getState().activeTabId!, 'node', { nodeId: node.nodeId }).then((r: any) => toast(!r ? t('toast.shotFail') : t('toast.shot', { p: String(r.path).split('/').pop() ?? '' })))}>{t('el.shot')}</button>
         <button className="btn danger" onClick={() => void dt('DOM.removeNode', { nodeId: node.nodeId }).then(() => { onDeleted(); reload() })}>{t('el.delete')}</button>
       </div>
     </div>
