@@ -204,7 +204,7 @@ async function createWindow(): Promise<void> {
   if (process.env.ELECTRON_RENDERER_URL) await win.loadURL(process.env.ELECTRON_RENDERER_URL)
   else { serveApp(join(__dirname, '../renderer')); await win.loadURL('app://shell/index.html') }
 
-  const restored = process.env.DB_SCRIPT ? false : await tabs.restore()
+  const restored = process.env.DB_SCRIPT && !process.env.DB_RESTORE ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
   void pollServers(); setInterval(pollServers, 1500)
   pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSettings()
