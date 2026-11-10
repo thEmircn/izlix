@@ -1205,5 +1205,17 @@
       "eq",
       "App"
     ]
+  ],
+  "props-edit": [
+    [
+      "props[0]",
+      "contains",
+      "item"
+    ],
+    [
+      "page",
+      "contains",
+      "Props edited"
+    ]
   ]
 }

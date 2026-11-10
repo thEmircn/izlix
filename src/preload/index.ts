@@ -54,6 +54,7 @@ export const api = {
   setCacheDisabled: (id: string, disabled: boolean) => call(Ch.cacheSet, { id, disabled }),
   tabMenu: (id: string) => call(Ch.tabMenu, { id }),
   setHook: (id: string, node: number, index: number, json: string) => call(Ch.hookSet, { id, node, index, json }),
+  setProp: (id: string, node: number, key: string, json: string) => call(Ch.propSet, { id, node, key, json }),
   dtReactIndex: (id: string, nodeId: number) => call(Ch.dtReactIdx, { id, nodeId }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),

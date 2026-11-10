@@ -210,7 +210,9 @@ export const BRIDGE_SOURCE = String.raw`(() => {
   window.__IZLIX_INSPECT__ = function (id) {
     const f = inspected[id];
     if (!f) return null;
-    const d = { name: nameOf(f), src: srcOf(f), props: ser(f.memoizedProps, 0, []), ms: typeof f.actualDuration === 'number' ? Math.round(f.actualDuration * 100) / 100 : undefined };
+    const propsRaw = {};
+    try { const mp = f.memoizedProps || {}; Object.keys(mp).slice(0, 40).forEach((k) => { if (k === 'children' || typeof mp[k] === 'function') return; try { const j = JSON.stringify(mp[k]); if (j !== undefined && j.length <= 2000) propsRaw[k] = j; } catch (e) {} }); } catch (e) {}
+    const d = { name: nameOf(f), src: srcOf(f), propsRaw: propsRaw, props: ser(f.memoizedProps, 0, []), ms: typeof f.actualDuration === 'number' ? Math.round(f.actualDuration * 100) / 100 : undefined };
     if (f.tag === CLASS) d.state = ser(f.memoizedState, 0, []);
     else {
       const hooks = []; let c = f.memoizedState, i = 0;
@@ -237,6 +239,13 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     let c = f.memoizedState, i = 0; while (c && i < index) { c = c.next; i++; }
     if (!c || !c.queue || typeof c.queue.dispatch !== 'function') return { ok: false, err: 'not a state hook' };
     try { c.queue.dispatch(JSON.parse(json)); return { ok: true }; } catch (e) { return { ok: false, err: String(e) }; }
+  };
+  // Props'u canli degistir: React'in dev derlemesindeki overrideProps (DevTools arayuzu)
+  window.__IZLIX_SET_PROP__ = function (id, key, json) {
+    const f = inspected[id]; if (!f) return { ok: false, err: 'component not found (refresh the tree)' };
+    let fn = null; renderers.forEach((r) => { if (!fn && typeof r.overrideProps === 'function') fn = r; });
+    if (!fn) return { ok: false, err: 'props editing needs a development build of React' };
+    try { fn.overrideProps(f, [key], JSON.parse(json)); return { ok: true }; } catch (e) { return { ok: false, err: String(e) }; }
   };
   // DOM ogesinden en yakin bilesenin agac indeksi (Pick icin)
   window.__IZLIX_INDEX_OF__ = function (el) {

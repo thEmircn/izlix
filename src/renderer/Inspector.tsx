@@ -98,6 +98,13 @@ export function Inspector({ height }: { height: number }) {
     if (!r?.ok) toast(r?.err ?? t('insp.badJson'))
     setTimeout(() => void pick(sel), 350)
   }
+  const editProp = async (key: string, json: string): Promise<void> => {
+    if (!tabId || !sel) return
+    try { JSON.parse(json) } catch { toast(t('insp.badJson')); return }
+    const r = await window.izlix.setProp(tabId, sel.id, key, json)
+    if (!r?.ok) toast(r?.err ?? t('insp.badJson'))
+    setTimeout(() => void pick(sel), 350)
+  }
   const open = (src: any): void => { void window.izlix.openSource({ file: src.file, line: src.line, column: src.column, editor }) }
 
   return (
@@ -130,7 +137,13 @@ export function Inspector({ height }: { height: number }) {
           <>
             <div><b>{detail.name}</b>{detail.ms != null && <span style={{ color: 'var(--dim)' }}> · {t('insp.lastRender', { ms: detail.ms })}</span>}</div>
             {detail.source && <div>{t('tl.source')}: <a href="#" style={{ color: 'var(--fg)', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={(e) => { e.preventDefault(); open(detail.source) }}>{String(detail.source.file).split('/').slice(-2).join('/')}:{detail.source.line}</a></div>}
-            <div style={{ marginTop: 6, color: 'var(--dim)' }}>props</div><Val v={detail.props} />
+            <div style={{ marginTop: 6, color: 'var(--dim)' }}>props</div>
+            {Object.keys(detail.propsRaw ?? {}).length > 0
+              ? <div>{Object.entries(detail.propsRaw as Record<string, string>).map(([k, raw]) => (
+                  <div key={k} className="hookrow"><span style={{ color: '#e4e4e7' }}>{k}</span>: <input className="hookinp" defaultValue={raw} spellCheck={false} title={t('insp.editHook')}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void editProp(k, (e.target as HTMLInputElement).value) }} onBlur={(e) => { if (e.target.value !== raw) void editProp(k, e.target.value) }} /></div>
+                ))}</div>
+              : <Val v={detail.props} />}
             {detail.state !== undefined && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>state</div><Val v={detail.state} /></>}
             {detail.hooks?.length > 0 && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>hooks</div>
               {detail.hooks.map((h: any) => (
