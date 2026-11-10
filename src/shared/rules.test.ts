@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluate, hostAllowed, matchesPattern, needsResponseStage, newRule, type Rule } from './rules'
+import { ruleFromRequest, evaluate, hostAllowed, matchesPattern, needsResponseStage, newRule, type Rule } from './rules'
 import { fuzzyScore, rank } from './fuzzy'
 
 const rule = (p: Partial<Rule>): Rule => newRule({ id: p.id ?? 'r', ...p })
@@ -90,5 +90,16 @@ describe('fuzzy', () => {
     const t = performance.now()
     rank(items, 'sekme 99', (s) => s)
     expect(performance.now() - t).toBeLessThan(50)
+  })
+})
+
+describe('ruleFromRequest', () => {
+  it('sorgu dizesini atar, yontemi korur, kendi istegiyle eslesir', () => {
+    const r = ruleFromRequest('http://localhost:5173/api/items?page=2', 'GET', 'fail')
+    expect(r.urlPattern).toBe('http://localhost:5173/api/items')
+    expect(r.action).toEqual({ type: 'status', code: 500 })
+    expect(evaluate([r], { url: 'http://localhost:5173/api/items?page=2', method: 'GET' })?.status).toBe(500)
+    expect(evaluate([r], { url: 'http://localhost:5173/api/other', method: 'GET' })).toBeNull()
+    expect(ruleFromRequest('http://a.com/x', 'POST', 'mock').action.type).toBe('mock')
   })
 })

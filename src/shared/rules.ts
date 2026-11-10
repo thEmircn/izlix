@@ -89,3 +89,13 @@ export const needsResponseStage = (rules: Rule[]): boolean => rules.some((r) => 
 export function newRule(partial: Partial<Rule> = {}): Rule {
   return { id: Math.random().toString(36).slice(2, 10), name: 'Yeni kural', enabled: true, urlPattern: '/api/', action: { type: 'mock', status: 200, body: '{"ok":true}', contentType: 'application/json' }, ...partial }
 }
+
+/** Timeline'daki bir istekten hizli kural: yol kalibi (sorgu dizesiz) + secilen eylem. */
+export function ruleFromRequest(url: string, method: string, kind: 'mock' | 'delay' | 'fail'): Rule {
+  let pattern = url
+  try { const u = new URL(url); pattern = u.origin === 'null' ? url : u.origin + u.pathname } catch { /* ham url */ }
+  const action: RuleAction = kind === 'mock' ? { type: 'mock', status: 200, body: '{}', contentType: 'application/json' }
+    : kind === 'delay' ? { type: 'delay', ms: 2000 } : { type: 'status', code: 500 }
+  const name = { mock: 'Mock', delay: 'Delay 2s', fail: 'Fail 500' }[kind]
+  return newRule({ name: `${name} ${method} ${(() => { try { return new URL(url).pathname } catch { return url } })()}`, urlPattern: pattern, method, action })
+}

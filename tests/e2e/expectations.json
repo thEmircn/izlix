@@ -481,5 +481,32 @@
       "eq",
       true
     ]
+  ],
+  "rulefromreq": [
+    [
+      "rule.kind",
+      "eq",
+      "status"
+    ],
+    [
+      "rule.code",
+      "eq",
+      500
+    ],
+    [
+      "rule.method",
+      "eq",
+      "GET"
+    ],
+    [
+      "panelOpen",
+      "eq",
+      true
+    ],
+    [
+      "afterStatus",
+      "eq",
+      500
+    ]
   ]
 }

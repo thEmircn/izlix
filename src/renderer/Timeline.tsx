@@ -3,6 +3,7 @@ import type { BusEvent as Ev } from '../shared/events'
 import { useStore, writePref, useT } from './store'
 import { Inspector, RenderTracker } from './Inspector'
 import { causeChain, effectsOf } from '../shared/chain'
+import { ruleFromRequest } from '../shared/rules'
 
 // ---- sabitler ----
 const LANES = ['input', 'request', 'response', 'render', 'console', 'error'] as const
@@ -195,6 +196,17 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
       <div><b style={{ color: COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
       <Chain ev={ev} byId={byId} onSelect={onSelect} />
+      {ev.kind === 'request' && (
+        <div style={{ margin: '4px 0' }}>{t('tl.ruleFrom')}{' '}
+          {(['mock', 'delay', 'fail'] as const).map((k) => (
+            <button key={k} className="btn" style={{ marginRight: 4 }} onClick={() => {
+              const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
+              void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k)] })
+              st.set({ overlay: 'rules' })
+            }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : 'tl.ruleFail')}</button>
+          ))}
+        </div>
+      )}
       {ev.links.map((l) => (
         <div key={l.from} style={{ opacity: 0.85 }}>
           ← <a href="#" onClick={(e) => { e.preventDefault(); onSelect(l.from) }} style={{ color: '#ddd' }}>#{l.from} {byId.get(l.from) ? label(byId.get(l.from)!) : ''}</a>{' '}
