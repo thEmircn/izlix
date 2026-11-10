@@ -1,0 +1,39 @@
+import { net, protocol, type BrowserWindow, type Session } from 'electron'
+import { join, normalize, sep } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+/** app://shell/<yol> -> yerel dosya yolu; kok disina cikan (../) yollar null doner. */
+export function resolveAppPath(root: string, urlPath: string): string | null {
+  let p: string
+  try { p = decodeURIComponent(urlPath) } catch { return null }
+  if (p.includes('\0')) return null
+  const full = normalize(join(root, p === '/' || p === '' ? 'index.html' : p))
+  return full === root || full.startsWith(root + sep) ? full : null
+}
+
+/** Shell, app:// ozel protokolunden yuklenir (plan bolum 4). Protokol app.ready'den ONCE tanitilmali. */
+export function registerAppScheme(): void {
+  protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
+}
+export function serveApp(root: string): void {
+  protocol.handle('app', (req) => {
+    const u = new URL(req.url)
+    if (u.hostname !== 'shell') return new Response('not found', { status: 404 })
+    const file = resolveAppPath(root, u.pathname)
+    return file ? net.fetch(pathToFileURL(file).toString()) : new Response('forbidden', { status: 403 })
+  })
+}
+
+/** Kamera, mikrofon, konum, bildirim vb. varsayilan olarak reddedilir (Permission Dashboard'a kadar). */
+export function lockPermissions(ses: Session): void {
+  ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false))
+  ses.setPermissionCheckHandler(() => false)
+}
+
+/** Shell penceresi hicbir zaman baska yere gezinmez ve yeni pencere/webview acamaz. */
+export function lockShell(win: BrowserWindow, allowedPrefixes: string[]): void {
+  const wc = win.webContents
+  wc.on('will-navigate', (e, url) => { if (!allowedPrefixes.some((p) => url.startsWith(p))) e.preventDefault() })
+  wc.on('will-attach-webview', (e) => e.preventDefault())
+  wc.setWindowOpenHandler(() => ({ action: 'deny' }))
+}

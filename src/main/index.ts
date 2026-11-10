@@ -10,6 +10,7 @@ import { RuleStore } from './rules'
 import { Library } from './library'
 import { Downloads } from './downloads'
 import { parseLaunch, type Launch } from './launch'
+import { registerAppScheme, serveApp, lockPermissions, lockShell } from './security'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
@@ -17,6 +18,7 @@ import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
 // Test/izolasyon: calisma verisini ayri bir dizine yonlendir (gercek kullanici verisine dokunmaz)
 if (process.env.DB_USER_DATA) { app.setPath('userData', process.env.DB_USER_DATA); app.setPath('downloads', join(process.env.DB_USER_DATA, 'downloads')) }
 
+registerAppScheme()
 const bus = new EventBus()
 let win: BrowserWindow
 let tabs: TabManager
@@ -40,7 +42,9 @@ const pushWorkspaces = (): void => send(Ch.wsState, { workspaces: workspaces.lis
 
 /** IPC izin listesi: her kanal zod semasiyla dogrulanir; gecersiz mesaj reddedilir. */
 function handle<S extends z.ZodType>(channel: string, schema: S | null, fn: (arg: z.infer<S>) => unknown): void {
-  ipcMain.handle(channel, (_e, raw) => {
+  ipcMain.handle(channel, (e, raw) => {
+    // yalnizca shell penceresi cagirabilir (DevTools veya baska webContents degil)
+    if (e.sender !== win?.webContents) throw new Error(`yetkisiz IPC gondereni: ${channel}`)
     if (!schema) return fn(undefined as z.infer<S>)
     const r = schema.safeParse(raw)
     if (!r.success) throw new Error(`gecersiz IPC mesaji: ${channel}`)
@@ -163,13 +167,14 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => downloads.attach(ses) })
+  }, (wsId) => rules.get(wsId), { onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
   registerIpc()
   bus.subscribe((ev, change) => send(change === 'new' ? Ch.evNew : Ch.evUpdate, ev))
 
+  lockShell(win, [process.env.ELECTRON_RENDERER_URL ?? 'app://shell/'])
   if (process.env.ELECTRON_RENDERER_URL) await win.loadURL(process.env.ELECTRON_RENDERER_URL)
-  else await win.loadFile(join(__dirname, '../renderer/index.html'))
+  else { serveApp(join(__dirname, '../renderer')); await win.loadURL('app://shell/index.html') }
 
   const restored = process.env.DB_SCRIPT ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
