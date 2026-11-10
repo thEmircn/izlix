@@ -1466,5 +1466,32 @@
       "eq",
       "OG Title"
     ]
+  ],
+  "linkcheck": [
+    [
+      "checked",
+      "eq",
+      3
+    ],
+    [
+      "statuses",
+      "contains",
+      404
+    ],
+    [
+      "linkSummary",
+      "contains",
+      "2 broken"
+    ],
+    [
+      "brokenRows",
+      "eq",
+      2
+    ],
+    [
+      "imgSummary",
+      "contains",
+      "image"
+    ]
   ]
 }

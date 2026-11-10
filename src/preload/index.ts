@@ -63,6 +63,8 @@ export const api = {
   onPermAsk: sub(Ch.permAsk),
   cssSnapshot: (id: string) => call(Ch.cssSnap, { id }),
   seoAudit: (id: string) => call(Ch.seoAudit, { id }),
+  linkCheck: (id: string) => call(Ch.linkCheck, { id }),
+  imageAudit: (id: string) => call(Ch.imageAudit, { id }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

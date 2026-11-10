@@ -23,6 +23,7 @@ import { CdpProxy } from './cdpproxy'
 import { A11Y_AUDIT } from './a11y-audit'
 import { CSS_SNAPSHOT } from './css-snapshot'
 import { SEO_SCRIPT } from './seo-script'
+import { IMAGE_AUDIT, LINK_CHECK } from './page-tools'
 import { captureShot, shotName } from './shots'
 import { formatEval } from './evalformat'
 import { exportReport } from './report'
@@ -277,6 +278,12 @@ function registerIpc(): void {
   handle(Ch.permRemove, schemas.permRemove, ({ origin, permission }) => perms.remove(origin, permission))
   handle(Ch.cssSnap, schemas.tabId, ({ id }) => evalInPage(id, CSS_SNAPSHOT))
   handle(Ch.seoAudit, schemas.tabId, ({ id }) => evalInPage(id, SEO_SCRIPT))
+  handle(Ch.linkCheck, schemas.tabId, async ({ id }) => {
+    const e = tabs.get(id); if (!e) return null
+    const r: any = await e.view.webContents.debugger.sendCommand('Runtime.evaluate', { expression: LINK_CHECK, awaitPromise: true, returnByValue: true, timeout: 30_000 }).catch(() => null)
+    return r?.result?.value ?? null
+  })
+  handle(Ch.imageAudit, schemas.tabId, ({ id }) => evalInPage(id, IMAGE_AUDIT))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
