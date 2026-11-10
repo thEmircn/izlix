@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
-import { useStore, writePref, useT } from './store'
+import { useStore, writePref, useT, type PanelTab } from './store'
 import { Inspector, RenderTracker } from './Inspector'
 import { Network } from './Network'
 import { Seg } from './ui'
@@ -48,7 +48,7 @@ function label(e: Ev): string {
 const shortUrl = (u: string): string => { try { const x = new URL(u); return x.pathname + x.search } catch { return u } }
 const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
-type PTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'a11y' | 'raw' | 'components' | 'renders'
+type PTab = PanelTab
 /** Unified Developer Timeline v0: 6 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
 export function Timeline({ width, height }: { width: number; height: number }) {
   const t = useT()
@@ -57,7 +57,8 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const selected = useStore((s) => s.selectedEventId)
   const editor = useStore((s) => s.editor)
   const set = useStore((s) => s.set)
-  const [tab, setTab] = useState<PTab>('timeline')
+  const tab = useStore((s) => s.panelTab)
+  const setTab = (k: PTab): void => set({ panelTab: k })
   const [hidden, setHidden] = useState<Set<Lane>>(new Set())
   const [allReq, setAllReq] = useState(false)
   const [range, setRange] = useState<[number, number] | null>(null)

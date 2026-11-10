@@ -3,6 +3,9 @@ import type { RulesConfig } from '../shared/rules'
 import type { BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
 import { translate, type Key } from '../shared/i18n'
 
+export type PanelTab = 'timeline' | 'network' | 'console' | 'elements' | 'storage' | 'perf' | 'a11y' | 'components' | 'renders' | 'raw'
+export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'storage', 'perf', 'a11y', 'components', 'renders', 'raw']
+
 interface State {
   tabs: TabInfo[]; activeTabId: string | null; dock: DevToolsDock
   workspaces: WorkspaceInfo[]; activeWorkspaceId: string; detected: { port: number; cwd: string | null; framework?: string }[]
@@ -14,9 +17,11 @@ interface State {
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
+  panelTab: PanelTab
+  flash: boolean
   toasts: { id: number; text: string }[]
   find: { open: boolean; active: number; total: number }
-  overlay: 'palette' | 'rules' | 'welcome' | 'rename' | null
+  overlay: 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | null
   settings: Settings
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void
@@ -31,7 +36,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: 'timeline', flash: false, toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'en', installId: '', autoOpen: false },
   set: (p) => set(p),
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)

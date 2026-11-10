@@ -1,4 +1,4 @@
-import { useStore, writePref, tNow as t, toast } from './store'
+import { PANEL_TABS, useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
 import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS } from '../shared/emulation'
 import { DEVICES, MAX_VIEWPORTS, deviceById } from '../shared/lab'
@@ -30,6 +30,8 @@ export function buildCommands(): Command[] {
     ...(s.activeWorkspaceId !== 'default' ? [{ id: 'ws.delete', title: t('cmd.wsDelete'), run: () => void api.deleteWorkspace(s.activeWorkspaceId) }] : []),
     { id: 'find.open', title: t('cmd.find'), hint: '⌘F', run: () => s.set({ find: { open: true, active: 0, total: 0 } }) },
     { id: 'autoopen', title: t(s.settings.autoOpen ? 'cmd.autoOpenOff' : 'cmd.autoOpenOn'), run: () => void api.setSettings({ autoOpen: !s.settings.autoOpen }) },
+    { id: 'react.flash', title: t('tl.reactHl') + (s.flash ? ' (on)' : ''), run: () => { if (active) void api.flashRenders(active.id, !s.flash).then((on: boolean | null) => s.set({ flash: !!on })) } },
+    { id: 'settings', title: t('cmd.settings'), hint: '⌘,', run: () => s.set({ overlay: 'settings' }) },
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
     { id: 'lang.switch', title: t('cmd.language', { lang: lang === 'en' ? 'Türkçe' : 'English' }), run: () => void api.setSettings({ language: lang === 'en' ? 'tr' : 'en' }) },
@@ -78,6 +80,9 @@ export function buildCommands(): Command[] {
   if (emu?.cpu) cmds.push({ id: 'cpu.off', title: t('cmd.cpuOff'), run: () => setEmu({ cpu: null }) })
   for (const g of GEO_PRESETS) cmds.push({ id: `geo.${g.id}`, title: t('cmd.geo', { p: g.label }), hint: emu?.geo === g.id ? 'active' : g.locale, run: () => setEmu({ geo: g.id }) })
   if (emu?.geo) cmds.push({ id: 'geo.off', title: t('cmd.geoOff'), run: () => setEmu({ geo: null }) })
+  // Panel sekmeleri
+  const PANEL_NAMES: Record<string, string> = { timeline: 'Timeline', network: 'Network', console: 'Console', elements: 'Elements', storage: 'Storage', perf: 'Performance', a11y: 'Accessibility', components: 'Components', renders: 'Renders', raw: 'Raw events' }
+  PANEL_TABS.forEach((k, i) => cmds.push({ id: `panel.${k}`, title: t('cmd.panel', { n: PANEL_NAMES[k] }), hint: i < 9 ? `⌥⌘${i + 1}` : '', run: () => s.set({ panelTab: k }) }))
   // Responsive Lab (#7)
   const lab = active?.lab
   const setLab = (ids: string[] | null): void => { if (active) { if (ids) void api.track('lab.start'); void api.setLab(active.id, ids) } }

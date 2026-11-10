@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { computeLayout } from '../shared/layout'
 import type { DevToolsDock } from '../shared/events'
-import { useStore, writePref, useT, toast } from './store'
+import { useStore, writePref, useT, toast, PANEL_TABS } from './store'
 import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
+import { Settings } from './Settings'
 import { Back, Forward, Reload, Plus, Close, Star, Download, Spinner } from './icons'
 import { RenameWorkspace } from './RenameWorkspace'
 import { Timeline } from './Timeline'
@@ -47,9 +48,11 @@ export function App() {
         switch (cmd) {
           case 'palette.open': void api.track('palette.open'); st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
+          case 'settings.open': st.set({ overlay: 'settings' }); break
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
+          case cmd.startsWith('panel.') ? cmd : '': { const k = PANEL_TABS[Number(cmd.slice(6))]; if (k) st.set({ panelTab: k }); break }
           case 'tab.reopen': void api.reopenTab(); break
           case 'tab.new': void api.createTab(); break
           case 'tab.close': if (act) void api.closeTab(act.id); break
@@ -175,6 +178,7 @@ export function App() {
       <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       <Toasts />
+      {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'palette' && <Palette onClose={() => s.set({ overlay: null })} />}

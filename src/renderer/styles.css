@@ -272,3 +272,10 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .agroup.error .vdot { background: var(--bad); } .agroup.warn .vdot { background: var(--warn); } .cnt { background: rgba(255,255,255,.12); border-radius: 999px; padding: 0 8px; font-size: 10.5px; font-weight: 600; }
 .aitems { border-top: 1px solid var(--line); padding: 4px 8px 8px; animation: fadein .2s ease-out; } .aitem { padding: 6px 8px; border-radius: 8px; cursor: pointer; } .aitem:hover { background: rgba(248,113,113,.08); }
 .aitem .sel { background: none; padding: 0; font: 11.5px ui-monospace, Menlo, monospace; } .adetail { color: var(--dim); margin: 2px 0; } .ahtml { margin: 2px 0 0; color: #71717a; font: 10.5px ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; }
+
+/* ---- Ayarlar ---- */
+.srow { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line); } .srow:last-child { border-bottom: 0; }
+.stitle { font-weight: 600; } .shint { color: var(--dim); margin-top: 2px; max-width: 330px; }
+.switch { width: 38px; height: 22px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(255,255,255,.08); position: relative; cursor: pointer; padding: 0; transition: background .2s, border-color .2s; }
+.switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #d4d4d8; transition: transform .22s var(--ease), background .2s; }
+.switch.on { background: var(--accent); border-color: transparent; } .switch.on i { transform: translateX(16px); background: #0e0e0f; }

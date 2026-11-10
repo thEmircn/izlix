@@ -121,14 +121,38 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     return d;
   }
 
+  // ---- "Yeniden render'lari vurgula" (opt-in): render olan bilesenlerin DOM kutusu kisa sure parlar ----
+  let flash = false, layer = null;
+  function hostOf(f) { let c = f, g = 0; while (c && g++ < 60) { if (c.tag === 5 && c.stateNode && c.stateNode.getBoundingClientRect) return c.stateNode; c = c.child; } return null; }
+  window.__IZLIX_FLASH__ = function (on) { flash = !!on; if (!flash && layer) { layer.remove(); layer = null; } return flash; };
+  const FLASH_COLOR = { mount: '#34d399', state: '#fbbf24', 'props+state': '#fbbf24', props: '#f4f4f5', parent: '#71717a' };
+  function paint(hosts) {
+    if (!layer || !layer.isConnected) {
+      layer = document.createElement('div'); layer.id = '__izlix_flash__';
+      layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483647;';
+      (document.body || document.documentElement).appendChild(layer);
+    }
+    const seen = new Set();
+    hosts.forEach((h) => {
+      if (seen.has(h.el)) return; seen.add(h.el);
+      const r = h.el.getBoundingClientRect(); if (r.width < 1 || r.height < 1 || r.bottom < 0 || r.top > innerHeight) return;
+      const b = document.createElement('div'); const c = FLASH_COLOR[h.reason] || '#71717a';
+      b.style.cssText = 'position:fixed;box-sizing:border-box;border:2px solid ' + c + ';background:' + c + '22;border-radius:3px;transition:opacity .7s ease-out;opacity:1;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;';
+      layer.appendChild(b);
+      requestAnimationFrame(() => { requestAnimationFrame(() => { b.style.opacity = '0'; }); });
+      setTimeout(() => b.remove(), 800);
+    });
+  }
+
   function collect(root) {
-    const rendered = [];
+    const rendered = [], hosts = [];
     let total = 0;
     (function walk(f) {
       while (f) {
         total++;
         if (COMPONENT_TAGS.indexOf(f.tag) !== -1 && (f.flags & PERFORMED_WORK)) {
-          rendered.push(describe(f));
+          const d = describe(f); rendered.push(d);
+          if (flash && hosts.length < 150) { const h = hostOf(f); if (h) hosts.push({ el: h, reason: d.reason }); }
         }
         // alt agac yeniden uzlastirilmadiysa (child ayni) altina inme
         if (f.alternate && f.child === f.alternate.child) { f = f.sibling; continue; }
@@ -136,7 +160,7 @@ export const BRIDGE_SOURCE = String.raw`(() => {
         f = f.sibling;
       }
     })(root.current.child);
-    return { rendered: rendered, total: total };
+    return { rendered: rendered, total: total, hosts: hosts };
   }
 
   // ---- React Inspector: agac ve ayrinti TALEP UZERINE hesaplanir (ana surec Runtime.evaluate ile cagirir; ek yuk yok) ----
@@ -223,6 +247,7 @@ export const BRIDGE_SOURCE = String.raw`(() => {
         bridgeMs: Math.round((performance.now() - t0) * 100) / 100,
         components: info.rendered.slice(0, 200)
       });
+      if (flash && info.hosts.length) { try { paint(info.hosts); } catch (e) {} }
     },
     onPostCommitFiberRoot() {}, onCommitFiberUnmount() {}, checkDCE() {}, onScheduleFiberRoot() {}
   };
