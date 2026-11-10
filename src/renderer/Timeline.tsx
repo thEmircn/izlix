@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
 import { useStore, writePref, useT } from './store'
 import { Inspector, RenderTracker } from './Inspector'
+import { causeChain, effectsOf } from '../shared/chain'
 
 // ---- sabitler ----
 const LANES = ['input', 'request', 'response', 'render', 'console', 'error'] as const
@@ -193,6 +194,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
   return (
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
       <div><b style={{ color: COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
+      <Chain ev={ev} byId={byId} onSelect={onSelect} />
       {ev.links.map((l) => (
         <div key={l.from} style={{ opacity: 0.85 }}>
           ← <a href="#" onClick={(e) => { e.preventDefault(); onSelect(l.from) }} style={{ color: '#ddd' }}>#{l.from} {byId.get(l.from) ? label(byId.get(l.from)!) : ''}</a>{' '}
@@ -215,6 +217,33 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
           </tbody>
         </table>
       )}
+    </div>
+  )
+}
+
+/** Neden zinciri: kok nedenden secili olaya, adimlar arasi sure ve bag kesinligiyle; altinda dogrudan sonuclar. */
+function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; onSelect(id: number): void }) {
+  const t = useT()
+  const steps = causeChain(byId, ev.id)
+  const effects = effectsOf(byId.values(), ev.id)
+  if (steps.length < 2 && !effects.length) return null
+  const row = (e: Ev, tag: string, color: string, dt?: number, exact?: boolean): React.ReactElement => (
+    <div key={e.id + tag} style={{ display: 'flex', gap: 6, alignItems: 'baseline', paddingLeft: 4 }}>
+      <span style={{ color: exact === false ? '#ffb454' : '#3ecf8e', width: 10 }}>{exact === false ? '┄' : '│'}</span>
+      <span style={{ color: 'var(--dim)', minWidth: 48 }}>{dt != null ? `+${dt} ms` : ''}</span>
+      <a href="#" onClick={(x) => { x.preventDefault(); onSelect(e.id) }} style={{ color }}>{e.kind} #{e.id} {label(e)}</a>
+    </div>
+  )
+  return (
+    <div style={{ margin: '6px 0', padding: '4px 6px', border: '1px solid var(--line)', borderRadius: 6 }}>
+      {steps.length >= 2 && <>
+        <div style={{ color: 'var(--dim)' }}>{t('tl.chain')}</div>
+        {steps.map((s) => row(s.ev, 'c', s.ev.id === ev.id ? '#fff' : COLOR[laneOf(s.ev, true) ?? 'input'], s.dtMs, s.via ? s.via.certainty === 'exact' : undefined))}
+      </>}
+      {effects.length > 0 && <>
+        <div style={{ color: 'var(--dim)', marginTop: 4 }}>{t('tl.effects')}</div>
+        {effects.slice(0, 8).map((x) => row(x.ev, 'e', COLOR[laneOf(x.ev, true) ?? 'input'], Math.round(x.ev.ts - ev.ts), x.certainty === 'exact'))}
+      </>}
     </div>
   )
 }
