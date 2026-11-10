@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ net: {}, protocol: {} }))
-import { resolveAppPath } from './security'
+import { isInsideAny, resolveAppPath } from './security'
 
 describe('resolveAppPath', () => {
   const root = '/app/out/renderer'
@@ -17,5 +17,20 @@ describe('resolveAppPath', () => {
   })
   it('kardes dizin on eki yaniltmaz', () => {
     expect(resolveAppPath(root, '/../renderer-evil/x')).toBeNull()
+  })
+})
+
+describe('isInsideAny', () => {
+  it('kok altindaki dosyalar kabul edilir', () => {
+    expect(isInsideAny(['/p/proj'], '/p/proj/src/App.tsx')).toBe(true)
+    expect(isInsideAny([null, '/a', '/p/proj'], '/p/proj/x.ts')).toBe(true)
+  })
+  it('kok disi, kardes dizin, yol gecisi, kokun kendisi ve bos kok reddedilir', () => {
+    expect(isInsideAny(['/p/proj'], '/etc/passwd')).toBe(false)
+    expect(isInsideAny(['/p/proj'], '/p/proj-evil/x.ts')).toBe(false)
+    expect(isInsideAny(['/p/proj'], '/p/proj/../secret')).toBe(false)
+    expect(isInsideAny(['/p/proj'], '/p/proj')).toBe(false)
+    expect(isInsideAny([null, undefined], '/p/proj/x')).toBe(false)
+    expect(isInsideAny(['/p/proj'], '')).toBe(false)
   })
 })

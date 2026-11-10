@@ -10,7 +10,7 @@ import { RuleStore } from './rules'
 import { Library } from './library'
 import { Downloads } from './downloads'
 import { parseLaunch, type Launch } from './launch'
-import { registerAppScheme, serveApp, lockPermissions, lockShell } from './security'
+import { registerAppScheme, serveApp, lockPermissions, lockShell, isInsideAny } from './security'
 import { SettingsStore } from './settings'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
@@ -32,6 +32,7 @@ let library: Library
 let settings: SettingsStore
 let telemetry: Telemetry
 let demo: DemoServer
+let samplesDir = ''
 let downloads: Downloads
 let activeWorkspaceId = 'default'
 let detected: DetectedServer[] = []
@@ -150,8 +151,15 @@ function registerIpc(): void {
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
-    const known = tabs.list().tabs.some((t) => tabs.get(t.id)?.cdp?.resolver.knownFiles.has(file))
+    // Dosya yolu sayfanin source map'inden / derleme eklentisinden gelir (guvenilmez): yalnizca bilinen VE guvenilir bir kokun
+    // (Workspace klasoru, dev sunucusunun proje klasoru, demo) altindaki dosyalar editorde acilir.
+    const known = tabs.list().tabs.some((t) => {
+      const e = tabs.get(t.id)
+      if (!e?.cdp?.resolver.knownFiles.has(file)) return false
+      return isInsideAny([workspaces.get(e.info.workspaceId)?.rootDir, e.cdp.resolver.rootProvider?.(), join(samplesDir, 'demo-src')], file)
+    })
     if (!known) return false
+    if (process.env.DB_SCRIPT) return true // testlerde editor baslatilmaz
     await shell.openExternal(editorUrl(editor ?? 'vscode', file, line, column ?? 1))
     return true
   })
@@ -189,6 +197,7 @@ async function createWindow(): Promise<void> {
   if (process.env.DB_SCRIPT && !process.env.DB_ONBOARD) settings.set({ onboarded: true }) // testlerde karsilama ekrani sayfa gorunumlerini gizlemesin
   telemetry = new Telemetry(app.getPath('userData'), () => settings.get().telemetry, () => settings.get().installId)
   const samples = join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'samples')
+  samplesDir = samples
   demo = new DemoServer(join(samples, 'demo'))
   downloads = new Downloads(() => pushLibrary())
   tabs = new TabManager(win, bus, workspaces, pushTabs, (url, wsId) => {

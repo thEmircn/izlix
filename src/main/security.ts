@@ -1,5 +1,5 @@
 import { net, protocol, type BrowserWindow, type Session } from 'electron'
-import { join, normalize, sep } from 'node:path'
+import { join, normalize, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 /** app://shell/<yol> -> yerel dosya yolu; kok disina cikan (../) yollar null doner. */
@@ -36,4 +36,11 @@ export function lockShell(win: BrowserWindow, allowedPrefixes: string[]): void {
   wc.on('will-navigate', (e, url) => { if (!allowedPrefixes.some((p) => url.startsWith(p))) e.preventDefault() })
   wc.on('will-attach-webview', (e) => e.preventDefault())
   wc.setWindowOpenHandler(() => ({ action: 'deny' }))
+}
+
+/** Dosya, guvenilir koklerden birinin ALTINDA mi? (yol gecisi `..` cozulerek denetlenir; kokun kendisi dosya sayilmaz) */
+export function isInsideAny(roots: (string | null | undefined)[], file: string): boolean {
+  if (!file || file.includes('\0')) return false
+  const f = resolve(file)
+  return roots.some((r) => { if (!r) return false; const root = resolve(r); return f.startsWith(root + sep) })
 }

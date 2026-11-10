@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { TraceMap, FlattenMap, originalPositionFor } from '@jridgewell/trace-mapping'
 
 export interface SrcLoc { file: string; line: number; column: number } // line 1-bazli, orijinal kaynak
@@ -114,6 +114,9 @@ export class SourceResolver {
   setPrecise(typeId: number, name: string, spec: string): SrcLoc | null {
     const m = /^(.*):(\d+):(\d+)$/.exec(spec)
     if (!m || this.typeLoc.has(typeId)) return this.components.get(typeId) ?? null
+    // sayfa kontrollu veri: yalnizca guvenilir proje kokunun altindaki yollar kabul edilir
+    const root = this.root ?? this.rootProvider?.() ?? null
+    if (!root || !resolve(m[1]).startsWith(resolve(root) + sep)) return null
     const loc: SrcLoc = { file: m[1], line: Number(m[2]), column: Number(m[3]) }
     this.typeLoc.set(typeId, Promise.resolve(loc))
     this.components.set(typeId, { ...loc, name })
