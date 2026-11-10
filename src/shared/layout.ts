@@ -1,6 +1,11 @@
 import type { DevToolsDock } from './events'
 
 export interface Rect { x: number; y: number; width: number; height: number }
+/** Kartlar arasi/pencere kenari boslugu (px): her yuva bu kadar iceri cekilir, boylece sayfa ve paneller yuvarlak kart gibi gorunur. */
+export const GAP = 6
+export const CARD_RADIUS = 12
+export const padRect = (r: Rect, g = GAP): Rect => ({ x: r.x + g, y: r.y + g, width: Math.max(0, r.width - 2 * g), height: Math.max(0, r.height - 2 * g) })
+
 export interface LayoutParams { dock: DevToolsDock; panelRatio: number; chromeHeight: number; /** sagda Timeline'in yuksekligi (govdeye oran); varsayilan 0.52 */ split?: number }
 export interface Layout { page: Rect; timeline: Rect; devtools: Rect | null }
 

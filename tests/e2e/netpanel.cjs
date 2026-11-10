@@ -5,7 +5,7 @@ module.exports = async ({ tabs, sleep, click, shellEval, pageEval }) => {
   await pageEval(`console.warn('careful'); console.error('boom'); for(let i=0;i<4;i++) console.log('repeated')`)
   await click('#load'); await sleep(300); await click('#fail'); await sleep(1500)
   const tab = (n) => shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent.startsWith('${n}')).click()`)
-  const ind = () => shellEval(`document.querySelector('.seg2 > .seg-ind').style.transform`)
+  const ind = () => shellEval(`[...document.querySelectorAll('.rail > button')].findIndex(b=>b.classList.contains('on'))`)
   const i0 = await ind()
   await tab('Network'); await sleep(600)
   out.indicatorMoved = (await ind()) !== i0

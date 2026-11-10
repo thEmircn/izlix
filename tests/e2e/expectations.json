@@ -1877,5 +1877,37 @@
       "contains",
       "ms"
     ]
+  ],
+  "overview": [
+    [
+      "tiles",
+      "gte",
+      6
+    ],
+    [
+      "pill",
+      "contains",
+      "2"
+    ],
+    [
+      "requests",
+      "eq",
+      "2"
+    ],
+    [
+      "activity",
+      "gte",
+      4
+    ],
+    [
+      "jumped",
+      "eq",
+      "Timeline"
+    ],
+    [
+      "railCount",
+      "eq",
+      16
+    ]
   ]
 }

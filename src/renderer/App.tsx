@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { computeLayout } from '../shared/layout'
+import { computeLayout, padRect } from '../shared/layout'
+import { Home } from './Home'
 import type { DevToolsDock } from '../shared/events'
 import { useStore, writePref, useT, toast, PANEL_TABS } from './store'
 import { Welcome } from './Welcome'
@@ -189,9 +190,9 @@ export function App() {
           <span style={{ color: 'var(--dim)' }}>{t('lab.hint')}</span>
         </div>
       )}
-      {!active && <div className="empty" style={{ left: 0, top: chromeH, width: layout.page.width, height: layout.page.height }}>{t('tabs.none')}</div>}
-      <div className="panel" style={{ left: layout.timeline.x, top: layout.timeline.y, width: layout.timeline.width, height: layout.timeline.height }}>
-        <Timeline width={layout.timeline.width} height={layout.timeline.height} />
+      {!active && <Home style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
+      <div className="panel" style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
+        <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />
       </div>
       {s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}
       <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />

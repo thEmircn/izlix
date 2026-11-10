@@ -9,6 +9,9 @@ import { Storage } from './Storage'
 import { Perf } from './Perf'
 import { A11y } from './A11y'
 import { Coverage } from './Coverage'
+import { Overview } from './Overview'
+import { Rail } from './Rail'
+import { LANES, LANE_COLOR as COLOR, eventLabel as label, shortUrl, type Lane } from '../shared/label'
 import { Profiler } from './Profiler'
 import { Seo } from './Seo'
 import { Server } from './Server'
@@ -19,9 +22,6 @@ import { causeChain, effectsOf, sinceNavigation } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
 
 // ---- sabitler ----
-const LANES = ['input', 'hmr', 'request', 'response', 'render', 'console', 'error'] as const
-type Lane = (typeof LANES)[number]
-const COLOR: Record<Lane, string> = { input: '#a1a1aa', hmr: '#2dd4bf', request: '#f4f4f5', response: '#a3e635', render: '#ffb454', console: '#71717a', error: '#f87171' }
 const LANE_H = 30, PAD_L = 62, PAD_R = 14, AXIS_H = 20, DEFAULT_WINDOW = 15_000
 const NET_TYPES = ['Fetch', 'XHR', 'Document']
 
@@ -38,21 +38,6 @@ function laneOf(e: Ev, allReq: boolean): Lane | null {
   }
 }
 
-function label(e: Ev): string {
-  const p = e.payload
-  switch (e.kind) {
-    case 'input': return `${p.name} ${p.target}`
-    case 'request': return `${p.modified ? 'modified · ' : ''}${p.method} ${shortUrl(p.url)}`
-    case 'response': return `${p.status} ${shortUrl(p.url)}`
-    case 'render': return `commit · ${p.count} render`
-    case 'error': return String(p.text ?? p.errorText ?? 'error').split('\n')[0]
-    case 'hmr': return `HMR ${p.file ?? p.action}`
-    case 'marker': return `Marker: ${p.text}`
-    case 'console': return String(p.text ?? '')
-    default: return e.source
-  }
-}
-const shortUrl = (u: string): string => { try { const x = new URL(u); return x.pathname + x.search } catch { return u } }
 const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
 type PTab = PanelTab
@@ -71,6 +56,9 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const [allReq, setAllReq] = useState(false)
   const [tq, setTq] = useState('')
   const [range, setRange] = useState<[number, number] | null>(null)
+  const mainRef = useRef<HTMLDivElement>(null)
+  const [mainW, setMainW] = useState(width - 52)
+  useEffect(() => { const el = mainRef.current; if (!el) return; const ro = new ResizeObserver(() => setMainW(el.clientWidth)); ro.observe(el); setMainW(el.clientWidth); return () => ro.disconnect() }, [])
 
   // kuzey yildizi metrigi (plan bolum 10): Timeline'in acildigi Workspace; sekme basina bir kez, yalnizca sayilar
   const sent = useRef(new Set<string>())
@@ -97,13 +85,14 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const open = (file: string, line: number, column?: number): void => { void window.izlix.openSource({ file, line, column, editor }) }
   const select = (id: number): void => set({ selectedEventId: id })
 
+  const labels = { overview: t('tl.overview'), timeline: t('tl.timeline'), network: t('tl.network'), console: t('tl.console'), elements: t('tl.elements'), sources: t('tl.sources'), storage: t('tl.storage'), perf: t('tl.perf'), coverage: t('tl.coverage'), a11y: t('tl.a11y'), profiler: t('tl.profiler'), seo: t('tl.seo'), server: t('tl.server'), components: t('tl.components'), renders: t('tl.renders'), raw: `${t('tl.raw')} (${all.length})` } as Record<PanelTab, string>
+
   return (
-    <>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <div style={{ flexBasis: '100%' }}><Seg<PTab> value={tab} onChange={setTab} items={[
-          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'sources', label: t('tl.sources') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') }, { key: 'coverage', label: t('tl.coverage') }, { key: 'a11y', label: t('tl.a11y') }, { key: 'profiler', label: t('tl.profiler') }, { key: 'seo', label: t('tl.seo') }, { key: 'server', label: t('tl.server') },
-          { key: 'components', label: t('tl.components') }, { key: 'renders', label: t('tl.renders') }, { key: 'raw', label: `${t('tl.raw')} (${all.length})` }
-        ]} /></div>
+    <div className="pbody">
+      <Rail value={tab} onChange={setTab} labels={labels} />
+      <div className="pmain" ref={mainRef}>
+      <div className="phead">
+        <span className="mlabel">{labels[tab].replace(/ \(\d+\)$/, '')}</span>
         {tab === 'timeline' && <>
           {LANES.map((l) => (
             <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
@@ -119,14 +108,15 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {snapshot && <div className="snapbar"><span>{t('snap.viewing', { n: snapshot.name })}</span><button className="btn sm" onClick={() => set({ snapshot: null, selectedEventId: null })}>{t('snap.close')}</button></div>}
       <ErrorBoundary label={tab}>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
-          <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
+          <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
         </>
       )}
       </ErrorBoundary>
-    </>
+      </div>
+    </div>
   )
 }
 

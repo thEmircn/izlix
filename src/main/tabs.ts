@@ -2,7 +2,7 @@ import { BrowserWindow, WebContentsView, session, app } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
 import type { TabInfo, DevToolsDock } from '../shared/events'
-import { computeLayout, type LayoutParams } from '../shared/layout'
+import { computeLayout, padRect, CARD_RADIUS, type LayoutParams } from '../shared/layout'
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
@@ -171,8 +171,9 @@ export class TabManager {
     if (!cur) return
     const [w, h] = this.win.getContentSize()
     const l = computeLayout(w, h, this.layoutParams)
-    if (cur.lab) cur.lab.layout(l.page); else cur.view.setBounds(l.page)
-    if (cur.devtools && l.devtools) cur.devtools.setBounds(l.devtools)
+    const page = padRect(l.page)
+    if (cur.lab) cur.lab.layout(page); else { cur.view.setBounds(page); try { cur.view.setBorderRadius(CARD_RADIUS) } catch { /* eski surum */ } }
+    if (cur.devtools && l.devtools) { cur.devtools.setBounds(padRect(l.devtools)); try { cur.devtools.setBorderRadius(CARD_RADIUS) } catch { /* yok say */ } }
   }
 
   close(id: string): void {
