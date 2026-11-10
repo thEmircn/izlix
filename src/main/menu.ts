@@ -16,6 +16,8 @@ export function installMenu(run: (cmd: string) => void): void {
         c('Command Palette…', 'CmdOrCtrl+K', 'palette.open'),
         c('Reload', 'CmdOrCtrl+R', 'nav.reload'),
         c('Request Rules…', 'CmdOrCtrl+Shift+R', 'rules.open'),
+        c('Toggle DevTools', 'Alt+CmdOrCtrl+I', 'devtools.toggle'),
+        { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
         { type: 'separator' }, { role: 'togglefullscreen' }
       ]
     },

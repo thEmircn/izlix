@@ -14,6 +14,7 @@ import { registerAppScheme, serveApp, lockPermissions, lockShell } from './secur
 import { SettingsStore } from './settings'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
+import { restoreWindowState, trackWindowState } from './window-state'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
@@ -174,10 +175,13 @@ async function pollServers(): Promise<void> {
 }
 
 async function createWindow(): Promise<void> {
+  const { maximized, ...ws0 } = restoreWindowState({ width: 1500, height: 900 })
   win = new BrowserWindow({
-    width: 1500, height: 900, minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#1c1c1e',
+    ...ws0, minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#1c1c1e',
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
+  if (maximized) win.maximize()
+  trackWindowState(win)
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
