@@ -596,5 +596,22 @@
       "eq",
       ""
     ]
+  ],
+  "errpage": [
+    [
+      "errorBody",
+      "contains",
+      "reach this page"
+    ],
+    [
+      "errorBody",
+      "contains",
+      "localhost:5994"
+    ],
+    [
+      "afterStart",
+      "eq",
+      "now-up"
+    ]
   ]
 }

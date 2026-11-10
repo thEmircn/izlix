@@ -9,6 +9,8 @@ import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
 import { Interceptor } from './interceptor'
 import { Lab } from './lab'
+import { errorPageHtml, shouldRetry } from './errorpage'
+import { isLoopbackHost } from './security'
 import { deviceById, type Device } from '../shared/lab'
 import type { RulesConfig } from '../shared/rules'
 
@@ -22,6 +24,8 @@ interface Entry {
   devtools?: WebContentsView
   /** son bilinen http(s) adresi: sayfa commit olmadan (about:blank) gelen cozumlemeler icin yedek */
   lastHttpUrl?: string
+  retryTimer?: NodeJS.Timeout
+  failedUrl?: string
 }
 
 /** Sekme yoneticisi: her sekme ayri WebContentsView; oturum Workspace basina ayri bolum (cerez/depolama izolasyonu). */
@@ -39,7 +43,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
   }
 
@@ -100,6 +104,17 @@ export class TabManager {
     wc.setWindowOpenHandler(({ url }) => { if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId }); return { action: 'deny' } })
     // sayfa kaynakli gezinmeler de http(s) ile sinirli (file://, izlix://, vscode:// vb. engellenir)
     const guard = (event: Electron.Event, url: string): void => { if (!isAllowedPageNavigation(url)) event.preventDefault() }
+    // Yukleme hatasi: aciklayici sayfa; loopback adreslerinde sunucu acilana kadar otomatik yeniden dene
+    wc.on('did-fail-load', (_ev, code, desc, url, isMain) => {
+      if (!isMain || code === -3 || wc.isDestroyed()) return // -3: kullanici iptali / yeni gezinme
+      e.failedUrl = url
+      const retry = shouldRetry(url, isLoopbackHost)
+      void wc.executeJavaScript(`document.documentElement.innerHTML = ${JSON.stringify(errorPageHtml(url, code, desc, this.hooks.detectedPorts?.() ?? [], this.hooks.language?.() ?? 'en', retry))}`).catch(() => {})
+      if (retry && !e.retryTimer) {
+        e.retryTimer = setTimeout(() => { e.retryTimer = undefined; if (!wc.isDestroyed() && e.failedUrl === url) void wc.loadURL(url).catch(() => {}) }, 2000)
+      }
+    })
+    wc.on('did-navigate', () => { e.failedUrl = undefined })
     wc.on('found-in-page', (_ev, r) => this.hooks.onFound?.(e.info.id, r.activeMatchOrdinal, r.matches))
     wc.on('will-navigate', guard)
     wc.on('will-redirect', guard)
@@ -165,6 +180,7 @@ export class TabManager {
     const idx = this.order.indexOf(id)
     if (e.info.url) { this.closed.push({ url: e.info.url, workspaceId: e.info.workspaceId }); if (this.closed.length > 20) this.closed.shift() }
     this.win.contentView.removeChildView(e.view)
+    if (e.retryTimer) clearTimeout(e.retryTimer)
     this.releaseDevTools(e)
     void e.lab?.dispose(); e.interceptor?.detach()
     e.cdp?.detach()
@@ -230,7 +246,7 @@ export class TabManager {
     return null
   }
 
-  go(id: string, input: string): void { void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input)).catch(() => {}) }
+  go(id: string, input: string): void { const t = this.tabs.get(id); if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input)).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }
   forward(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goForward() }
   reload(id: string): void { this.tabs.get(id)?.view.webContents.reload() }
