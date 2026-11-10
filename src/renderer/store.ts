@@ -4,8 +4,8 @@ import type { RulesConfig } from '../shared/rules'
 import type { BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
 import { translate, type Key } from '../shared/i18n'
 
-export type PanelTab = 'overview' | 'timeline' | 'network' | 'console' | 'elements' | 'sources' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'profiler' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
-export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'sources', 'storage', 'perf', 'coverage', 'a11y', 'profiler', 'seo', 'server', 'components', 'renders', 'raw', 'overview']
+export type PanelTab = 'stylelab' | 'overview' | 'timeline' | 'network' | 'console' | 'elements' | 'sources' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'profiler' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
+export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'sources', 'storage', 'perf', 'coverage', 'a11y', 'profiler', 'seo', 'server', 'components', 'renders', 'raw', 'overview', 'stylelab']
 
 interface State {
   tabs: TabInfo[]; activeTabId: string | null; dock: DevToolsDock

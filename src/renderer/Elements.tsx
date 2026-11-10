@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { attrMap, autoCollapsed, findByKey, findNode, flatten, keyOf, nodeLabel, pathTo, selectorOf, type DomNode, type DomRow } from '../shared/dom'
 import { toast, useStore, useT, tNow } from './store'
 import { Seg } from './ui'
+import { StyleLab } from './StyleLab'
 
 const ROW = 21
 const HL = { contentColor: { r: 255, g: 255, b: 255, a: 0.12 }, paddingColor: { r: 251, g: 191, b: 36, a: 0.18 }, borderColor: { r: 251, g: 191, b: 36, a: 0.4 }, marginColor: { r: 255, g: 255, b: 255, a: 0.06 }, showInfo: true, showStyles: false }
-type DTab = 'styles' | 'computed' | 'layout' | 'attrs' | 'react'
+type DTab = 'lab' | 'styles' | 'computed' | 'layout' | 'attrs' | 'react'
 
 /** Elements paneli: DOM agaci (sanallastirilmis), sayfada vurgulama, oge secici, stil/kutu modeli/oznitelik duzenleme, React bileseni. */
-export function Elements() {
+export function Elements({ startTab }: { startTab?: DTab } = {}) {
   const t = useT()
   const tabId = useStore((s) => s.activeTabId)
   const editor = useStore((s) => s.editor)
@@ -18,7 +19,7 @@ export function Elements() {
   const [picking, setPicking] = useState(false)
   const [q, setQ] = useState('')
   const [scroll, setScroll] = useState(0)
-  const [tab, setTab] = useState<DTab>('styles')
+  const [tab, setTab] = useState<DTab>(startTab ?? 'styles')
   const listRef = useRef<HTMLDivElement>(null)
   const selRef = useRef<number | null>(null); selRef.current = sel
   const dt = useCallback((method: string, params?: Record<string, unknown>) => (tabId ? window.izlix.dt(tabId, method, params).catch(() => null) : Promise.resolve(null)) as Promise<any>, [tabId])
@@ -87,7 +88,7 @@ export function Elements() {
   const selNode = root && sel != null ? findByKey(root, sel) : null
 
   return (
-    <div className="el">
+    <div className={`el ${startTab === 'lab' ? 'lab-mode' : ''}`}>
       <div className="net-bar">
         <button className={`btn ${picking ? 'primary' : ''}`} onClick={() => void startPick()} title={t('el.pickHint')}>{t('el.pick')}</button>
         <input className="search" placeholder={t('el.search')} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -106,8 +107,9 @@ export function Elements() {
         {selNode && selNode.nodeType === 1 ? (
           <>
             <div className="el-crumb" title={root ? selectorOf(root, selNode.nodeId) : ''}>{root ? selectorOf(root, selNode.nodeId) : ''}</div>
-            <Seg<DTab> small value={tab} onChange={setTab} items={(['styles', 'computed', 'layout', 'attrs', 'react'] as DTab[]).map((k) => ({ key: k, label: t(`el.tab.${k}` as any) }))} />
-            <div className="el-pane" key={`${tab}-${selNode.nodeId}`}>
+            <Seg<DTab> small value={tab} onChange={setTab} items={(['lab', 'styles', 'computed', 'layout', 'attrs', 'react'] as DTab[]).map((k) => ({ key: k, label: t(`el.tab.${k}` as any) }))} />
+            <div className="el-pane" key={`${tab}-${keyOf(selNode)}`}>
+              {tab === 'lab' && <StyleLab nodeId={selNode.nodeId} dt={dt} node={selNode} root={root!} tabId={tabId!} />}
               {tab === 'styles' && <Styles nodeId={selNode.nodeId} dt={dt} node={selNode} />}
               {tab === 'computed' && <Computed nodeId={selNode.nodeId} dt={dt} />}
               {tab === 'layout' && <Layout nodeId={selNode.nodeId} dt={dt} />}

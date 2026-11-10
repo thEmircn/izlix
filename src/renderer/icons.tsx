@@ -30,6 +30,7 @@ export const IcSeo = ic('M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM10.3 10.3l
 export const IcServer = ic('M3 3.5h10v3.5H3zM3 9h10v3.5H3zM5.2 5.25h.01M5.2 10.75h.01')
 export const IcComponents = ic('M8 2.5 13 5.2v5.6L8 13.5 3 10.8V5.2zM3 5.2 8 8l5-2.8M8 8v5.5')
 export const IcRenders = ic('M9 2 4.2 9h3.3L7 14l4.8-7H8.5z')
+export const IcStyle = ic('M8 2.5c3 0 5.5 2 5.5 4.6 0 1.6-1.2 2.4-2.6 2.4H9.6c-.8 0-1.2.7-.8 1.3.4.6.2 1.7-1 1.7C5 12.5 2.5 10.2 2.5 7.6 2.5 4.7 5 2.5 8 2.5zM5.5 7h.01M8 5.3h.01M10.5 7h.01')
 export const IcRaw = ic('M3 4h10M3 8h10M3 12h6')
 export const IcHome = ic('M2.5 7.5 8 3l5.5 4.5M4 6.8V13h8V6.8')
 export const IcFolder = ic('M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z')

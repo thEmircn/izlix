@@ -1941,5 +1941,37 @@
       "gte",
       2000
     ]
+  ],
+  "stylelab": [
+    [
+      "hasLab",
+      "eq",
+      true
+    ],
+    [
+      "pageStyle",
+      "contains",
+      "padding-top: 16px"
+    ],
+    [
+      "chips[0]",
+      "contains",
+      "padding-top: 16px"
+    ],
+    [
+      "css",
+      "contains",
+      "#card"
+    ],
+    [
+      "tw",
+      "eq",
+      "pt-4"
+    ],
+    [
+      "afterReset",
+      "eq",
+      "padding:4px;color:#333"
+    ]
   ]
 }

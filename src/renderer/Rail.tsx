@@ -1,17 +1,17 @@
 import { tNow } from './store'
 import { useLayoutEffect, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import type { PanelTab } from './store'
-import { Forward, IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcTimeline } from './icons'
+import { Forward, IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcStyle, IcTimeline } from './icons'
 
 export const RAIL_ICONS: Record<PanelTab, ComponentType<SVGProps<SVGSVGElement>>> = {
-  overview: IcOverview, timeline: IcTimeline, network: IcNetwork, console: IcConsole, elements: IcElements, sources: IcSources, storage: IcStorage, perf: IcPerf,
+  overview: IcOverview, stylelab: IcStyle, timeline: IcTimeline, network: IcNetwork, console: IcConsole, elements: IcElements, sources: IcSources, storage: IcStorage, perf: IcPerf,
   coverage: IcCoverage, a11y: IcA11y, profiler: IcProfiler, seo: IcSeo, server: IcServer, components: IcComponents, renders: IcRenders, raw: IcRaw
 }
 
 /** Gorunum sirasi ve gruplari (PANEL_TABS dizisinden bagimsiz: kisayol numaralari degismez). */
 export const RAIL_GROUPS: PanelTab[][] = [
   ['overview', 'timeline', 'network', 'console'],
-  ['elements', 'sources', 'storage'],
+  ['elements', 'stylelab', 'sources', 'storage'],
   ['perf', 'coverage', 'profiler', 'a11y', 'seo'],
   ['components', 'renders', 'server', 'raw']
 ]
