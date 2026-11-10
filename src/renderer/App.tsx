@@ -103,7 +103,7 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''}`} onClick={() => api.activateTab(tb.id)} title={tb.url}>
+          <div key={tb.id} className={`tab nodrag ${tb.id === s.activeTabId ? 'active' : ''}`} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
             <span className="t">{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{tb.title || 'New Tab'}</span>
             <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
           </div>

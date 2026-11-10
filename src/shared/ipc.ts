@@ -31,7 +31,8 @@ export const schemas = {
         z.object({ type: z.literal('headers'), set: z.record(z.string().max(256), z.string().max(4096)), remove: z.array(z.string().max(256)).max(50).optional() }),
         z.object({ type: z.literal('mock'), status: z.number().int().min(100).max(599), body: z.string().max(2_000_000), contentType: z.string().max(128) }),
         z.object({ type: z.literal('delay'), ms: z.number().int().min(0).max(60_000) }),
-        z.object({ type: z.literal('status'), code: z.number().int().min(100).max(599) })
+        z.object({ type: z.literal('status'), code: z.number().int().min(100).max(599) }),
+        z.object({ type: z.literal('block') })
       ])
     })).max(500)
   }),
@@ -51,5 +52,6 @@ export const schemas = {
   emuSet: z.object({ id: z.string().max(64), network: z.string().max(20).nullable().optional(), cpu: z.number().int().min(1).max(20).nullable().optional(), geo: z.string().max(20).nullable().optional() }),
   shot: z.object({ id: z.string().max(64), kind: z.enum(['viewport', 'full', 'node']), nodeId: z.number().int().min(0).optional(), copy: z.boolean().optional() }),
   flash: z.object({ id: z.string().max(64), on: z.boolean() }),
+  cacheSet: z.object({ id: z.string().max(64), disabled: z.boolean() }),
   overlay: z.object({ open: z.boolean() })
 }

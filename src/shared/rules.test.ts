@@ -116,3 +116,11 @@ describe('parseRulesJson', () => {
     for (const t of ['x', '{}', '[{"urlPattern":"","action":{"type":"delay"}}]', '[{"urlPattern":"/x","action":{"type":"evil"}}]', 'null']) expect(parseRulesJson(t)).toBeNull()
   })
 })
+
+describe('block kurali', () => {
+  it('engelleme mock/yonlendirmenin ustundedir; gecikme korunur; kimlikler yalniz kullanilanlari icerir', () => {
+    const d = evaluate([rule({ id: 'm', action: { type: 'mock', status: 200, body: '{}', contentType: 'x' } }), rule({ id: 'b', action: { type: 'block' } }), rule({ id: 'd', action: { type: 'delay', ms: 5 } })], req)!
+    expect(d.block).toBe(true); expect(d.ruleIds).toEqual(['b', 'd']); expect(d.delayMs).toBe(5)
+  })
+  it('ruleFromRequest block', () => { expect(ruleFromRequest('http://a.com/x', 'GET', 'block').action).toEqual({ type: 'block' }) })
+})

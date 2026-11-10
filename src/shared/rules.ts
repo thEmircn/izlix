@@ -6,6 +6,7 @@ export type RuleAction =
   | { type: 'mock'; status: number; body: string; contentType: string }
   | { type: 'delay'; ms: number }
   | { type: 'status'; code: number }
+  | { type: 'block' }
 
 export interface Rule {
   id: string
@@ -34,6 +35,8 @@ export interface Decision {
   removeHeaders: string[]
   mock?: Extract<RuleAction, { type: 'mock' }>
   status?: number
+  /** istek ag hatasiyla engellenir (Fetch.failRequest) */
+  block?: boolean
 }
 
 const escapeRe = (s: string): string => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
@@ -73,12 +76,14 @@ export function evaluate(rules: Rule[], req: { url: string; method: string }, op
       case 'delay': d.delayMs += a.ms; break
       case 'headers': Object.assign(d.setHeaders, a.set); d.removeHeaders.push(...(a.remove ?? [])); break
       case 'status': if (d.status === undefined) d.status = a.code; else ok = false; break
+      case 'block': if (!d.block) d.block = true; else ok = false; break
     }
     if (ok) used.push({ id: r.id, kind: a.type })
   }
   // mock yanıtı döner; yönlendirmenin anlamı kalmaz
-  const kept = d.mock ? used.filter((u) => u.kind !== 'redirect') : used
-  if (!d.mock) d.redirectTo = redirect
+  // engelleme her seyin ustundedir
+  const kept = d.block ? used.filter((u) => u.kind === 'block' || u.kind === 'delay') : d.mock ? used.filter((u) => u.kind !== 'redirect') : used
+  if (!d.mock && !d.block) d.redirectTo = redirect
   d.ruleIds = kept.map((u) => u.id); d.kinds = kept.map((u) => u.kind)
   return kept.length ? d : null
 }
@@ -91,12 +96,12 @@ export function newRule(partial: Partial<Rule> = {}): Rule {
 }
 
 /** Timeline'daki bir istekten hizli kural: yol kalibi (sorgu dizesiz) + secilen eylem. */
-export function ruleFromRequest(url: string, method: string, kind: 'mock' | 'delay' | 'fail', body?: string | null, contentType?: string): Rule {
+export function ruleFromRequest(url: string, method: string, kind: 'mock' | 'delay' | 'fail' | 'block', body?: string | null, contentType?: string): Rule {
   let pattern = url
   try { const u = new URL(url); pattern = u.origin === 'null' ? url : u.origin + u.pathname } catch { /* ham url */ }
   const action: RuleAction = kind === 'mock' ? { type: 'mock', status: 200, body: body ?? '{}', contentType: contentType || 'application/json' }
-    : kind === 'delay' ? { type: 'delay', ms: 2000 } : { type: 'status', code: 500 }
-  const name = { mock: 'Mock', delay: 'Delay 2s', fail: 'Fail 500' }[kind]
+    : kind === 'delay' ? { type: 'delay', ms: 2000 } : kind === 'block' ? { type: 'block' } : { type: 'status', code: 500 }
+  const name = { mock: 'Mock', delay: 'Delay 2s', fail: 'Fail 500', block: 'Block' }[kind]
   return newRule({ name: `${name} ${method} ${(() => { try { return new URL(url).pathname } catch { return url } })()}`, urlPattern: pattern, method, action })
 }
 
@@ -106,7 +111,7 @@ export function parseRulesJson(text: string): { rules: Rule[]; domains?: string[
     const j = JSON.parse(text)
     const list = Array.isArray(j) ? j : j?.rules
     if (!Array.isArray(list)) return null
-    const types = ['redirect', 'headers', 'mock', 'delay', 'status']
+    const types = ['redirect', 'headers', 'mock', 'delay', 'status', 'block']
     const rules: Rule[] = []
     for (const r of list) {
       if (!r || typeof r.urlPattern !== 'string' || !r.urlPattern || !r.action || !types.includes(r.action.type)) return null

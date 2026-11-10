@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, session, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
@@ -235,6 +235,22 @@ function registerIpc(): void {
   })
   handle(Ch.a11y, schemas.tabId, ({ id }) => evalInPage(id, A11Y_AUDIT))
   handle(Ch.flash, schemas.flash, ({ id, on }) => evalInPage(id, `window.__IZLIX_FLASH__ ? window.__IZLIX_FLASH__(${on ? 'true' : 'false'}) : null`))
+  handle(Ch.cacheSet, schemas.cacheSet, ({ id, disabled }) => tabs.setCacheDisabled(id, disabled))
+  // Sekme sag-tik menusu (yerel macOS menusu)
+  handle(Ch.tabMenu, schemas.tabId, ({ id }) => {
+    const e = tabs.get(id); if (!e) return
+    const url = e.view.webContents.getURL()
+    Menu.buildFromTemplate([
+      { label: 'Reload', click: () => tabs.reload(id) },
+      { label: 'Duplicate', click: () => void tabs.duplicate(id) },
+      { label: 'Copy URL', enabled: !!url, click: () => clipboard.writeText(url) },
+      { label: library.isBookmarked(e.info.workspaceId, url) ? 'Remove Bookmark' : 'Bookmark', enabled: /^https?:/.test(url), click: () => { library.toggleBookmark(e.info.workspaceId, url, e.view.webContents.getTitle()); pushLibrary() } },
+      { type: 'separator' },
+      { label: 'Close Tab', click: () => { proxy.drop(id); tabs.close(id) } },
+      { label: 'Close Other Tabs', click: () => { tabs.closeOthers(id) } },
+      { label: 'Close Tabs to the Right', click: () => { tabs.closeOthers(id, true) } }
+    ]).popup({ window: win })
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

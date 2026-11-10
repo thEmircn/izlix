@@ -196,6 +196,14 @@ export class TabManager {
     this.onChange(); this.persist()
   }
 
+  async setCacheDisabled(id: string, disabled: boolean): Promise<void> {
+    const e = this.tabs.get(id)
+    if (!e || e.view.webContents.isDestroyed()) return
+    for (const wc of [e.view.webContents, ...(e.lab?.webContents ?? [])]) await wc.debugger.sendCommand('Network.setCacheDisabled', { cacheDisabled: disabled }).catch(() => {})
+    e.info.noCache = disabled || undefined
+    this.onChange()
+  }
+
   /** Ag/CPU kisitlama ve konum emulasyonu: verilen alanlar guncellenir (null = o ayari sifirla). Lab aciksa tum viewport'lara uygulanir. */
   async setEmulation(id: string, patch: { network?: string | null; cpu?: number | null; geo?: string | null }): Promise<void> {
     const e = this.tabs.get(id)
@@ -255,6 +263,17 @@ export class TabManager {
   setOverlay(open: boolean): void {
     const cur = this.active()
     cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open); cur?.lab?.setVisible(!open)
+  }
+
+  /** Sekmeyi cogaltir (ayni URL, ayni Workspace) */
+  duplicate(id: string): Promise<string | null> { const e = this.tabs.get(id); return e && e.info.url ? this.create({ url: e.info.url, workspaceId: e.info.workspaceId }) : Promise.resolve(null) }
+  /** Ayni Workspace'te `id` disindaki (veya yalnizca sagindaki) sekmeleri kapatir */
+  closeOthers(id: string, onlyRight = false): number {
+    const e = this.tabs.get(id); if (!e) return 0
+    const idx = this.order.indexOf(id)
+    const victims = this.order.filter((x, i) => x !== id && this.tabs.get(x)!.info.workspaceId === e.info.workspaceId && (!onlyRight || i > idx))
+    victims.forEach((v) => this.close(v))
+    return victims.length
   }
 
   /** Son kapatilan sekmeyi geri acar (en yeni once); Workspace'i silinmisse atlar */

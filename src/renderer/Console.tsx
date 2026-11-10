@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { LEVEL_ORDER, buildConsoleRows, type ConsoleRow, type Level } from '../shared/console'
-import { useStore, useT } from './store'
+import { useStore, useT, writePref } from './store'
 
 const time = (ts: number): string => { const d = new Date(ts); return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0') }
 
@@ -9,6 +9,7 @@ const time = (ts: number): string => { const d = new Date(ts); return d.toTimeSt
 export function Console({ events }: { events: BusEvent[] }) {
   const t = useT()
   const editor = useStore((s) => s.editor)
+  const preserve = useStore((s) => s.preserveLog)
   const [levels, setLevels] = useState<Set<Level>>(new Set(LEVEL_ORDER))
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<number | null>(null)
@@ -42,6 +43,7 @@ export function Console({ events }: { events: BusEvent[] }) {
             <button key={l} className={`fchip lv-${l} ${levels.has(l) ? 'on' : ''}`} onClick={() => toggle(l)}>{l}<em>{counts[l] ?? 0}</em></button>
           ))}
         </div>
+        <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
         <input className="search" placeholder={t('con.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn" onClick={() => { setClearedAt(Date.now()); setOpen(null) }}>{t('net.clear')}</button>
       </div>

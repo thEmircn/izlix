@@ -110,6 +110,12 @@ export class Interceptor {
     }
 
     const d = evaluate(rules, req)
+    if (d?.block) {
+      if (d.delayMs > 0) await new Promise((r) => setTimeout(r, d.delayMs))
+      this.markRequest(p.networkId, d)
+      await this.send('Fetch.failRequest', { requestId: id, errorReason: 'BlockedByClient' })
+      return
+    }
     if (!d || d.kinds.every((k) => k === 'status')) {
       await this.send('Fetch.continueRequest', { requestId: id }) // yalnızca durum kuralı: yanıt aşamasında uygulanır
       return

@@ -1119,5 +1119,69 @@
       "eq",
       true
     ]
+  ],
+  "tabs-extra": [
+    [
+      "dupUrl",
+      "contains",
+      "?b"
+    ],
+    [
+      "dupDelta",
+      "eq",
+      1
+    ],
+    [
+      "closedRight",
+      "eq",
+      2
+    ],
+    [
+      "afterRight",
+      "len",
+      2
+    ],
+    [
+      "closedOthers",
+      "gte",
+      1
+    ],
+    [
+      "remaining",
+      "gte",
+      1
+    ],
+    [
+      "noCache",
+      "eq",
+      true
+    ],
+    [
+      "noCacheOff",
+      "eq",
+      null
+    ]
+  ],
+  "block": [
+    [
+      "blocked",
+      "contains",
+      "Failed to fetch"
+    ],
+    [
+      "otherOk",
+      "eq",
+      "ok 200"
+    ],
+    [
+      "badge",
+      "contains",
+      "block"
+    ],
+    [
+      "rowsAfterReload",
+      "lt",
+      100
+    ]
   ]
 }

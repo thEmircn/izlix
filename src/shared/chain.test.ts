@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { causeChain, effectsOf } from './chain'
+import { causeChain, effectsOf, sinceNavigation } from './chain'
 
 const e = (id: number, ts: number, links: BusEvent['links'] = [], kind: BusEvent['kind'] = 'request'): BusEvent => ({ id, tabId: 't', ts, kind, source: 's', payload: {}, causeIds: links.map((l) => l.from), links })
 const evs = [
@@ -42,5 +42,15 @@ describe('effectsOf', () => {
   it('dogrudan sonuclari zaman sirasinda verir', () => {
     expect(effectsOf(evs, 2).map((x) => x.ev.id)).toEqual([3])
     expect(effectsOf(evs, 5)).toEqual([])
+  })
+})
+
+describe('sinceNavigation', () => {
+  it('son gezinmeden itibaren; gezinme yoksa hepsi', () => {
+    const nav = (id: number): BusEvent => ({ ...e(id, id * 10, [], 'navigation'), source: 'cdp:Page.frameNavigated' })
+    const list = [e(1, 10), nav(2), e(3, 30), nav(4), e(5, 50)]
+    expect(sinceNavigation(list).map((x) => x.id)).toEqual([4, 5])
+    expect(sinceNavigation([e(1, 1), e(2, 2)]).map((x) => x.id)).toEqual([1, 2])
+    expect(sinceNavigation([])).toEqual([])
   })
 })

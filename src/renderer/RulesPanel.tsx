@@ -3,7 +3,7 @@ import { parseRulesJson, newRule, type Rule, type RuleAction, type RulesConfig }
 import { useStore, useT, toast } from './store'
 import { Trash } from './icons'
 
-const TYPES: RuleAction['type'][] = ['mock', 'delay', 'status', 'redirect', 'headers']
+const TYPES: RuleAction['type'][] = ['mock', 'delay', 'status', 'redirect', 'headers', 'block']
 const defaultAction = (t: RuleAction['type']): RuleAction => {
   switch (t) {
     case 'mock': return { type: 'mock', status: 200, body: '{"ok":true}', contentType: 'application/json' }
@@ -11,6 +11,7 @@ const defaultAction = (t: RuleAction['type']): RuleAction => {
     case 'status': return { type: 'status', code: 500 }
     case 'redirect': return { type: 'redirect', to: 'http://localhost:3000/' }
     case 'headers': return { type: 'headers', set: { 'X-Debug': '1' }, remove: [] }
+    case 'block': return { type: 'block' }
   }
 }
 const headersToText = (h: Record<string, string>): string => Object.entries(h).map(([k, v]) => `${k}: ${v}`).join('\n')
@@ -88,6 +89,7 @@ function ActionFields({ a, onChange }: { a: RuleAction; onChange(a: RuleAction):
   const t = useT()
   const num = (v: string): number => Math.max(0, Math.floor(Number(v) || 0))
   switch (a.type) {
+    case 'block': return <span style={{ color: 'var(--dim)', alignSelf: 'center' }}>{t('rr.blockHint')}</span>
     case 'delay': return <label>{t('rr.delay')} <input style={{ width: 90 }} value={a.ms} onChange={(e) => onChange({ ...a, ms: Math.min(60000, num(e.target.value)) })} /></label>
     case 'status': return <label>{t('rr.status')} <input style={{ width: 70 }} value={a.code} onChange={(e) => onChange({ ...a, code: Math.min(599, Math.max(100, num(e.target.value))) })} /> <span style={{ color: 'var(--dim)' }}>{t('rr.statusHint')}</span></label>
     case 'redirect': return <input style={{ flex: 1 }} value={a.to} placeholder="http://localhost:4000/api/..." onChange={(e) => onChange({ ...a, to: e.target.value })} />

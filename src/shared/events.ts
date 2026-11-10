@@ -30,6 +30,8 @@ export interface TabInfo {
   lab?: string[]
   /** Emulasyon: acik/koyu tema ve azaltilmis hareket (Emulation.setEmulatedMedia) */
   /** Ag/CPU kisitlama ve konum emulasyonu */
+  /** Network.setCacheDisabled */
+  noCache?: boolean
   emu?: { network?: string; cpu?: number; geo?: string }
   media?: { colorScheme?: 'light' | 'dark'; reducedMotion?: boolean }
 }

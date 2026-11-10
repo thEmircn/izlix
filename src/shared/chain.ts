@@ -26,3 +26,10 @@ export function effectsOf(events: Iterable<BusEvent>, id: number): { ev: BusEven
   for (const e of events) for (const l of e.links) if (l.from === id) out.push({ ev: e, certainty: l.certainty, type: l.type })
   return out.sort((a, b) => a.ev.ts - b.ev.ts)
 }
+
+/** Son sayfa gezinmesinden (frameNavigated) itibaren olaylar — "log'u koru" kapaliyken Network/Console bunu gosterir */
+export function sinceNavigation(events: BusEvent[]): BusEvent[] {
+  let from = -1
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].kind === 'navigation' && events[i].source === 'cdp:Page.frameNavigated') { from = i; break }
+  return from < 0 ? events : events.slice(from)
+}

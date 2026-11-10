@@ -279,3 +279,5 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .switch { width: 38px; height: 22px; border-radius: 999px; border: 1px solid var(--line2); background: rgba(255,255,255,.08); position: relative; cursor: pointer; padding: 0; transition: background .2s, border-color .2s; }
 .switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #d4d4d8; transition: transform .22s var(--ease), background .2s; }
 .switch.on { background: var(--accent); border-color: transparent; } .switch.on i { transform: translateX(16px); background: #0e0e0f; }
+
+.tgl { display: inline-flex; align-items: center; gap: 4px; color: var(--dim); cursor: pointer; white-space: nowrap; font-size: 11px; } .tgl:hover { color: var(--fg); }

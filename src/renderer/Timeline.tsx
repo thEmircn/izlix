@@ -9,7 +9,7 @@ import { Storage } from './Storage'
 import { Perf } from './Perf'
 import { A11y } from './A11y'
 import { Console } from './Console'
-import { causeChain, effectsOf } from '../shared/chain'
+import { causeChain, effectsOf, sinceNavigation } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
 
 // ---- sabitler ----
@@ -57,6 +57,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const selected = useStore((s) => s.selectedEventId)
   const editor = useStore((s) => s.editor)
   const set = useStore((s) => s.set)
+  const preserve = useStore((s) => s.preserveLog)
   const tab = useStore((s) => s.panelTab)
   const setTab = (k: PTab): void => set({ panelTab: k })
   const [hidden, setHidden] = useState<Set<Lane>>(new Set())
@@ -105,7 +106,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
         </>}
       </div>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={all} byId={events} /> : tab === 'console' ? <Console events={all} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={events} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={events} onOpen={open} onSelect={select} />
@@ -243,14 +244,14 @@ export function QuickRules({ ev, byId }: { ev: Ev; byId: Map<number, Ev> }) {
   const p = ev.payload
   return (
     <div className="quick-rules">{t('tl.ruleFrom')}{' '}
-      {(['mock', 'delay', 'fail'] as const).map((k) => (
+      {(['mock', 'delay', 'fail', 'block'] as const).map((k) => (
         <button key={k} className="btn" onClick={async () => {
           const body = k === 'mock' ? await window.izlix.responseBody(ev.tabId, p.requestId) : null
           const mime = [...byId.values()].find((x) => x.kind === 'response' && x.payload.requestId === p.requestId)?.payload.mimeType
           const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
           void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k, body, mime)] })
           st.set({ overlay: 'rules' })
-        }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : 'tl.ruleFail')}</button>
+        }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : k === 'block' ? 'tl.ruleBlock' : 'tl.ruleFail')}</button>
       ))}
     </div>
   )

@@ -51,6 +51,8 @@ export const api = {
   screenshot: (id: string, kind: 'viewport' | 'full' | 'node', opts: { nodeId?: number; copy?: boolean } = {}) => call(Ch.shot, { id, kind, ...opts }),
   a11yAudit: (id: string) => call(Ch.a11y, { id }),
   flashRenders: (id: string, on: boolean) => call(Ch.flash, { id, on }),
+  setCacheDisabled: (id: string, disabled: boolean) => call(Ch.cacheSet, { id, disabled }),
+  tabMenu: (id: string) => call(Ch.tabMenu, { id }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

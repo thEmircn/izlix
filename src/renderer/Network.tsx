@@ -5,7 +5,7 @@ import { toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, 
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
 import { Seg } from './ui'
-import { toast, useStore, useT } from './store'
+import { toast, useStore, useT, writePref } from './store'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
 
@@ -16,6 +16,9 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
   const [q, setQ] = useState('')
   const [clearedAt, setClearedAt] = useState(0)
   const selectedId = useStore((s) => s.selectedEventId)
+  const tabId = useStore((s) => s.activeTabId)
+  const preserve = useStore((s) => s.preserveLog)
+  const noCache = useStore((s) => !!s.tabs.find((x) => x.id === s.activeTabId)?.noCache)
   const set = useStore((s) => s.set)
   const [now, setNow] = useState(Date.now())
 
@@ -44,6 +47,8 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
           ) : null)}
         </div>
         <input className="search" placeholder={t('net.search')} value={q} onChange={(e) => setQ(e.target.value)} />
+        <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
+        <label className="tgl"><input type="checkbox" checked={noCache} onChange={(e) => tabId && void window.izlix.setCacheDisabled(tabId, e.target.checked)} />{t('net.noCache')}</label>
         <button className="btn" onClick={() => { setClearedAt(Date.now()); set({ selectedEventId: null }) }}>{t('net.clear')}</button>
       </div>
       <div className="net-stats">
