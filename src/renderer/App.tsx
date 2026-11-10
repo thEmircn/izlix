@@ -3,6 +3,7 @@ import { computeLayout } from '../shared/layout'
 import type { DevToolsDock } from '../shared/events'
 import { useStore, writePref, useT } from './store'
 import { Welcome } from './Welcome'
+import { RenameWorkspace } from './RenameWorkspace'
 import { Timeline } from './Timeline'
 import { Palette } from './Palette'
 import { RulesPanel } from './RulesPanel'
@@ -130,6 +131,7 @@ export function App() {
       <div className="panel" style={{ left: layout.timeline.x, top: layout.timeline.y, width: layout.timeline.width, height: layout.timeline.height }}>
         <Timeline width={layout.timeline.width} height={layout.timeline.height} />
       </div>
+      {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'palette' && <Palette onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rules' && <RulesPanel onClose={() => s.set({ overlay: null })} />}

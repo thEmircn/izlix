@@ -513,5 +513,47 @@
       "contains",
       "Item 0"
     ]
+  ],
+  "wsdelete": [
+    [
+      "renamed",
+      "eq",
+      true
+    ],
+    [
+      "name",
+      "eq",
+      "Renamed"
+    ],
+    [
+      "deleted",
+      "eq",
+      true
+    ],
+    [
+      "gone",
+      "eq",
+      true
+    ],
+    [
+      "tabsOfDeleted",
+      "eq",
+      0
+    ],
+    [
+      "rulesGone",
+      "eq",
+      true
+    ],
+    [
+      "defaultDeletable",
+      "eq",
+      false
+    ],
+    [
+      "cookieFresh",
+      "eq",
+      ""
+    ]
   ]
 }

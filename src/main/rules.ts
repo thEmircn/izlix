@@ -17,6 +17,8 @@ export class RuleStore {
   get(wsId: string): RulesConfig { return this.data[wsId] ?? { rules: [], domains: [...DEFAULT_DOMAINS] } }
   all(): Record<string, RulesConfig> { return this.data }
 
+  delete(wsId: string): void { delete this.data[wsId]; try { writeFileSync(this.file, JSON.stringify(this.data, null, 1)) } catch { /* yok say */ } }
+
   set(wsId: string, cfg: RulesConfig): void {
     this.data[wsId] = cfg
     try { writeFileSync(this.file, JSON.stringify(this.data, null, 1)) } catch { /* disk hatası kuralları bellekte tutar */ }

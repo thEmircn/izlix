@@ -38,6 +38,20 @@ export class WorkspaceStore {
     return w
   }
 
+  /** Adi degistirir; bos ad veya bilinmeyen kimlik false */
+  rename(id: string, name: string): boolean {
+    const w = this.get(id); const n = name.trim().slice(0, 64)
+    if (!w || !n) return false
+    w.name = n; this.save(); return true
+  }
+  /** Siler ('default' silinemez); silinen Workspace'in kimligi doner */
+  remove(id: string): boolean {
+    if (id === 'default') return false
+    const i = this.items.findIndex((w) => w.id === id)
+    if (i < 0) return false
+    this.items.splice(i, 1); this.save(); return true
+  }
+
   /** Bir dev sunucusunun cwd'sine gore Workspace'i bul: en uzun kok eslesmesi kazanir */
   workspaceForCwd(cwd: string): Stored | undefined {
     return this.items

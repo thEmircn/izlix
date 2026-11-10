@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron'
 import { join } from 'node:path'
 import { writeFileSync } from 'node:fs'
 import { z } from 'zod'
@@ -18,7 +18,7 @@ import { restoreWindowState, trackWindowState } from './window-state'
 import { saveSnapshot } from './snapshot'
 import { exportReport } from './report'
 import { installMenu } from './menu'
-import { WorkspaceStore, detectServers, type DetectedServer } from './workspace'
+import { WorkspaceStore, detectServers, partitionFor, type DetectedServer } from './workspace'
 
 // Test/izolasyon: calisma verisini ayri bir dizine yonlendir (gercek kullanici verisine dokunmaz)
 if (process.env.DB_USER_DATA) { app.setPath('userData', process.env.DB_USER_DATA); app.setPath('downloads', join(process.env.DB_USER_DATA, 'downloads')) }
@@ -159,6 +159,26 @@ function registerIpc(): void {
       if (r.base64Encoded || String(r.body).length > 200_000) return null
       return String(r.body)
     } catch { return null }
+  })
+  handle(Ch.wsRename, schemas.wsRename, ({ id, name }) => { const ok = workspaces.rename(id, name); if (ok) pushWorkspaces(); return ok })
+  // Workspace sil: onay, sekmeleri kapat, oturum verisini (cerez/depolama) temizle, kurallari sil
+  handle(Ch.wsDelete, schemas.tabId, async ({ id }) => {
+    const w = workspaces.get(id)
+    if (!w || id === 'default') return false
+    if (!process.env.DB_SCRIPT) {
+      const r = await dialog.showMessageBox(win, { type: 'warning', buttons: ['Delete', 'Cancel'], defaultId: 1, cancelId: 1, message: `Delete workspace “${w.name}”?`, detail: 'Its tabs are closed and its cookies and site data are erased. Project files are not touched.' })
+      if (r.response !== 0) return false
+    }
+    for (const t of tabs.list().tabs.filter((x) => x.workspaceId === id)) tabs.close(t.id)
+    await session.fromPartition(partitionFor(id)).clearStorageData().catch(() => {})
+    rules.delete(id); workspaces.remove(id)
+    if (activeWorkspaceId === id) {
+      activeWorkspaceId = 'default'
+      const mine = tabs.list().tabs.filter((t) => t.workspaceId === 'default')
+      if (mine.length) tabs.activate(mine[0].id); else await newTab()
+    }
+    pushWorkspaces(); pushTabs(); pushRules(); pushLibrary()
+    return true
   })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir

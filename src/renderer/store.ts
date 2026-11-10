@@ -14,7 +14,7 @@ interface State {
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
-  overlay: 'palette' | 'rules' | 'welcome' | null
+  overlay: 'palette' | 'rules' | 'welcome' | 'rename' | null
   settings: Settings
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void

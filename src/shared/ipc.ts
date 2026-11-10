@@ -42,5 +42,6 @@ export const schemas = {
   track: z.object({ name: z.string().max(40), props: z.record(z.string().max(40), z.union([z.string().max(40), z.number(), z.boolean()])).optional() }),
   mediaSet: z.object({ id: z.string().max(64), colorScheme: z.enum(['light', 'dark']).nullable(), reducedMotion: z.boolean() }),
   reqBody: z.object({ id: z.string().max(64), requestId: z.string().max(128) }),
+  wsRename: z.object({ id: z.string().max(64), name: z.string().min(1).max(64) }),
   overlay: z.object({ open: z.boolean() })
 }
