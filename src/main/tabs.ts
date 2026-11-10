@@ -101,6 +101,7 @@ export class TabManager {
 
   activate(id: string): void {
     if (!this.tabs.has(id)) return
+    if (id === this.activeId) return // zaten aktif: DevTools'u yok edip yeniden kurma
     const prev = this.active()
     if (prev) { this.win.contentView.removeChildView(prev.view); prev.lab?.removeViews(); this.releaseDevTools(prev) }
     this.activeId = id
@@ -157,7 +158,7 @@ export class TabManager {
     if (!e) return
     const idx = this.order.indexOf(id)
     this.win.contentView.removeChildView(e.view)
-    if (e.devtools) this.win.contentView.removeChildView(e.devtools)
+    this.releaseDevTools(e)
     void e.lab?.dispose(); e.interceptor?.detach()
     e.cdp?.detach()
     this.bus.dropTab(id)
