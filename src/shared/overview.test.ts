@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { summarizeOverview } from './overview'
+import { healthScore, summarizeOverview } from './overview'
 
 let id = 0
 const ev = (kind: string, ts: number, payload: any = {}, source = 'test'): BusEvent => ({ id: ++id, tabId: 't', ts, kind: kind as any, source, payload, links: [] } as any)
@@ -30,5 +30,18 @@ describe('summarizeOverview', () => {
   it('gezinmeden onceki olaylar sayilmaz', () => {
     const o = summarizeOverview([req('1', 1), res('1', 2, 500), ev('navigation', 10, {}, 'cdp:Page.frameNavigated'), req('2', 20), res('2', 25, 200)])
     expect(o.requests).toBe(1); expect(o.failed).toBe(0)
+  })
+})
+
+describe('healthScore / slowest / recent', () => {
+  it('temiz sayfa 100, hatali sayfa duser', () => {
+    expect(healthScore(10, 0, 100, 0, 0, []).score).toBe(100)
+    const bad = healthScore(10, 5, 1500, 3, 2, [{ name: 'LCP', value: 5000, rating: 'poor', unit: 'ms', max: 5000 }])
+    expect(bad.score).toBeLessThan(40); expect(bad.parts.perf).toBe(20)
+  })
+  it('en yavas istekler azalan siralanir ve son hatalar en yeni basta', () => {
+    const o = summarizeOverview([req('1', 1000), res('1', 1900, 200), req('2', 2000), res('2', 2100, 200), req('3', 3000), res('3', 3050, 503), ev('error', 3500, { text: 'Boom' })])
+    expect(o.slowest[0].ms).toBeGreaterThan(o.slowest[1].ms)
+    expect(o.recent.length).toBeGreaterThan(0); expect(o.score).toBeLessThan(100)
   })
 })

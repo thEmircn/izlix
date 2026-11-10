@@ -9,7 +9,7 @@ module.exports = async ({ tabs, sleep, shellEval, win }) => {
   out.pill = await shellEval(`document.querySelector('.ov .pill')?.textContent.trim()`)
   out.requests = await shellEval(`document.querySelector('.ov .tile .big')?.textContent`)
   out.activity = await shellEval(`document.querySelectorAll('.ov .act').length`)
-  await shellEval(`document.querySelector('.ov .act').click()`); await sleep(500)
+  await shellEval(`[...document.querySelectorAll('.ov .act')].pop().click()`); await sleep(500)
   out.jumped = await shellEval(`document.querySelector('.rail > button.on')?.textContent`)
   out.railCount = await shellEval(`document.querySelectorAll('.rail > button[role=tab]').length`)
   srv.close(); return out
