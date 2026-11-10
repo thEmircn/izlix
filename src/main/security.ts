@@ -44,3 +44,11 @@ export function isInsideAny(roots: (string | null | undefined)[], file: string):
   const f = resolve(file)
   return roots.some((r) => { if (!r) return false; const root = resolve(r); return f.startsWith(root + sep) })
 }
+
+/** Yalnizca loopback adresleri: kendinden imzali yerel dev sertifikalarini kabul etmek icin */
+export const isLoopbackHost = (host: string): boolean => host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '::1' || host === '[::1]'
+
+/** Yerel HTTPS dev sunuculari (Vite basicSsl, mkcert'siz) calissin; baska hicbir alan adi icin dogrulama gevsemez. */
+export function trustLoopbackCerts(ses: Session): void {
+  ses.setCertificateVerifyProc((req, cb) => cb(isLoopbackHost(req.hostname) ? 0 : -3)) // 0 = kabul, -3 = varsayilan dogrulama
+}

@@ -584,5 +584,17 @@
       "contains",
       "?r=1"
     ]
+  ],
+  "https": [
+    [
+      "title",
+      "eq",
+      "secure-local"
+    ],
+    [
+      "badBody",
+      "eq",
+      ""
+    ]
   ]
 }
