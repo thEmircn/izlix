@@ -1532,5 +1532,27 @@
       "eq",
       true
     ]
+  ],
+  "snapshot-open": [
+    [
+      "banner",
+      "contains",
+      "timeline-"
+    ],
+    [
+      "snapRows",
+      "gte",
+      5
+    ],
+    [
+      "closed",
+      "eq",
+      true
+    ],
+    [
+      "liveRows",
+      "eq",
+      0
+    ]
   ]
 }

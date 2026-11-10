@@ -70,7 +70,9 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   // kuzey yildizi metrigi (plan bolum 10): Timeline'in acildigi Workspace; sekme basina bir kez, yalnizca sayilar
   const sent = useRef(new Set<string>())
   const wsId = useStore((s) => s.activeWorkspaceId)
-  const all = useMemo(() => [...events.values()].filter((e) => e.tabId === activeTabId).sort((a, b) => a.ts - b.ts), [events, activeTabId])
+  const snapshot = useStore((s) => s.snapshot)
+  const all = useMemo(() => snapshot ? [...snapshot.events].sort((a, b) => a.ts - b.ts) : [...events.values()].filter((e) => e.tabId === activeTabId).sort((a, b) => a.ts - b.ts), [events, activeTabId, snapshot])
+  const src = useMemo(() => snapshot ? new Map(snapshot.events.map((e) => [e.id, e])) : events, [snapshot, events])
   useEffect(() => {
     if (!activeTabId || tab !== 'timeline' || !all.length) return
     if (!sent.current.has('open:' + wsId)) { sent.current.add('open:' + wsId); void window.izlix.track('timeline.open', { events: all.length }) }
@@ -86,7 +88,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
     [all, hidden, allReq, from, to]
   )
   const toggle = (l: Lane): void => setHidden((h) => { const n = new Set(h); n.has(l) ? n.delete(l) : n.add(l); return n })
-  const sel = selected != null ? events.get(selected) : undefined
+  const sel = selected != null ? src.get(selected) : undefined
   const open = (file: string, line: number, column?: number): void => { void window.izlix.openSource({ file, line, column, editor }) }
   const select = (id: number): void => set({ selectedEventId: id })
 
@@ -108,12 +110,13 @@ export function Timeline({ width, height }: { width: number; height: number }) {
           </select>
         </>}
       </div>
+      {snapshot && <div className="snapbar"><span>{t('snap.viewing', { n: snapshot.name })}</span><button className="btn sm" onClick={() => set({ snapshot: null, selectedEventId: null })}>{t('snap.close')}</button></div>}
       <ErrorBoundary label={tab}>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={events} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
-          <Detail ev={sel} byId={events} onOpen={open} onSelect={select} />
+          <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
         </>
       )}
       </ErrorBoundary>

@@ -25,6 +25,7 @@ export function buildCommands(): Command[] {
     { id: 'tl.clear', title: t('cmd.tlClear'), run: () => s.set({ selectedEventId: null }) },
     { id: 'bookmark.toggle', title: t('cmd.bookmark'), hint: '⌘D', run: () => active && void api.toggleBookmark(active.id) },
     { id: 'report.make', title: t('cmd.report'), run: () => { void api.track('report.export'); void api.exportReport().then((p: string | null) => { if (p) toast(t('toast.report', { p: p.split('/').pop() ?? p })) }) } },
+    { id: 'snapshot.open', title: t('cmd.openSnapshot'), run: () => void api.openSnapshot().then((r: any) => { if (r?.events) s.set({ snapshot: r, selectedEventId: null, panelTab: 'timeline' }) }) },
     { id: 'snapshot.save', title: t('cmd.snapshot'), run: () => { if (active) void api.saveSnapshot(active.id).then((p: string) => toast(t('toast.snapshot', { p: p.split('/').pop() ?? p }))) } },
     { id: 'ws.rename', title: t('cmd.wsRename'), run: () => s.set({ overlay: 'rename' }) },
     ...(s.activeWorkspaceId !== 'default' ? [{ id: 'ws.delete', title: t('cmd.wsDelete'), run: () => void api.deleteWorkspace(s.activeWorkspaceId) }] : []),

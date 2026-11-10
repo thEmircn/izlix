@@ -66,6 +66,7 @@ export const api = {
   linkCheck: (id: string) => call(Ch.linkCheck, { id }),
   imageAudit: (id: string) => call(Ch.imageAudit, { id }),
   moveTab: (id: string, index: number) => call(Ch.tabMove, { id, index }),
+  openSnapshot: () => call(Ch.snapshotOpen),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

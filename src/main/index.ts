@@ -16,7 +16,7 @@ import { SettingsStore } from './settings'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
-import { saveSnapshot } from './snapshot'
+import { loadSnapshot, saveSnapshot } from './snapshot'
 import { buildHar } from './report-data'
 import { maskDeep } from '../shared/mask'
 import { CdpProxy } from './cdpproxy'
@@ -285,6 +285,13 @@ function registerIpc(): void {
   })
   handle(Ch.imageAudit, schemas.tabId, ({ id }) => evalInPage(id, IMAGE_AUDIT))
   handle(Ch.tabMove, schemas.tabMove, ({ id, index }) => tabs.move(id, index))
+  // Kaydedilmis anlik goruntuyu ac (salt okunur inceleme)
+  handle(Ch.snapshotOpen, null, async () => {
+    if (process.env.DB_SCRIPT && process.env.DB_SNAPSHOT_FILE) return { name: process.env.DB_SNAPSHOT_FILE.split('/').pop(), events: loadSnapshot(process.env.DB_SNAPSHOT_FILE) } // test kipi: diyalogsuz
+    const r = await dialog.showOpenDialog(win, { title: 'Open timeline snapshot', defaultPath: join(app.getPath('userData'), 'snapshots'), filters: [{ name: 'Timeline snapshot', extensions: ['gz'] }], properties: ['openFile'] })
+    if (r.canceled || !r.filePaths[0]) return null
+    try { return { name: r.filePaths[0].split('/').pop(), events: loadSnapshot(r.filePaths[0]) } } catch { return null }
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
