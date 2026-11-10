@@ -40,7 +40,7 @@ export function Console({ events }: { events: BusEvent[] }) {
       <div className="net-bar">
         <div className="chips">
           {LEVEL_ORDER.map((l) => (
-            <button key={l} className={`fchip lv-${l} ${levels.has(l) ? 'on' : ''}`} onClick={() => toggle(l)}>{l}<em>{counts[l] ?? 0}</em></button>
+            <button key={l} className={`fchip lv-${l} ${levels.has(l) ? 'on' : ''}`} onClick={() => toggle(l)}>{t(`lv.${l}` as any)}<em>{counts[l] ?? 0}</em></button>
           ))}
         </div>
         <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>

@@ -475,3 +475,14 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .gauge b, .vmini .gauge b { animation: grow .8s var(--ease) both; }
 
 .spark svg { position: absolute; left: 0; top: 0; } .mcard { min-width: 0; } .stat span { overflow-wrap: anywhere; }
+
+/* ===== panel ici duzeltmeler ===== */
+.fchip.on { background: var(--ac-soft); color: var(--ac); border-color: rgba(255,106,43,.4); font-weight: 500; }
+.fchip.lv-error.on { background: rgba(255,92,92,.14); color: var(--bad); border-color: rgba(255,92,92,.4); } .fchip.lv-warn.on { background: rgba(245,184,61,.13); color: var(--warn); border-color: rgba(245,184,61,.4); }
+.fchip.lv-info.on, .fchip.lv-log.on, .fchip.lv-debug.on { background: rgba(255,255,255,.09); color: var(--fg); border-color: var(--line2); }
+.fchip { height: 24px; display: inline-flex; align-items: center; }
+.net-row.sel { background: var(--ac-soft); box-shadow: inset 2px 0 0 var(--ac); } .srcitem.on { background: var(--ac-soft); color: var(--ac); }
+.srcside > .search { flex: none; } .srcside { background: rgba(255,255,255,.012); }
+.con-row { transition: background .12s; } .con-row:hover { background: rgba(255,255,255,.035); }
+.empty-hint { margin: 18px 14px; padding: 26px 18px; border: 1px dashed var(--line2); border-radius: 14px; background: rgba(255,255,255,.015); color: var(--dim); animation: bump .35s var(--ease) both; }
+.sel-row, .tbl tr.sel td { background: var(--ac-soft); }
