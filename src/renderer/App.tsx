@@ -86,7 +86,7 @@ export function App() {
             <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}>×</button>
           </div>
         ))}
-        <button className="nodrag" aria-label={t('tab.new')} onClick={() => api.createTab()} style={{ border: 0, background: 'none', color: 'var(--dim)', fontSize: 18, cursor: 'pointer', height: 30 }}>+</button>
+        <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}>+</button>
       </div>
 
       <div className="toolbar">

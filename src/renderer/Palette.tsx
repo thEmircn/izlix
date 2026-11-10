@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { rank } from '../shared/fuzzy'
 import { buildCommands } from './commands'
 import { useStore, useT, tNow } from './store'
+import { Kbd } from './ui'
 
 /** Command Palette (⌘K): tüm eylemler, sekmeler, Workspace'ler. Hedef: sonuç < 50 ms. */
 export function Palette({ onClose }: { onClose(): void }) {
@@ -32,7 +33,7 @@ export function Palette({ onClose }: { onClose(): void }) {
         <div className="pal-list" ref={list} role="listbox">
           {shown.map((c, i) => (
             <div key={c.id} role="option" aria-selected={i === sel} className={`pal-item ${i === sel ? 'sel' : ''}`} onMouseMove={() => setSel(i)} onClick={() => c.run()}>
-              <span>{c.title}</span><span className="hint">{c.hint}</span>
+              <span>{c.title}</span><span className="hint">{c.hint && /^[⌘⇧⌥⌃]/.test(c.hint) ? <Kbd>{c.hint}</Kbd> : c.hint}</span>
             </div>
           ))}
           {!shown.length && <div style={{ padding: 14, color: 'var(--dim)' }}>{t('pal.none')}</div>}

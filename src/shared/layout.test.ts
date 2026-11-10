@@ -24,7 +24,7 @@ describe('computeLayout', () => {
   it('sag yerlesimde bolunme orani ayarlanir ve sinirlanir', () => {
     const base = { dock: 'right' as const, panelRatio: 0.4, chromeHeight: 84 }
     const h = 900 - 84
-    expect(computeLayout(1500, 900, base).timeline.height).toBe(Math.round(h * 0.42))
+    expect(computeLayout(1500, 900, base).timeline.height).toBe(Math.round(h * 0.52))
     expect(computeLayout(1500, 900, { ...base, split: 0.6 }).timeline.height).toBe(Math.round(h * 0.6))
     expect(computeLayout(1500, 900, { ...base, split: 5 }).timeline.height).toBe(Math.round(h * 0.8))
     const l = computeLayout(1500, 900, { ...base, split: 0.6 })

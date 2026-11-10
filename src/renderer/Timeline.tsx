@@ -77,17 +77,19 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <b onClick={() => setTab('timeline')} style={{ cursor: 'pointer', opacity: tab === 'timeline' ? 1 : 0.5 }}>{t('tl.timeline')}</b>
-        <b onClick={() => setTab('components')} style={{ cursor: 'pointer', opacity: tab === 'components' ? 1 : 0.5 }}>{t('tl.components')}</b>
-        <b onClick={() => setTab('renders')} style={{ cursor: 'pointer', opacity: tab === 'renders' ? 1 : 0.5 }}>{t('tl.renders')}</b>
-        <b onClick={() => setTab('raw')} style={{ cursor: 'pointer', opacity: tab === 'raw' ? 1 : 0.5 }}>{t('tl.raw')} ({all.length})</b>
+        <span className="seg">
+        <b className={tab === 'timeline' ? 'on' : ''} onClick={() => setTab('timeline')}>{t('tl.timeline')}</b>
+        <b className={tab === 'components' ? 'on' : ''} onClick={() => setTab('components')}>{t('tl.components')}</b>
+        <b className={tab === 'renders' ? 'on' : ''} onClick={() => setTab('renders')}>{t('tl.renders')}</b>
+        <b className={tab === 'raw' ? 'on' : ''} onClick={() => setTab('raw')}>{t('tl.raw')} ({all.length})</b>
+        </span>
         {tab === 'timeline' && <>
           {LANES.map((l) => (
-            <label key={l} style={{ color: COLOR[l] }}><input type="checkbox" checked={!hidden.has(l)} onChange={() => toggle(l)} /> {l}</label>
+            <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
           ))}
-          <label><input type="checkbox" checked={allReq} onChange={(e) => setAllReq(e.target.checked)} /> {t('tl.allRequests')}</label>
-          {range && <button onClick={() => setRange(null)}>{t('tl.live')}</button>}
-          <select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as any }) }}>
+          <button type="button" aria-pressed={allReq} className={`lane-chip ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} onClick={() => setAllReq(!allReq)}>{t('tl.allRequests')}</button>
+          {range && <button className="btn" onClick={() => setRange(null)}>● {t('tl.live')}</button>}
+          <select className="mini-select" value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as any }) }}>
             <option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option>
           </select>
         </>}
