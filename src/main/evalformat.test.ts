@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatEval } from './evalformat'
+import { formatEval, preview } from './evalformat'
 
 describe('formatEval', () => {
   it('ilkel degerler', () => {
@@ -18,5 +18,12 @@ describe('formatEval', () => {
   it('istisna', () => {
     const e = formatEval({ exceptionDetails: { text: 'Uncaught', exception: { description: 'ReferenceError: x is not defined\n    at <anonymous>:1:1' } } })
     expect(e.ok).toBe(false); expect(e.text).toContain('ReferenceError')
+  })
+  it('console arguman onizlemesi: string ciplak, nesne/dizi/null/fonksiyon', () => {
+    expect(preview({ type: 'string', value: 'merhaba' })).toBe('"merhaba"')
+    expect(preview({ type: 'function', description: 'function foo() {\n  return 1\n}' })).toBe('function foo() {')
+    expect(preview({ type: 'object', subtype: 'null' })).toBe('null')
+    expect(preview({ type: 'object', subtype: 'error', description: 'TypeError: x is not a function\n    at f (a.js:1:1)' })).toBe('TypeError: x is not a function')
+    expect(preview({ type: 'object', description: 'Object', preview: { properties: [{ name: 'a', type: 'number', value: '1' }, { name: 'n', type: 'object', subtype: 'null' }, { name: 'o', type: 'object', valuePreview: { description: 'Object' } }] } })).toBe('Object {a: 1, n: null, o: Object}')
   })
 })

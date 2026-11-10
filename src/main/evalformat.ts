@@ -1,7 +1,8 @@
 /** Runtime.evaluate sonucunu (RemoteObject / exceptionDetails) okunur bir metne cevirir. */
 export interface EvalResult { ok: boolean; text: string; type?: string }
 
-function preview(o: any, depth = 0): string {
+/** RemoteObject -> kisa okunur onizleme (console argumanlari ve REPL sonuclari icin) */
+export function preview(o: any, depth = 0): string {
   if (!o) return 'undefined'
   switch (o.type) {
     case 'undefined': return 'undefined'
@@ -11,9 +12,10 @@ function preview(o: any, depth = 0): string {
     case 'symbol': case 'function': return String(o.description ?? o.type).split('\n')[0].slice(0, 120)
   }
   if (o.subtype === 'null') return 'null'
+  if (o.subtype === 'error') return String(o.description ?? 'Error').split('\n')[0]
   const p = o.preview
   if (p && depth < 2) {
-    const props: string[] = (p.properties ?? []).slice(0, 8).map((x: any) => `${p.subtype === 'array' ? '' : x.name + ': '}${x.type === 'string' ? JSON.stringify(x.value) : x.value ?? x.type}`)
+    const props: string[] = (p.properties ?? []).slice(0, 8).map((x: any) => `${p.subtype === 'array' ? '' : x.name + ': '}${x.type === 'string' ? JSON.stringify(x.value) : x.subtype === 'null' ? 'null' : (x.value ?? x.valuePreview?.description ?? x.type)}`)
     const more = p.overflow ? ', …' : ''
     return p.subtype === 'array' ? `${o.description} [${props.join(', ')}${more}]` : `${o.description ?? o.className ?? 'Object'} {${props.join(', ')}${more}}`
   }

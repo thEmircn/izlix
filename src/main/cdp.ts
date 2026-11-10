@@ -4,6 +4,7 @@ import { ADAPTERS, BINDING } from './adapters'
 import { SourceResolver } from './sources'
 import { Correlator } from './correlate'
 import { parseHmr } from './hmr'
+import { preview } from './evalformat'
 
 export interface Tab { resolver: SourceResolver; correlator: Correlator; detach(): void }
 
@@ -89,7 +90,8 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
         break
       case 'Runtime.consoleAPICalled': // timestamp: epoch ms
         {
-          const text = (p.args ?? []).map((a: any) => a.value ?? a.description ?? a.type).join(' ')
+          // ilkel degerler dogrudan; nesne/dizi CDP onizlemesiyle ("Object" yerine icerik); ilk arguman string ise tirnaksiz
+          const text = (p.args ?? []).map((a: any, i: number) => (a.type === 'string' ? a.value : a.value !== undefined && a.type !== 'object' ? String(a.value) : preview(a))).join(' ')
           bus.emit({ tabId, kind: 'console', ts: p.timestamp ?? now, source: `cdp:${method}`, payload: { level: p.type, text, stackTrace: p.stackTrace } })
           const hmr = parseHmr(text)
           if (hmr) bus.emit({ tabId, kind: 'hmr', ts: p.timestamp ?? now, source: `hmr:${hmr.tool}`, payload: hmr })
