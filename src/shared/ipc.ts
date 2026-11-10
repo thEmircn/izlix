@@ -48,5 +48,6 @@ export const schemas = {
   dtFeature: z.object({ id: z.string().max(64), feature: z.enum(['elements', 'storage']) }),
   dtReact: z.object({ id: z.string().max(64), nodeId: z.number().int().min(0) }),
   dtEval: z.object({ id: z.string().max(64), expression: z.string().min(1).max(20000) }),
+  emuSet: z.object({ id: z.string().max(64), network: z.string().max(20).nullable().optional(), cpu: z.number().int().min(1).max(20).nullable().optional(), geo: z.string().max(20).nullable().optional() }),
   overlay: z.object({ open: z.boolean() })
 }

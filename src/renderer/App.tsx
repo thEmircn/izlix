@@ -11,6 +11,7 @@ import { Palette } from './Palette'
 import { RulesPanel } from './RulesPanel'
 import { activeRules } from '../shared/rules'
 import { deviceById } from '../shared/lab'
+import { emuActive, geoPreset, networkPreset } from '../shared/emulation'
 
 const CHROME_H = 84 // sekme seridi 38 + arac cubugu 46
 const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
@@ -119,6 +120,11 @@ export function App() {
             <button type="button" className="rule-badge nodrag" title={t('rules.badge.title')} onClick={() => s.set({ overlay: 'rules' })}>{t('rules.badge', { n: nActive })}</button>
           )}
         </form>
+        {emuActive(active?.emu) && active && (
+          <button type="button" className="chip emu" title="Emulation active — click to reset" onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null })}>
+            {[networkPreset(active.emu?.network)?.label, active.emu?.cpu ? `CPU ${active.emu.cpu}×` : '', geoPreset(active.emu?.geo)?.label].filter(Boolean).join(' · ')}<Close />
+          </button>
+        )}
         {s.find.open && active && (
           <span className="nodrag" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <input autoFocus className="addr" style={{ width: 170, flex: 'none' }} placeholder={t('find.placeholder')} value={findText}

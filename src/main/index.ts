@@ -218,6 +218,7 @@ function registerIpc(): void {
       return formatEval(r)
     } catch (e) { return { ok: false, text: String((e as Error).message ?? e) } }
   })
+  handle(Ch.emuSet, schemas.emuSet, ({ id, ...patch }) => tabs.setEmulation(id, patch))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -283,7 +284,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); if (!process.env.DB_NOPERM) lockPermissions(ses); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); if (!process.env.DB_NOPERM) lockPermissions(ses, (wc, perm) => perm === 'geolocation' && !!wc && tabs.isGeoEmulated(wc)); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
   proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
   registerIpc()

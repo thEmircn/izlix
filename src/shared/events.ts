@@ -1,7 +1,7 @@
 // Olay modeli (plan bolum 4): her olay ayni semayi tasir.
 export type EventKind =
   | 'input' | 'state' | 'request' | 'response' | 'render'
-  | 'console' | 'error' | 'navigation' | 'hmr'
+  | 'console' | 'error' | 'navigation' | 'hmr' | 'vital'
 
 export type Certainty = 'exact' | 'estimated'
 export interface Link { from: number; certainty: Certainty; type: string }
@@ -29,6 +29,8 @@ export interface TabInfo {
   /** Responsive Lab acikken cihaz kimlikleri (ilki birincil gorunum) */
   lab?: string[]
   /** Emulasyon: acik/koyu tema ve azaltilmis hareket (Emulation.setEmulatedMedia) */
+  /** Ag/CPU kisitlama ve konum emulasyonu */
+  emu?: { network?: string; cpu?: number; geo?: string }
   media?: { colorScheme?: 'light' | 'dark'; reducedMotion?: boolean }
 }
 

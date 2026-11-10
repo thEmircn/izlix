@@ -1,5 +1,6 @@
 import { useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
+import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS } from '../shared/emulation'
 import { DEVICES, MAX_VIEWPORTS, deviceById } from '../shared/lab'
 
 export interface Command { id: string; title: string; hint?: string; run(): void }
@@ -54,6 +55,15 @@ export function buildCommands(): Command[] {
     { id: 'emu.motion', title: media?.reducedMotion ? t('cmd.emuMotionOff') : t('cmd.emuMotionOn'), run: () => setMedia(media?.colorScheme ?? null, !media?.reducedMotion) }
   )
   if (media) cmds.push({ id: 'emu.reset', title: t('cmd.emuReset'), run: () => setMedia(null, false) })
+  // Ag/CPU kisitlama ve konum emulasyonu
+  const emu = active?.emu
+  const setEmu = (p: { network?: string | null; cpu?: number | null; geo?: string | null }): void => { if (active) void api.setEmulation(active.id, p) }
+  for (const n of NETWORK_PRESETS) cmds.push({ id: `net.${n.id}`, title: t('cmd.net', { p: n.label }), hint: emu?.network === n.id ? 'active' : '', run: () => setEmu({ network: n.id }) })
+  if (emu?.network) cmds.push({ id: 'net.off', title: t('cmd.netOff'), run: () => setEmu({ network: null }) })
+  for (const r of CPU_RATES.filter((x) => x > 1)) cmds.push({ id: `cpu.${r}`, title: t('cmd.cpu', { r }), hint: emu?.cpu === r ? 'active' : '', run: () => setEmu({ cpu: r }) })
+  if (emu?.cpu) cmds.push({ id: 'cpu.off', title: t('cmd.cpuOff'), run: () => setEmu({ cpu: null }) })
+  for (const g of GEO_PRESETS) cmds.push({ id: `geo.${g.id}`, title: t('cmd.geo', { p: g.label }), hint: emu?.geo === g.id ? 'active' : g.locale, run: () => setEmu({ geo: g.id }) })
+  if (emu?.geo) cmds.push({ id: 'geo.off', title: t('cmd.geoOff'), run: () => setEmu({ geo: null }) })
   // Responsive Lab (#7)
   const lab = active?.lab
   const setLab = (ids: string[] | null): void => { if (active) { if (ids) void api.track('lab.start'); void api.setLab(active.id, ids) } }

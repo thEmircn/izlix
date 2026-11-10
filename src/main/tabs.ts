@@ -13,6 +13,7 @@ import { errorPageHtml, shouldRetry } from './errorpage'
 import { isLoopbackHost } from './security'
 import { deviceById, type Device } from '../shared/lab'
 import type { RulesConfig } from '../shared/rules'
+import { emulationCommands, geoPreset, type Emu } from '../shared/emulation'
 
 interface Entry {
   info: TabInfo
@@ -193,6 +194,25 @@ export class TabManager {
       if (next) this.activate(next)
     }
     this.onChange(); this.persist()
+  }
+
+  /** Ag/CPU kisitlama ve konum emulasyonu: verilen alanlar guncellenir (null = o ayari sifirla). Lab aciksa tum viewport'lara uygulanir. */
+  async setEmulation(id: string, patch: { network?: string | null; cpu?: number | null; geo?: string | null }): Promise<void> {
+    const e = this.tabs.get(id)
+    if (!e || e.view.webContents.isDestroyed()) return
+    const next: Emu = { ...(e.info.emu ?? {}) }
+    if ('network' in patch) { if (patch.network) next.network = patch.network; else delete next.network }
+    if ('cpu' in patch) { if (patch.cpu && patch.cpu > 1) next.cpu = patch.cpu; else delete next.cpu }
+    if ('geo' in patch) { if (patch.geo) next.geo = patch.geo; else delete next.geo }
+    const targets = [e.view.webContents, ...(e.lab?.webContents ?? [])].filter((w, i, a) => a.indexOf(w) === i)
+    for (const wc of targets) for (const [m, p] of emulationCommands(next)) await wc.debugger.sendCommand(m, p).catch(() => {})
+    e.info.emu = Object.keys(next).length ? next : undefined
+    this.onChange()
+  }
+  /** Konum izni: yalnizca konum emulasyonu acik sekmede verilir (diger izinler her zaman reddedilir) */
+  isGeoEmulated(wc: Electron.WebContents): boolean {
+    for (const e of this.tabs.values()) if (e.view.webContents === wc || e.lab?.webContents.includes(wc)) return !!geoPreset(e.info.emu?.geo)
+    return false
   }
 
   /** Emulasyon: acik/koyu tema, azaltilmis hareket. Lab aciksa tum viewport'lara uygulanir. */

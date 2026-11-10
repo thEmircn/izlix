@@ -1,4 +1,4 @@
-import { net, protocol, type BrowserWindow, type Session } from 'electron'
+import { net, protocol, type BrowserWindow, type Session, type WebContents } from 'electron'
 import { join, normalize, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -25,9 +25,9 @@ export function serveApp(root: string): void {
 }
 
 /** Kamera, mikrofon, konum, bildirim vb. varsayilan olarak reddedilir (Permission Dashboard'a kadar). */
-export function lockPermissions(ses: Session): void {
-  ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false))
-  ses.setPermissionCheckHandler(() => false)
+export function lockPermissions(ses: Session, allow: (wc: WebContents | null, permission: string) => boolean = () => false): void {
+  ses.setPermissionRequestHandler((wc, perm, cb) => cb(allow(wc, perm)))
+  ses.setPermissionCheckHandler((wc, perm) => allow(wc, perm))
 }
 
 /** Shell penceresi hicbir zaman baska yere gezinmez ve yeni pencere/webview acamaz. */

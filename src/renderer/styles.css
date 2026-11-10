@@ -240,3 +240,5 @@ pre.code { margin: 6px 0; padding: 10px 12px; border-radius: 8px; background: va
 .repl-bar b { color: var(--dim); } .repl-bar input { flex: 1; background: none; border: 0; outline: none; font: 12px ui-monospace, Menlo, monospace; }
 .repl-pair { padding: 3px 12px; border-bottom: 1px solid rgba(255,255,255,.04); animation: rowin .22s var(--ease) both; } .repl-in { color: var(--dim); } .repl-in b { margin-right: 6px; }
 .repl-out { padding-left: 14px; white-space: pre-wrap; word-break: break-word; color: #d9f99d; } .repl-out.err { color: #fca5a5; }
+
+.chip.emu { color: var(--warn) !important; border-color: rgba(251,191,36,.4) !important; background: rgba(251,191,36,.07) !important; } .chip.emu svg { opacity: .7; }

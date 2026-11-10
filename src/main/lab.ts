@@ -152,6 +152,9 @@ export class Lab {
   get mediaFeatures(): { name: string; value: string }[] { return this.media }
   media: { name: string; value: string }[] = []
 
+  /** Lab'daki tum gorunumlerin webContents'i (emulasyonu hepsine uygulamak icin) */
+  get webContents(): WebContents[] { return this.views.map((v) => v.wc).filter((w) => !w.isDestroyed()) }
+
   addViews(): void { if (this.visible) for (const v of this.extraViews) this.win.contentView.addChildView(v) }
   removeViews(): void { for (const v of this.extraViews) this.win.contentView.removeChildView(v) }
   setVisible(on: boolean): void { this.visible = on; for (const v of this.extraViews) v.setVisible(on) }

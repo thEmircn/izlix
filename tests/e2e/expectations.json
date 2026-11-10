@@ -852,5 +852,57 @@
       "contains",
       "curl 'http://localhost:5173/api/items'"
     ]
+  ],
+  "emulation": [
+    [
+      "slow.ms",
+      "gt",
+      1800
+    ],
+    [
+      "offline.err",
+      "contains",
+      "Failed to fetch"
+    ],
+    [
+      "restored.ms",
+      "lt",
+      800
+    ],
+    [
+      "cpu6.ms",
+      "gt",
+      10
+    ],
+    [
+      "geo[0]",
+      "eq",
+      "35.68"
+    ],
+    [
+      "tz",
+      "eq",
+      "Asia/Tokyo"
+    ],
+    [
+      "locale",
+      "contains",
+      "ja"
+    ],
+    [
+      "chip",
+      "contains",
+      "Tokyo"
+    ],
+    [
+      "tzReset",
+      "contains",
+      "/"
+    ],
+    [
+      "info",
+      "eq",
+      null
+    ]
   ]
 }
