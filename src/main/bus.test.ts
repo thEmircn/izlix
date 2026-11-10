@@ -43,4 +43,22 @@ describe('EventBus', () => {
     expect(seen).toEqual(['new', 'update'])
     expect(a.payload.z).toBe(1)
   })
+
+  it('compact: yalnizca eski render olaylarinin bilesen listesini kirpar, en yavaslari tutar', () => {
+    let now = 1_000_000
+    const bus = new EventBus(() => now)
+    const comps = Array.from({ length: 50 }, (_, i) => ({ name: 'C' + i, ms: i }))
+    const old = bus.emit({ tabId: 't', kind: 'render', source: 's', payload: { count: 50, components: comps } })
+    const small = bus.emit({ tabId: 't', kind: 'render', source: 's', payload: { count: 3, components: comps.slice(0, 3) } })
+    now += 61_000
+    const fresh = bus.emit({ tabId: 't', kind: 'render', source: 's', payload: { count: 50, components: comps } })
+    expect(bus.compact()).toBe(1)
+    expect(old.payload.components).toHaveLength(12)
+    expect(old.payload.components[0].name).toBe('C49')
+    expect(old.payload.compacted).toBe(50)
+    expect(old.payload.count).toBe(50)
+    expect(small.payload.components).toHaveLength(3)
+    expect(fresh.payload.components).toHaveLength(50)
+    expect(bus.compact()).toBe(0) // idempotent
+  })
 })

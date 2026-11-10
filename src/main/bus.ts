@@ -4,6 +4,9 @@ export type BusListener = (e: BusEvent, change: 'new' | 'update') => void
 
 const MAX_EVENTS = 50_000
 const MAX_AGE_MS = 15 * 60 * 1000
+/** Bundan eski render olaylarinin bilesen ayrintisi kirpilir (bellek: yogun render trafiginde 15 dk tampon cok sisebilir) */
+export const COMPACT_AGE_MS = 60 * 1000
+export const COMPACT_KEEP = 12
 
 /** Sekme basina halka tampon: son 15 dk veya 50.000 olay, hangisi once dolarsa. */
 export class EventBus {
@@ -43,6 +46,26 @@ export class EventBus {
     if (!ev) return
     Object.assign(ev.payload, payload)
     this.listeners.forEach((l) => l(ev, 'update'))
+  }
+
+  /**
+   * Eski render olaylarinin `components` listesini en yavas COMPACT_KEEP bilesene indirir (sayilar ve toplamlar korunur;
+   * `compacted` alani orijinal sayiyi tutar). Raporlar ve Timeline icin yeterli, bellek ~10x daha az.
+   */
+  compact(): number {
+    const cutoff = this.now() - COMPACT_AGE_MS
+    let n = 0
+    for (const buf of this.buffers.values()) {
+      for (const e of buf) {
+        if (e.ts >= cutoff) break // tampon zamana gore siralidir
+        const c = e.payload.components
+        if (e.kind !== 'render' || !Array.isArray(c) || c.length <= COMPACT_KEEP || e.payload.compacted) continue
+        e.payload.compacted = c.length
+        e.payload.components = [...c].sort((a: any, b: any) => (b.ms ?? 0) - (a.ms ?? 0)).slice(0, COMPACT_KEEP)
+        n++
+      }
+    }
+    return n
   }
 
   snapshot(tabId: string): BusEvent[] { return this.buffers.get(tabId) ?? [] }

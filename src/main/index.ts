@@ -208,6 +208,7 @@ async function createWindow(): Promise<void> {
   }, (wsId) => rules.get(wsId), { onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
   registerIpc()
+  setInterval(() => bus.compact(), 10_000).unref()
   bus.subscribe((ev, change) => send(change === 'new' ? Ch.evNew : Ch.evUpdate, ev))
 
   lockShell(win, [process.env.ELECTRON_RENDERER_URL ?? 'app://shell/'])

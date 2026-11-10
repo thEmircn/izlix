@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron'
 import type { EventBus } from './bus'
-import { BINDING, BRIDGE_SOURCE } from './react-bridge'
+import { ADAPTERS, BINDING } from './adapters'
 import { SourceResolver } from './sources'
 import { Correlator } from './correlate'
 
@@ -69,7 +69,7 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
   await dbg.sendCommand('Runtime.enable')
   await dbg.sendCommand('Page.enable')
   await dbg.sendCommand('Runtime.addBinding', { name: BINDING })
-  await dbg.sendCommand('Page.addScriptToEvaluateOnNewDocument', { source: BRIDGE_SOURCE })
+  for (const a of ADAPTERS) await dbg.sendCommand('Page.addScriptToEvaluateOnNewDocument', { source: a.script })
   return { resolver, correlator, detach: () => { dbg.removeListener('message', onMessage); try { dbg.detach() } catch { /* zaten kopmus */ } } }
 }
 
