@@ -19,10 +19,32 @@ export const GEO_PRESETS: GeoPreset[] = [
   { id: 'sao-paulo', label: 'Sao Paulo', latitude: -23.5505, longitude: -46.6333, timezone: 'America/Sao_Paulo', locale: 'pt-BR' }
 ]
 
-export interface Emu { network?: string; cpu?: number; geo?: string }
+export interface UaPreset { id: string; label: string; ua: string; mobile: boolean }
+export const UA_PRESETS: UaPreset[] = [
+  { id: 'ios-safari', label: 'iPhone Safari', mobile: true, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' },
+  { id: 'android-chrome', label: 'Android Chrome', mobile: true, ua: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' },
+  { id: 'firefox-win', label: 'Firefox (Windows)', mobile: false, ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0' },
+  { id: 'googlebot', label: 'Googlebot', mobile: false, ua: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }
+]
+export const VISION = ['blurredVision', 'reducedContrast', 'achromatopsia', 'deuteranopia', 'protanopia', 'tritanopia'] as const
+export type Vision = (typeof VISION)[number]
+export type Contrast = 'more' | 'less'
+
+export interface Emu { network?: string; cpu?: number; geo?: string; ua?: string; touch?: boolean; vision?: string; contrast?: Contrast; forcedColors?: boolean; print?: boolean }
+export const uaPreset = (id: string | undefined): UaPreset | undefined => UA_PRESETS.find((p) => p.id === id)
+
+/** prefers-color-scheme / reduced-motion (setMedia) ile karsitlik, zorunlu renkler ve yazdirma (Emu) tek bir setEmulatedMedia cagrisinda birlesir. */
+export function mediaFeatures(media: { colorScheme?: 'light' | 'dark'; reducedMotion?: boolean } | undefined, e: Emu | undefined): { features: { name: string; value: string }[]; mediaType: '' | 'print' } {
+  const features: { name: string; value: string }[] = []
+  if (media?.colorScheme) features.push({ name: 'prefers-color-scheme', value: media.colorScheme })
+  if (media?.reducedMotion) features.push({ name: 'prefers-reduced-motion', value: 'reduce' })
+  if (e?.contrast) features.push({ name: 'prefers-contrast', value: e.contrast })
+  if (e?.forcedColors) features.push({ name: 'forced-colors', value: 'active' })
+  return { features, mediaType: e?.print ? 'print' : '' }
+}
 export const networkPreset = (id: string | undefined): NetPreset | undefined => NETWORK_PRESETS.find((p) => p.id === id)
 export const geoPreset = (id: string | undefined): GeoPreset | undefined => GEO_PRESETS.find((p) => p.id === id)
-export const emuActive = (e: Emu | undefined): boolean => !!e && (!!e.network || (e.cpu ?? 1) > 1 || !!e.geo)
+export const emuActive = (e: Emu | undefined): boolean => !!e && (!!e.network || (e.cpu ?? 1) > 1 || !!e.geo || !!e.ua || !!e.touch || !!e.vision || !!e.contrast || !!e.forcedColors || !!e.print)
 
 /** CDP komut listesi: verilen emulasyon durumu icin sirasiyla gonderilecek (yontem, parametre) ciftleri. Bos durum = hepsini sifirla. */
 export function emulationCommands(e: Emu | undefined): [string, Record<string, unknown>][] {
@@ -33,6 +55,9 @@ export function emulationCommands(e: Emu | undefined): [string, Record<string, u
     ['Emulation.setCPUThrottlingRate', { rate: Math.max(1, e?.cpu ?? 1) }],
     g ? ['Emulation.setGeolocationOverride', { latitude: g.latitude, longitude: g.longitude, accuracy: 25 }] : ['Emulation.clearGeolocationOverride', {}],
     ['Emulation.setTimezoneOverride', { timezoneId: g?.timezone ?? '' }],
-    ['Emulation.setLocaleOverride', { locale: g?.locale ?? '' }]
+    ['Emulation.setLocaleOverride', { locale: g?.locale ?? '' }],
+    ['Emulation.setUserAgentOverride', { userAgent: uaPreset(e?.ua)?.ua ?? '' }],
+    ['Emulation.setTouchEmulationEnabled', { enabled: !!(e?.touch || uaPreset(e?.ua)?.mobile), maxTouchPoints: 5 }],
+    ['Emulation.setEmulatedVisionDeficiency', { type: e?.vision && (VISION as readonly string[]).includes(e.vision) ? e.vision : 'none' }]
   ]
 }

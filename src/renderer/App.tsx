@@ -17,7 +17,7 @@ import { Palette } from './Palette'
 import { RulesPanel } from './RulesPanel'
 import { activeRules } from '../shared/rules'
 import { deviceById } from '../shared/lab'
-import { emuActive, geoPreset, networkPreset } from '../shared/emulation'
+import { emuActive, geoPreset, networkPreset, uaPreset } from '../shared/emulation'
 
 const CHROME_H = 84 // sekme seridi 38 + arac cubugu 46
 const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
@@ -146,8 +146,8 @@ export function App() {
           )}
         </form>
         {emuActive(active?.emu) && active && (
-          <button type="button" className="chip emu" title={t('emu.resetTip')} onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null })}>
-            {[networkPreset(active.emu?.network)?.label, active.emu?.cpu ? `CPU ${active.emu.cpu}×` : '', geoPreset(active.emu?.geo)?.label].filter(Boolean).join(' · ')}<Close />
+          <button type="button" className="chip emu" title={t('emu.resetTip')} onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null, ua: null, touch: null, vision: null, contrast: null, forcedColors: null, print: null })}>
+            {[networkPreset(active.emu?.network)?.label, active.emu?.cpu ? `CPU ${active.emu.cpu}×` : '', geoPreset(active.emu?.geo)?.label, uaPreset(active.emu?.ua)?.label, active.emu?.touch ? 'touch' : '', active.emu?.vision ? t(`vis.${active.emu.vision}` as any) : '', active.emu?.contrast ? `contrast ${active.emu.contrast}` : '', active.emu?.forcedColors ? 'forced-colors' : '', active.emu?.print ? 'print' : ''].filter(Boolean).join(' · ')}<Close />
           </button>
         )}
         {s.find.open && active && (

@@ -35,7 +35,7 @@ export interface TabInfo {
   /** Ag/CPU kisitlama ve konum emulasyonu */
   /** Network.setCacheDisabled */
   noCache?: boolean
-  emu?: { network?: string; cpu?: number; geo?: string }
+  emu?: { network?: string; cpu?: number; geo?: string; ua?: string; touch?: boolean; vision?: string; contrast?: 'more' | 'less'; forcedColors?: boolean; print?: boolean }
   media?: { colorScheme?: 'light' | 'dark'; reducedMotion?: boolean }
 }
 

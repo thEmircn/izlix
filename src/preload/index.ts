@@ -47,7 +47,7 @@ export const api = {
   dtReact: (id: string, nodeId: number) => call(Ch.dtReact, { id, nodeId }),
   onDt: sub(Ch.dtEvent),
   evalInPage: (id: string, expression: string) => call(Ch.dtEval, { id, expression }),
-  setEmulation: (id: string, p: { network?: string | null; cpu?: number | null; geo?: string | null }) => call(Ch.emuSet, { id, ...p }),
+  setEmulation: (id: string, p: { network?: string | null; cpu?: number | null; geo?: string | null; ua?: string | null; touch?: boolean | null; vision?: string | null; contrast?: 'more' | 'less' | null; forcedColors?: boolean | null; print?: boolean | null }) => call(Ch.emuSet, { id, ...p }),
   screenshot: (id: string, kind: 'viewport' | 'full' | 'node', opts: { nodeId?: number; copy?: boolean } = {}) => call(Ch.shot, { id, kind, ...opts }),
   a11yAudit: (id: string) => call(Ch.a11y, { id }),
   flashRenders: (id: string, on: boolean) => call(Ch.flash, { id, on }),

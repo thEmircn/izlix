@@ -13,7 +13,7 @@ import { errorPageHtml, shouldRetry } from './errorpage'
 import { isLoopbackHost } from './security'
 import { deviceById, type Device } from '../shared/lab'
 import type { RulesConfig } from '../shared/rules'
-import { emulationCommands, geoPreset, type Emu } from '../shared/emulation'
+import { emulationCommands, geoPreset, mediaFeatures, uaPreset, VISION, type Contrast, type Emu } from '../shared/emulation'
 
 interface Entry {
   info: TabInfo
@@ -60,6 +60,8 @@ export class TabManager {
     const id = `tab-${++this.seq}`
     const ses = session.fromPartition(partitionFor(opts.workspaceId))
     this.hooks.onSession?.(ses)
+    // Varsayilan UA'dan "Electron/.." ve uygulama adi cikarilir: bircok site bunlari ayri/engelli davranisa sokar (gercek tarayici gibi gorunsun)
+    { const ua = ses.getUserAgent(), clean = ua.replace(/\s+Electron\/[\d.]+/, '').replace(/\s+izlix\/[\w.\-]+/i, ''); if (clean !== ua) ses.setUserAgent(clean) }
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
     const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false } }
@@ -237,16 +239,23 @@ export class TabManager {
   }
 
   /** Ag/CPU kisitlama ve konum emulasyonu: verilen alanlar guncellenir (null = o ayari sifirla). Lab aciksa tum viewport'lara uygulanir. */
-  async setEmulation(id: string, patch: { network?: string | null; cpu?: number | null; geo?: string | null }): Promise<void> {
+  async setEmulation(id: string, patch: { network?: string | null; cpu?: number | null; geo?: string | null; ua?: string | null; touch?: boolean | null; vision?: string | null; contrast?: Contrast | null; forcedColors?: boolean | null; print?: boolean | null }): Promise<void> {
     const e = this.tabs.get(id)
     if (!e || e.view.webContents.isDestroyed()) return
     const next: Emu = { ...(e.info.emu ?? {}) }
     if ('network' in patch) { if (patch.network) next.network = patch.network; else delete next.network }
     if ('cpu' in patch) { if (patch.cpu && patch.cpu > 1) next.cpu = patch.cpu; else delete next.cpu }
     if ('geo' in patch) { if (patch.geo) next.geo = patch.geo; else delete next.geo }
+    if ('ua' in patch) { if (patch.ua && uaPreset(patch.ua)) next.ua = patch.ua; else delete next.ua }
+    if ('touch' in patch) { if (patch.touch) next.touch = true; else delete next.touch }
+    if ('vision' in patch) { if (patch.vision && (VISION as readonly string[]).includes(patch.vision)) next.vision = patch.vision; else delete next.vision }
+    if ('contrast' in patch) { if (patch.contrast === 'more' || patch.contrast === 'less') next.contrast = patch.contrast; else delete next.contrast }
+    if ('forcedColors' in patch) { if (patch.forcedColors) next.forcedColors = true; else delete next.forcedColors }
+    if ('print' in patch) { if (patch.print) next.print = true; else delete next.print }
     const targets = [e.view.webContents, ...(e.lab?.webContents ?? [])].filter((w, i, a) => a.indexOf(w) === i)
     for (const wc of targets) for (const [m, p] of emulationCommands(next)) await wc.debugger.sendCommand(m, p).catch(() => {})
     e.info.emu = Object.keys(next).length ? next : undefined
+    await this.sendMedia(e)
     this.onChange()
   }
   /** Konum izni: yalnizca konum emulasyonu acik sekmede verilir (diger izinler her zaman reddedilir) */
@@ -259,13 +268,15 @@ export class TabManager {
   async setMedia(id: string, colorScheme: 'light' | 'dark' | null, reducedMotion: boolean): Promise<void> {
     const e = this.tabs.get(id)
     if (!e || e.view.webContents.isDestroyed()) return
-    const features: { name: string; value: string }[] = []
-    if (colorScheme) features.push({ name: 'prefers-color-scheme', value: colorScheme })
-    if (reducedMotion) features.push({ name: 'prefers-reduced-motion', value: 'reduce' })
-    await e.view.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { features }).catch(() => {})
-    if (e.lab) { e.lab.media = features; await e.lab.applyMedia(features) }
     e.info.media = colorScheme || reducedMotion ? { colorScheme: colorScheme ?? undefined, reducedMotion: reducedMotion || undefined } : undefined
+    await this.sendMedia(e)
     this.onChange()
+  }
+  /** Medya ozellikleri (renk semasi, hareket, karsitlik, zorunlu renk) + yazdirma ortami: tek cagri; Lab goruntulerine de uygulanir. */
+  private async sendMedia(e: Entry): Promise<void> {
+    const { features, mediaType } = mediaFeatures(e.info.media, e.info.emu)
+    await e.view.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { media: mediaType, features }).catch(() => {})
+    if (e.lab) { e.lab.media = features; await e.lab.applyMedia(features) }
   }
 
   /** Responsive Lab: cihaz kimlikleri listesi (ilki birincil gorunum); null = kapat */

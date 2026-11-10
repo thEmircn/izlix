@@ -1,6 +1,6 @@
 import { PANEL_TABS, wsName, useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
-import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS } from '../shared/emulation'
+import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS, UA_PRESETS, VISION } from '../shared/emulation'
 import { DEVICES, MAX_VIEWPORTS, deviceById } from '../shared/lab'
 
 export interface Command { id: string; title: string; hint?: string; run(): void }
@@ -78,13 +78,21 @@ export function buildCommands(): Command[] {
   )
   // Ag/CPU kisitlama ve konum emulasyonu
   const emu = active?.emu
-  const setEmu = (p: { network?: string | null; cpu?: number | null; geo?: string | null }): void => { if (active) void api.setEmulation(active.id, p) }
+  const setEmu = (p: Parameters<typeof api.setEmulation>[1]): void => { if (active) void api.setEmulation(active.id, p) }
   for (const n of NETWORK_PRESETS) cmds.push({ id: `net.${n.id}`, title: t('cmd.net', { p: n.label }), hint: emu?.network === n.id ? 'active' : '', run: () => setEmu({ network: n.id }) })
   if (emu?.network) cmds.push({ id: 'net.off', title: t('cmd.netOff'), run: () => setEmu({ network: null }) })
   for (const r of CPU_RATES.filter((x) => x > 1)) cmds.push({ id: `cpu.${r}`, title: t('cmd.cpu', { r }), hint: emu?.cpu === r ? 'active' : '', run: () => setEmu({ cpu: r }) })
   if (emu?.cpu) cmds.push({ id: 'cpu.off', title: t('cmd.cpuOff'), run: () => setEmu({ cpu: null }) })
   for (const g of GEO_PRESETS) cmds.push({ id: `geo.${g.id}`, title: t('cmd.geo', { p: g.label }), hint: emu?.geo === g.id ? 'active' : g.locale, run: () => setEmu({ geo: g.id }) })
   if (emu?.geo) cmds.push({ id: 'geo.off', title: t('cmd.geoOff'), run: () => setEmu({ geo: null }) })
+  for (const u of UA_PRESETS) cmds.push({ id: `ua.${u.id}`, title: t('cmd.ua', { p: u.label }), hint: emu?.ua === u.id ? 'active' : '', run: () => setEmu({ ua: u.id }) })
+  if (emu?.ua) cmds.push({ id: 'ua.off', title: t('cmd.uaOff'), run: () => setEmu({ ua: null }) })
+  cmds.push({ id: 'emu.touch', title: emu?.touch ? t('cmd.touchOff') : t('cmd.touchOn'), run: () => setEmu({ touch: !emu?.touch }) })
+  for (const v of VISION) cmds.push({ id: `vis.${v}`, title: t('cmd.vision', { p: t(`vis.${v}` as any) }), hint: emu?.vision === v ? 'active' : '', run: () => setEmu({ vision: v }) })
+  if (emu?.vision) cmds.push({ id: 'vis.off', title: t('cmd.visionOff'), run: () => setEmu({ vision: null }) })
+  cmds.push({ id: 'emu.contrastMore', title: t('cmd.contrastMore'), hint: emu?.contrast === 'more' ? 'active' : '', run: () => setEmu({ contrast: emu?.contrast === 'more' ? null : 'more' }) })
+  cmds.push({ id: 'emu.forced', title: emu?.forcedColors ? t('cmd.forcedOff') : t('cmd.forcedOn'), run: () => setEmu({ forcedColors: !emu?.forcedColors }) })
+  cmds.push({ id: 'emu.print', title: emu?.print ? t('cmd.printOff') : t('cmd.printOn'), run: () => setEmu({ print: !emu?.print }) })
   // Panel sekmeleri
   const PANEL_NAMES = Object.fromEntries(PANEL_TABS.map((k) => [k, t(`tl.${k}` as any)])) as Record<string, string>
   PANEL_TABS.forEach((k, i) => cmds.push({ id: `panel.${k}`, title: t('cmd.panel', { n: PANEL_NAMES[k] }), hint: i < 9 ? `⌥⌘${i + 1}` : '', run: () => s.set({ panelTab: k }) }))

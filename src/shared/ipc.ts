@@ -49,7 +49,7 @@ export const schemas = {
   dtFeature: z.object({ id: z.string().max(64), feature: z.enum(['elements', 'storage', 'perf', 'coverage', 'profile', 'sw']) }),
   dtReact: z.object({ id: z.string().max(64), nodeId: z.number().int().min(0) }),
   dtEval: z.object({ id: z.string().max(64), expression: z.string().min(1).max(20000) }),
-  emuSet: z.object({ id: z.string().max(64), network: z.string().max(20).nullable().optional(), cpu: z.number().int().min(1).max(20).nullable().optional(), geo: z.string().max(20).nullable().optional() }),
+  emuSet: z.object({ id: z.string().max(64), network: z.string().max(20).nullable().optional(), cpu: z.number().int().min(1).max(20).nullable().optional(), geo: z.string().max(20).nullable().optional(), ua: z.string().max(20).nullable().optional(), touch: z.boolean().nullable().optional(), vision: z.string().max(20).nullable().optional(), contrast: z.enum(['more', 'less']).nullable().optional(), forcedColors: z.boolean().nullable().optional(), print: z.boolean().nullable().optional() }),
   shot: z.object({ id: z.string().max(64), kind: z.enum(['viewport', 'full', 'node']), nodeId: z.number().int().min(0).optional(), copy: z.boolean().optional() }),
   flash: z.object({ id: z.string().max(64), on: z.boolean() }),
   cacheSet: z.object({ id: z.string().max(64), disabled: z.boolean() }),
