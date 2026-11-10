@@ -2015,5 +2015,42 @@
       "eq",
       true
     ]
+  ],
+  "netlab": [
+    [
+      "gqlTag",
+      "eq",
+      "gql GetUser"
+    ],
+    [
+      "treeRows",
+      "gte",
+      4
+    ],
+    [
+      "treeHasKey",
+      "eq",
+      true
+    ],
+    [
+      "cmpFields[0]",
+      "eq",
+      "status"
+    ],
+    [
+      "cmpStatus",
+      "contains",
+      "200 → 500"
+    ],
+    [
+      "gqlHead",
+      "contains",
+      "GetUser"
+    ],
+    [
+      "gqlQuery",
+      "eq",
+      true
+    ]
   ]
 }

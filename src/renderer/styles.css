@@ -565,3 +565,15 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 .bprow { display: grid; grid-template-columns: 8px 1fr 18px; gap: 8px; align-items: center; padding: 4px 4px; border-radius: 7px; font: 11px var(--mono); } .bprow:hover { background: var(--hover); } .bprow i { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); } .bprow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; } .bprow button { border: 0; background: none; color: var(--dim); cursor: pointer; } .bprow button:hover { color: var(--bad); }
 .evgroup { margin-bottom: 8px; } .evgroup small { display: block; font: 10px var(--mono); color: var(--dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .06em; } .evgroup div { display: flex; flex-wrap: wrap; gap: 5px; }
 .xhr-add { display: flex; gap: 6px; margin-bottom: 6px; } .xhr-add .search { margin: 0 !important; flex: 1; }
+
+/* Network Lab */
+.jbar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; } .jbar .search { flex: 1; margin: 0 !important; }
+.jtree { font: 11.5px/1.65 var(--mono); } .jrow { display: flex; gap: 6px; align-items: baseline; white-space: nowrap; } .jtog { cursor: pointer; } .jtog:hover { background: var(--hover); }
+.jtog b { display: inline-block; width: 10px; color: var(--dim); transition: transform .15s; } .jtog b.open { transform: rotate(90deg); }
+.jk { color: #e4a672; cursor: copy; } .jk:hover { text-decoration: underline; } .jrow i { font-style: normal; color: var(--dim); margin-left: -4px; } .jc { color: var(--dim); }
+.jv { overflow: hidden; text-overflow: ellipsis; } .jv.js { color: #a3d9a5; } .jv.jnum { color: #7dc4ff; } .jv.jb { color: #d6a0ff; } .jv.jn { color: var(--dim); } .jv.hit { background: rgba(255,106,43,.25); border-radius: 3px; }
+.gqltag { text-decoration: none; margin-left: 8px; font: 10px var(--mono); padding: 0 6px; border-radius: 999px; background: rgba(255,106,43,.14); color: var(--ac); }
+.gql-h { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.cmp { display: grid; gap: 6px; } .cmp-h { display: flex; gap: 10px; align-items: center; color: var(--dim); margin-bottom: 6px; } .cmp-h code { background: none; padding: 0; color: var(--fg); }
+.cmp-row { display: grid; grid-template-columns: 140px 1fr 16px 1fr; gap: 8px; align-items: start; padding: 6px 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); font-size: 11.5px; } .cmp-row b { font: 500 11px var(--mono); overflow-wrap: anywhere; } .cmp-row i { color: var(--dim); font-style: normal; text-align: center; }
+.cmp-row code { background: none; padding: 0; overflow-wrap: anywhere; } .cmp-row .old { color: var(--bad); } .cmp-row .new { color: var(--ok); }
