@@ -11,7 +11,7 @@ module.exports = async ({ tabs, library, downloads, sleep, shellEval, pageEval, 
   out.bookmarkOn = await shellEval(`window.izlix.toggleBookmark(${JSON.stringify(id)})`)
   out.isBookmarked = library.isBookmarked('default', 'http://localhost:5198/')
   await sleep(400)
-  out.star = await shellEval(`document.querySelector('[aria-label="Yer imi"]').textContent`)
+  out.star = await shellEval(`document.querySelector('[aria-label="Bookmark"]').textContent`)
   out.bookmarkOff = await shellEval(`window.izlix.toggleBookmark(${JSON.stringify(id)})`)
   // indirme: baglantiya tikla
   await pageEval(`document.querySelector('#d').click()`); await sleep(1500)

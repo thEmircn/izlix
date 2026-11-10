@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    { "matchPackageNames": ["electron"], "schedule": ["at any time"], "prPriority": 10, "labels": ["security", "electron"], "minimumReleaseAge": null },
+    { "matchUpdateTypes": ["minor", "patch"], "matchPackageNames": ["!electron"], "groupName": "minor-and-patch", "schedule": ["before 6am on monday"] }
+  ],
+  "vulnerabilityAlerts": { "labels": ["security"], "schedule": ["at any time"] }
+}

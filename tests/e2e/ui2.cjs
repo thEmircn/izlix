@@ -17,7 +17,7 @@ module.exports = async ({ tabs, win, rules, refreshRules, sleep, click, shellEva
 
   out.badgeText = await shellEval(`document.querySelector('.rule-badge')?.textContent`)
   win.webContents.send('ui:cmd', 'rules.open'); await sleep(400)
-  out.rulesPanel = await shellEval(`document.querySelectorAll('.dialog input[aria-label=Etkin]').length`)
+  out.rulesPanel = await shellEval(`document.querySelectorAll('.dialog input[type=checkbox]').length`)
   await shot('/private/tmp/e2e-tmp/rules-panel.png')
   win.webContents.send('ui:cmd', 'palette.open'); await sleep(200)
   await sleep(200)
