@@ -593,8 +593,8 @@
     ],
     [
       "badBody",
-      "eq",
-      ""
+      "contains",
+      "reach this page"
     ]
   ],
   "errpage": [
