@@ -4,7 +4,7 @@ import { buildNetworkRows, formatBytes } from '../shared/network'
 import { binTraffic, rate, smooth } from '../shared/traffic'
 import { useT } from './store'
 
-const WINDOW = 60_000
+const MAX_WIN = 60_000, MIN_WIN = 10_000
 const ORANGE = [255, 106, 43], RED = [255, 92, 92], WHITE = [235, 235, 238]
 const rgba = (c: number[], a: number): string => `rgba(${c[0]},${c[1]},${c[2]},${a})`
 
@@ -14,6 +14,8 @@ export function LiveTraffic({ events, height = 150, compact = false }: { events:
   const tRef = useRef(t); tRef.current = t
   const rows = useMemo(() => buildNetworkRows(events), [events])
   const rowsRef = useRef(rows); rowsRef.current = rows
+  const firstRef = useRef<number | null>(null)
+  firstRef.current = rows.reduce<number | null>((m, r) => (r.type === 'ws' ? m : m == null || r.start < m ? r.start : m), null)
   const cv = useRef<HTMLCanvasElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const tip = useRef<HTMLDivElement>(null)
@@ -33,10 +35,13 @@ export function LiveTraffic({ events, height = 150, compact = false }: { events:
     const draw = (ts: number): void => {
       if (stopped) return
       const now = Date.now()
-      const b = binTraffic(rowsRef.current, now, WINDOW, 500)
+      // pencere veri suresine uyar: grafik ilk istekten (0 sn) baslar ve tum genisligi doldurur; 60 sn'yi asinca kayar
+      const first = firstRef.current
+      const win = Math.min(MAX_WIN, Math.max(MIN_WIN, first == null ? MIN_WIN : now - first + 1000))
+      const b = binTraffic(rowsRef.current, now, win, win <= 20_000 ? 250 : 500)
       const sr = smooth(b.reqs), sb = smooth(b.bytes)
       const padT = compact ? 6 : 10, padB = compact ? 16 : 20, padL = 0, ph = H - padT - padB
-      const x = (tm: number): number => padL + ((tm - (now - WINDOW)) / WINDOW) * (W - padL)
+      const x = (tm: number): number => padL + ((tm - (now - win)) / win) * (W - padL)
       const yR = (v: number): number => padT + ph - (v / ymax.current) * ph
       const yB = (v: number): number => padT + ph - (v / bmax.current) * ph
       // olcek hedefleri (yumusak gecis)
@@ -50,15 +55,16 @@ export function LiveTraffic({ events, height = 150, compact = false }: { events:
       for (let g = 0; g <= 3; g++) {
         const yy = padT + (ph * g) / 3
         ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.setLineDash([2, 5]); ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); ctx.setLineDash([])
-        if (!compact && g < 3) { ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillText(((ymax.current * (3 - g)) / 3).toFixed(ymax.current < 6 ? 1 : 0), 4, yy - 7) }
+        if (!compact && g === 3) { ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillText('0', 4, yy - 7) }
+        if (!compact && g < 3) { ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillText(((ymax.current * (3 - g)) / 3).toFixed(ymax.current < 6 ? 1 : 0), 4, g === 0 ? yy + 8 : yy - 7) }
       }
       // dikey zaman izgarasi: 5 sn'de bir, kayar
-      const step = 5000, first = Math.ceil((now - WINDOW) / step) * step
+      const step = win <= 20_000 ? 2000 : 5000, gFirst = Math.ceil((now - win) / step) * step
       ctx.strokeStyle = 'rgba(255,255,255,.04)'
-      for (let tm = first; tm <= now; tm += step) { const xx = x(tm); ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, padT + ph); ctx.stroke() }
+      for (let tm = gFirst; tm <= now; tm += step) { const xx = x(tm); ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, padT + ph); ctx.stroke() }
       // x ekseni etiketleri
       ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.textBaseline = 'alphabetic'
-      ctx.textAlign = 'left'; ctx.fillText('-60s', 4, H - 4); ctx.textAlign = 'center'; ctx.fillText('-30s', W / 2, H - 4); ctx.textAlign = 'right'; ctx.fillText(tRef.current('ov.now'), W - 4, H - 4)
+      ctx.textAlign = 'left'; ctx.fillText(`-${Math.round(win / 1000)}s`, 4, H - 4); ctx.textAlign = 'center'; ctx.fillText(`-${Math.round(win / 2000)}s`, W / 2, H - 4); ctx.textAlign = 'right'; ctx.fillText(tRef.current('ov.now'), W - 4, H - 4)
 
       const pts = (arr: number[], y: (v: number) => number): [number, number][] => arr.map((v, i) => [x(b.startT + i * b.binMs + b.binMs / 2), y(v)])
       const trace = (p: [number, number][]): void => {
@@ -87,7 +93,7 @@ export function LiveTraffic({ events, height = 150, compact = false }: { events:
       // imlec
       const hx = hover.current
       if (hx != null && tip.current) {
-        const tm = now - WINDOW + (hx / W) * WINDOW, i = Math.max(0, Math.min(b.reqs.length - 1, Math.floor((tm - b.startT) / b.binMs)))
+        const tm = now - win + (hx / W) * win, i = Math.max(0, Math.min(b.reqs.length - 1, Math.floor((tm - b.startT) / b.binMs)))
         ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(hx, padT); ctx.lineTo(hx, padT + ph); ctx.stroke(); ctx.setLineDash([])
         ctx.fillStyle = '#0a0a0b'; ctx.strokeStyle = rgba(ORANGE, 1); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(hx, yR(sr[i]), 4, 0, 7); ctx.fill(); ctx.stroke()
         const ago = Math.max(0, Math.round((now - tm) / 1000))
