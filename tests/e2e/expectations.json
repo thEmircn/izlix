@@ -815,5 +815,42 @@
       "contains",
       "v1"
     ]
+  ],
+  "repl": [
+    [
+      "sum",
+      "eq",
+      "3"
+    ],
+    [
+      "title",
+      "eq",
+      "\"Test App\""
+    ],
+    [
+      "obj",
+      "contains",
+      "a: 1"
+    ],
+    [
+      "err",
+      "contains",
+      "ReferenceError"
+    ],
+    [
+      "errClass",
+      "contains",
+      "err"
+    ],
+    [
+      "awaited",
+      "eq",
+      "7"
+    ],
+    [
+      "curl",
+      "contains",
+      "curl 'http://localhost:5173/api/items'"
+    ]
   ]
 }
