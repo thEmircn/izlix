@@ -11,7 +11,7 @@ export const CPU_RATES = [1, 2, 4, 6] as const
 
 export interface GeoPreset { id: string; label: string; latitude: number; longitude: number; timezone: string; locale: string }
 export const GEO_PRESETS: GeoPreset[] = [
-  { id: 'istanbul', label: 'Istanbul', latitude: 41.0082, longitude: 28.9784, timezone: 'Europe/Istanbul', locale: 'tr-TR' },
+  { id: 'istanbul', label: 'İstanbul', latitude: 41.0082, longitude: 28.9784, timezone: 'Europe/Istanbul', locale: 'tr-TR' },
   { id: 'new-york', label: 'New York', latitude: 40.7128, longitude: -74.006, timezone: 'America/New_York', locale: 'en-US' },
   { id: 'london', label: 'London', latitude: 51.5074, longitude: -0.1278, timezone: 'Europe/London', locale: 'en-GB' },
   { id: 'berlin', label: 'Berlin', latitude: 52.52, longitude: 13.405, timezone: 'Europe/Berlin', locale: 'de-DE' },

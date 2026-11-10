@@ -210,7 +210,7 @@ function CodeView({ file, jump, editor, truncated, bpLines, pausedLine, onGutter
             const isHit = matches.includes(i)
             return (
               <div key={i} className={`cl ${jump === i + 1 ? 'jump' : ''} ${isHit ? 'hit' : ''} ${pausedLine === i + 1 ? 'pausedline' : ''}`} style={{ top: i * ROW }}>
-                <span className={`ln ${bpLines.has(i + 1) ? 'bp' : ''}`} onClick={(e) => onGutter(i + 1, e.altKey || e.shiftKey)} title="Click: breakpoint · Alt/Shift+click: conditional">{i + 1}</span>
+                <span className={`ln ${bpLines.has(i + 1) ? 'bp' : ''}`} onClick={(e) => onGutter(i + 1, e.altKey || e.shiftKey)} title={t('src.gutterTip')}>{i + 1}</span>
                 <span className="lc">{toks.map((tk, j) => <span key={j} className={`tk-${tk.t}`}>{tk.s}</span>)}</span>
               </div>
             )

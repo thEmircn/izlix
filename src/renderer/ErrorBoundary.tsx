@@ -1,3 +1,4 @@
+import { tNow } from './store'
 import { Component, type ReactNode } from 'react'
 
 /** Bir panelde beklenmedik hata olursa tum kabugu degil yalnizca o paneli hata kartiyla degistirir. */
@@ -10,9 +11,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode; label: strin
     if (!this.state.error) return this.props.children
     return (
       <div className="errcard" role="alert">
-        <b>Panel “{this.props.label}” crashed</b>
+        <b>{tNow('err.panel', { n: this.props.label })}</b>
         <code>{String(this.state.error.message).slice(0, 240)}</code>
-        <button className="btn primary" onClick={() => { this.setState({ error: null }); this.props.onReset?.() }}>Reload panel</button>
+        <button className="btn primary" onClick={() => { this.setState({ error: null }); this.props.onReset?.() }}>{tNow('err.reload')}</button>
       </div>
     )
   }

@@ -13,6 +13,7 @@ import { Downloads, uniquePath } from './downloads'
 import { parseLaunch, type Launch } from './launch'
 import { registerAppScheme, serveApp, lockPermissions, lockShell, isInsideAny, trustLoopbackCerts } from './security'
 import { SettingsStore } from './settings'
+import { translate, type Key } from '../shared/i18n'
 import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
@@ -44,6 +45,7 @@ let workspaces: WorkspaceStore
 let rules: RuleStore
 let library: Library
 let settings: SettingsStore
+const tr = (k: Key, v?: Record<string, string | number>): string => translate(settings?.get().language ?? 'tr', k, v)
 let perms: PermissionStore
 const pendingPerms = new Map<string, (a: 'allow-once' | 'allow' | 'block') => void>()
 let permSeq = 0
@@ -123,7 +125,7 @@ function registerIpc(): void {
   handle(Ch.wsCreate, schemas.wsCreate, async ({ name, rootDir }) => {
     let dir = rootDir
     if (!dir) {
-      const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'], title: 'Workspace klasörünü seç' })
+      const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'], title: tr('dlg.pickFolder') })
       if (r.canceled || !r.filePaths[0]) return null
       dir = r.filePaths[0]
     }
@@ -165,7 +167,7 @@ function registerIpc(): void {
   })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.settingsGet, null, () => settings.get())
-  handle(Ch.settingsSet, schemas.settingsSet, (p) => { settings.set(p); pushSettings(); return settings.get() })
+  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.language && p.language !== before) installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
   handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
   handle(Ch.demoOpen, null, async () => {
     const port = await demo.start()
@@ -194,7 +196,7 @@ function registerIpc(): void {
     const w = workspaces.get(id)
     if (!w || id === 'default') return false
     if (!process.env.DB_SCRIPT) {
-      const r = await dialog.showMessageBox(win, { type: 'warning', buttons: ['Delete', 'Cancel'], defaultId: 1, cancelId: 1, message: `Delete workspace “${w.name}”?`, detail: 'Its tabs are closed and its cookies and site data are erased. Project files are not touched.' })
+      const r = await dialog.showMessageBox(win, { type: 'warning', buttons: [tr('dlg.delete'), tr('dlg.cancel')], defaultId: 1, cancelId: 1, message: tr('dlg.wsDelete', { n: w.name }), detail: tr('dlg.wsDeleteDetail') })
       if (r.response !== 0) return false
     }
     for (const t of tabs.list().tabs.filter((x) => x.workspaceId === id)) tabs.close(t.id)
@@ -258,14 +260,14 @@ function registerIpc(): void {
     const e = tabs.get(id); if (!e) return
     const url = e.view.webContents.getURL()
     Menu.buildFromTemplate([
-      { label: 'Reload', click: () => tabs.reload(id) },
-      { label: 'Duplicate', click: () => void tabs.duplicate(id) },
-      { label: 'Copy URL', enabled: !!url, click: () => clipboard.writeText(url) },
-      { label: library.isBookmarked(e.info.workspaceId, url) ? 'Remove Bookmark' : 'Bookmark', enabled: /^https?:/.test(url), click: () => { library.toggleBookmark(e.info.workspaceId, url, e.view.webContents.getTitle()); pushLibrary() } },
+      { label: tr('ctx.reload'), click: () => tabs.reload(id) },
+      { label: tr('ctx.duplicate'), click: () => void tabs.duplicate(id) },
+      { label: tr('ctx.copyUrl'), enabled: !!url, click: () => clipboard.writeText(url) },
+      { label: library.isBookmarked(e.info.workspaceId, url) ? tr('ctx.unbookmark') : tr('ctx.bookmark'), enabled: /^https?:/.test(url), click: () => { library.toggleBookmark(e.info.workspaceId, url, e.view.webContents.getTitle()); pushLibrary() } },
       { type: 'separator' },
-      { label: 'Close Tab', click: () => { proxy.drop(id); tabs.close(id) } },
-      { label: 'Close Other Tabs', click: () => { tabs.closeOthers(id) } },
-      { label: 'Close Tabs to the Right', click: () => { tabs.closeOthers(id, true) } }
+      { label: tr('ctx.close'), click: () => { proxy.drop(id); tabs.close(id) } },
+      { label: tr('ctx.closeOthers'), click: () => { tabs.closeOthers(id) } },
+      { label: tr('ctx.closeRight'), click: () => { tabs.closeOthers(id, true) } }
     ]).popup({ window: win })
   })
   handle(Ch.hookSet, schemas.hookSet, ({ id, node, index, json }) => evalInPage(id, `window.__IZLIX_SET_HOOK__ ? window.__IZLIX_SET_HOOK__(${node}, ${index}, ${JSON.stringify(json)}) : null`))
@@ -296,7 +298,7 @@ function registerIpc(): void {
   // Kaydedilmis anlik goruntuyu ac (salt okunur inceleme)
   handle(Ch.snapshotOpen, null, async () => {
     if (process.env.DB_SCRIPT && process.env.DB_SNAPSHOT_FILE) return { name: process.env.DB_SNAPSHOT_FILE.split('/').pop(), events: loadSnapshot(process.env.DB_SNAPSHOT_FILE) } // test kipi: diyalogsuz
-    const r = await dialog.showOpenDialog(win, { title: 'Open timeline snapshot', defaultPath: join(app.getPath('userData'), 'snapshots'), filters: [{ name: 'Timeline snapshot', extensions: ['gz'] }], properties: ['openFile'] })
+    const r = await dialog.showOpenDialog(win, { title: tr('dlg.openSnap'), defaultPath: join(app.getPath('userData'), 'snapshots'), filters: [{ name: tr('dlg.snapName'), extensions: ['gz'] }], properties: ['openFile'] })
     if (r.canceled || !r.filePaths[0]) return null
     try { return { name: r.filePaths[0].split('/').pop(), events: loadSnapshot(r.filePaths[0]) } } catch { return null }
   })
@@ -403,6 +405,7 @@ async function createWindow(): Promise<void> {
   library = new Library()
   perms = new PermissionStore()
   settings = new SettingsStore()
+  if (process.env.DB_SCRIPT) settings.set({ language: (process.env.DB_LANG as 'en' | 'tr') ?? 'en' }) // testler Ingilizce metinlere bakar
   if (process.env.DB_SCRIPT && !process.env.DB_ONBOARD) settings.set({ onboarded: true }) // testlerde karsilama ekrani sayfa gorunumlerini gizlemesin
   telemetry = new Telemetry(app.getPath('userData'), () => settings.get().telemetry, () => settings.get().installId)
   const samples = join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'samples')
@@ -414,7 +417,7 @@ async function createWindow(): Promise<void> {
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
   }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
-  installMenu((cmd) => send(Ch.cmd, cmd))
+  installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
   proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))

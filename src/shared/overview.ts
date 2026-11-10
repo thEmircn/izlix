@@ -1,12 +1,12 @@
 import type { BusEvent } from './events'
-import { buildNetworkRows } from './network'
+import { buildNetworkRows, typeBreakdown, type NetType } from './network'
 import { buildConsoleRows } from './console'
 import { aggregateRenders } from './tracker'
 import { summarizeVitals, type Vital } from './vitals'
 import { sinceNavigation } from './chain'
 
 export interface Overview {
-  requests: number; failed: number; bytes: number; p95: number | null; reqSeries: number[]
+  requests: number; failed: number; bytes: number; p95: number | null; reqSeries: number[]; failSeries: number[]; spanMs: number; types: { type: NetType; bytes: number; count: number; pct: number }[]
   errors: number; warns: number; lastError: string | null
   commits: number; renders: number; hot: { name: string; renders: number; totalMs: number }[]
   vitals: Vital[]; activity: BusEvent[]; healthy: boolean
@@ -27,15 +27,15 @@ export function summarizeOverview(all: BusEvent[], buckets = 24): Overview {
   const starts = rows.map((r) => r.start)
   const lo = starts.length ? Math.max(Math.min(...starts), tMax - 30000) : 0
   const span = Math.max(3000, tMax - lo)
-  const reqSeries = new Array<number>(buckets).fill(0)
-  for (const s of starts) if (s >= lo) reqSeries[Math.min(buckets - 1, Math.floor(((s - lo) / span) * buckets))]++
+  const reqSeries = new Array<number>(buckets).fill(0), failSeries = new Array<number>(buckets).fill(0)
+  for (const r of rows) if (r.start >= lo) { const b = Math.min(buckets - 1, Math.floor(((r.start - lo) / span) * buckets)); reqSeries[b]++; if (r.failed || (r.status != null && r.status >= 400)) failSeries[b]++ }
   const con = buildConsoleRows(events)
   const errRows = con.filter((c) => c.level === 'error')
   const renderEvs = events.filter((e) => e.kind === 'render' && e.payload.count > 0)
   const hot = aggregateRenders(events).sort((a, b) => b.totalMs - a.totalMs || b.renders - a.renders).slice(0, 4).map((r) => ({ name: r.name, renders: r.renders, totalMs: r.totalMs }))
   const errors = errRows.reduce((a, c) => a + c.count, 0)
   return {
-    requests: rows.length, failed, bytes, p95, reqSeries,
+    requests: rows.length, failed, bytes, p95, reqSeries, failSeries, spanMs: span, types: typeBreakdown(rows),
     errors, warns: con.filter((c) => c.level === 'warn').reduce((a, c) => a + c.count, 0), lastError: errRows.length ? errRows[errRows.length - 1].text.split('\n')[0] : null,
     commits: renderEvs.length, renders: renderEvs.reduce((a, e) => a + (e.payload.count as number), 0), hot,
     vitals: summarizeVitals(events).vitals,

@@ -56,7 +56,7 @@ function Cookies({ dt, url, rev, refresh }: { dt: Dt; url: string; rev: number; 
     <>
       <div className="st-tools"><input className="search" placeholder={t('st.filter')} value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn danger" disabled={!rows.length} onClick={async () => { for (const c of rows) await dt('Network.deleteCookies', { name: c.name, domain: c.domain, path: c.path }); toast(t('st.cleared')); refresh() }}>{t('st.clear')}</button></div>
-      <table className="tbl st-tbl"><thead><tr><th>Name</th><th>Value</th><th>Domain</th><th>Path</th><th>Expires</th><th>Flags</th><th /></tr></thead>
+      <table className="tbl st-tbl"><thead><tr><th>{t('st.name')}</th><th>{t('st.value')}</th><th>{t('st.domain')}</th><th>{t('st.path')}</th><th>{t('st.expires')}</th><th>{t('st.flags')}</th><th /></tr></thead>
         <tbody>{rows.map((c) => (
           <tr key={`${c.domain}|${c.path}|${c.name}`}>
             <td className="k">{c.name}</td>
@@ -65,7 +65,7 @@ function Cookies({ dt, url, rev, refresh }: { dt: Dt; url: string; rev: number; 
             <td className="flags">{c.httpOnly && <u>HttpOnly</u>}{c.secure && <u>Secure</u>}{c.sameSite && <u>{c.sameSite}</u>}</td>
             <td><button className="icon-btn" aria-label="delete" onClick={() => void dt('Network.deleteCookies', { name: c.name, domain: c.domain, path: c.path }).then(refresh)}>×</button></td>
           </tr>))}
-          <tr className="addrow"><td><input placeholder="name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></td><td><input placeholder="value" value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} /></td>
+          <tr className="addrow"><td><input placeholder={t('st.name').toLowerCase()} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></td><td><input placeholder={t('st.value').toLowerCase()} value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} /></td>
             <td colSpan={4} /><td><button className="btn" disabled={!draft.name.trim()} onClick={() => { void dt('Network.setCookie', { name: draft.name.trim(), value: draft.value, url }).then(refresh); setDraft({ name: '', value: '' }) }}>+</button></td></tr>
         </tbody></table>
       {list && !rows.length && <div className="empty-hint">{t('st.empty')}</div>}
@@ -86,12 +86,12 @@ function KeyValues({ dt, origin, local, rev, refresh }: { dt: Dt; origin: string
     <>
       <div className="st-tools"><input className="search" placeholder={t('st.filter')} value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn danger" disabled={!items?.length} onClick={() => void dt('DOMStorage.clear', { storageId: id }).then(() => { toast(t('st.cleared')); refresh() })}>{t('st.clear')}</button></div>
-      <table className="tbl st-tbl"><thead><tr><th>Key</th><th>Value</th><th /></tr></thead>
+      <table className="tbl st-tbl"><thead><tr><th>{t('st.key')}</th><th>{t('st.value')}</th><th /></tr></thead>
         <tbody>{rows.map(([k, v]) => (
           <tr key={k}><td className="k">{k}{findJwts(v).length > 0 && <u className="jtag" title="JWT">JWT</u>}</td>
             <td><input defaultValue={v} spellCheck={false} onBlur={(e) => { if (e.target.value !== v) void set(k, e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter') { const nv = (e.target as HTMLInputElement).value; if (nv !== v) void set(k, nv) } }} /></td>
             <td><button className="icon-btn" aria-label="delete" onClick={() => void dt('DOMStorage.removeDOMStorageItem', { storageId: id, key: k }).then(refresh)}>×</button></td></tr>))}
-          <tr className="addrow"><td><input placeholder="key" value={draft.k} onChange={(e) => setDraft({ ...draft, k: e.target.value })} /></td><td><input placeholder="value" value={draft.v} onChange={(e) => setDraft({ ...draft, v: e.target.value })} /></td>
+          <tr className="addrow"><td><input placeholder={t('st.key').toLowerCase()} value={draft.k} onChange={(e) => setDraft({ ...draft, k: e.target.value })} /></td><td><input placeholder={t('st.value').toLowerCase()} value={draft.v} onChange={(e) => setDraft({ ...draft, v: e.target.value })} /></td>
             <td><button className="btn" disabled={!draft.k.trim()} onClick={() => { void set(draft.k.trim(), draft.v); setDraft({ k: '', v: '' }) }}>+</button></td></tr>
         </tbody></table>
       <div style={{ padding: '0 10px' }}><JwtList jwts={(items ?? []).flatMap(([, v]) => findJwts(v)).filter((j, i, a) => a.findIndex((x) => x.raw === j.raw) === i)} /></div>

@@ -12,8 +12,8 @@ export const DEVICES: Device[] = [
   { id: 'galaxy-fold', label: 'Galaxy Z Fold (kapalı)', width: 280, height: 653, dpr: 3, mobile: true },
   { id: 'ipad-mini', label: 'iPad mini', width: 744, height: 1133, dpr: 2, mobile: true },
   { id: 'ipad-pro-11', label: 'iPad Pro 11"', width: 834, height: 1194, dpr: 2, mobile: true },
-  { id: 'laptop', label: 'Laptop 1280', width: 1280, height: 800, dpr: 2, mobile: false },
-  { id: 'desktop', label: 'Desktop 1440', width: 1440, height: 900, dpr: 1, mobile: false },
+  { id: 'laptop', label: 'Dizüstü 1280', width: 1280, height: 800, dpr: 2, mobile: false },
+  { id: 'desktop', label: 'Masaüstü 1440', width: 1440, height: 900, dpr: 1, mobile: false },
   { id: 'full-hd', label: 'Full HD 1920', width: 1920, height: 1080, dpr: 1, mobile: false }
 ]
 export const deviceById = (id: string): Device | undefined => DEVICES.find((d) => d.id === id)

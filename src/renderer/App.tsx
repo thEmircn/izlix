@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { computeLayout, padRect } from '../shared/layout'
 import { Home } from './Home'
 import type { DevToolsDock } from '../shared/events'
-import { useStore, writePref, useT, toast, PANEL_TABS } from './store'
+import { useStore, writePref, useT, toast, PANEL_TABS, wsName } from './store'
 import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
 import { Settings } from './Settings'
@@ -124,7 +124,7 @@ export function App() {
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
-            <span className="t">{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{tb.title || 'New Tab'}</span>
+            <span className="t">{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
             <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
           </div>
         ))}
@@ -144,7 +144,7 @@ export function App() {
           )}
         </form>
         {emuActive(active?.emu) && active && (
-          <button type="button" className="chip emu" title="Emulation active — click to reset" onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null })}>
+          <button type="button" className="chip emu" title={t('emu.resetTip')} onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null })}>
             {[networkPreset(active.emu?.network)?.label, active.emu?.cpu ? `CPU ${active.emu.cpu}×` : '', geoPreset(active.emu?.geo)?.label].filter(Boolean).join(' · ')}<Close />
           </button>
         )}
@@ -166,12 +166,12 @@ export function App() {
           </button>
         )}
         <select aria-label={t('workspace')} value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
-          {s.workspaces.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+          {s.workspaces.map((w) => <option key={w.id} value={w.id}>{wsName(w)}</option>)}
           <option value="__new">{t('ws.fromFolder')}</option>
         </select>
         {(s.detected.length ? s.detected : []).map((d) => (
           <button key={d.port} className="chip" title={d.cwd ?? ''} onClick={() => api.createTab(`localhost:${d.port}`)}>
-            <i className="dot" />{d.port}{d.framework ? ` ${d.framework}` : ''}{ws?.servers.some((x) => x.port === d.port) ? <span className="mine">workspace</span> : null}
+            <i className="dot" />{d.port}{d.framework ? ` ${d.framework}` : ''}{ws?.servers.some((x) => x.port === d.port) ? <span className="mine">{t('ws.mine')}</span> : null}
           </button>
         ))}
         <select aria-label={t('devtools')} value={s.dock} onChange={(e) => setDock(e.target.value as DevToolsDock)}>

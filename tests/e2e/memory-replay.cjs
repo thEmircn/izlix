@@ -7,7 +7,7 @@ module.exports = async ({ tabs, sleep, shellEval, pageEval, click, bus }) => {
   await sleep(26000)
   out.cards = await shellEval(`[...document.querySelectorAll('.mcard .vname')].map(e=>e.textContent)`)
   out.leak = await shellEval(`!!document.querySelector('.mcard.leak')`)
-  out.spark = await shellEval(`document.querySelectorAll('.mcard polyline').length`)
+  out.spark = await shellEval(`document.querySelectorAll('.mcard .spark-line').length`)
   await pageEval(`clearInterval(window.__leak); 0`)
   // replay
   await click('#load'); await sleep(1000)

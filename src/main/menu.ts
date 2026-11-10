@@ -1,25 +1,28 @@
 import { Menu, type MenuItemConstructorOptions } from 'electron'
+import { translate, type Key } from '../shared/i18n'
+import type { Language } from '../shared/events'
 
 /**
  * macOS uygulama menüsü. Kısayollar menü hızlandırıcısı olarak tanımlanır: odak sayfa görünümünde
  * (ayrı webContents) olsa bile çalışırlar. Eylemleri shell yürütür (Command Palette ile aynı komut kimlikleri).
  */
-export function installMenu(run: (cmd: string) => void): void {
+export function installMenu(run: (cmd: string) => void, lang: Language = 'tr'): void {
+  const t = (k: Key, v?: Record<string, string | number>): string => translate(lang, k, v)
   const c = (label: string, accelerator: string, cmd: string): MenuItemConstructorOptions => ({ label, accelerator, click: () => run(cmd) })
   const template: MenuItemConstructorOptions[] = [
-    { label: 'Izlix', submenu: [{ role: 'about' }, { type: 'separator' }, c('Settings…', 'CmdOrCtrl+,', 'settings.open'), c('Keyboard Shortcuts', 'CmdOrCtrl+/', 'shortcuts.open'), { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
-    { label: 'File', submenu: [c('New Tab', 'CmdOrCtrl+T', 'tab.new'), c('Close Tab', 'CmdOrCtrl+W', 'tab.close'), c('Reopen Closed Tab', 'CmdOrCtrl+Shift+T', 'tab.reopen'), c('Select Next Tab', 'Ctrl+Tab', 'tab.next'), c('Select Previous Tab', 'Ctrl+Shift+Tab', 'tab.prev'), ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => c(n === 9 ? 'Select Last Tab' : `Select Tab ${n}`, `CmdOrCtrl+${n}`, `tab.go.${n}`)), c('Bookmark This Page', 'CmdOrCtrl+D', 'bookmark.toggle'), { type: 'separator' }, c('Open Location…', 'CmdOrCtrl+L', 'addr.focus'), c('Find in Page…', 'CmdOrCtrl+F', 'find.open')] },
+    { label: 'Izlix', submenu: [{ role: 'about' }, { type: 'separator' }, c(t('menu.settings'), 'CmdOrCtrl+,', 'settings.open'), c(t('menu.shortcuts'), 'CmdOrCtrl+/', 'shortcuts.open'), { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
+    { label: t('menu.file'), submenu: [c(t('menu.newTab'), 'CmdOrCtrl+T', 'tab.new'), c(t('menu.closeTab'), 'CmdOrCtrl+W', 'tab.close'), c(t('menu.reopen'), 'CmdOrCtrl+Shift+T', 'tab.reopen'), c(t('menu.nextTab'), 'Ctrl+Tab', 'tab.next'), c(t('menu.prevTab'), 'Ctrl+Shift+Tab', 'tab.prev'), ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => c(n === 9 ? t('menu.lastTab') : t('menu.selectTab', { n }), `CmdOrCtrl+${n}`, `tab.go.${n}`)), c(t('menu.bookmark'), 'CmdOrCtrl+D', 'bookmark.toggle'), { type: 'separator' }, c(t('menu.openLoc'), 'CmdOrCtrl+L', 'addr.focus'), c(t('menu.find'), 'CmdOrCtrl+F', 'find.open')] },
     { role: 'editMenu' },
     {
-      label: 'View',
+      label: t('menu.view'),
       submenu: [
-        c('Command Palette…', 'CmdOrCtrl+K', 'palette.open'),
-        c('Reload', 'CmdOrCtrl+R', 'nav.reload'),
-        c('Add Timeline Marker…', 'CmdOrCtrl+Shift+M', 'marker.open'),
-        c('Request Rules…', 'CmdOrCtrl+Shift+R', 'rules.open'),
-        c('Toggle DevTools', 'Alt+CmdOrCtrl+I', 'devtools.toggle'),
+        c(t('menu.palette'), 'CmdOrCtrl+K', 'palette.open'),
+        c(t('menu.reload'), 'CmdOrCtrl+R', 'nav.reload'),
+        c(t('menu.marker'), 'CmdOrCtrl+Shift+M', 'marker.open'),
+        c(t('menu.rules'), 'CmdOrCtrl+Shift+R', 'rules.open'),
+        c(t('menu.devtools'), 'Alt+CmdOrCtrl+I', 'devtools.toggle'),
         { type: 'separator' },
-        ...['Timeline', 'Network', 'Console', 'Elements', 'Sources', 'Storage', 'Performance', 'Coverage', 'Accessibility', 'Profiler', 'Meta & SEO', 'Server', 'Components', 'Renders'].map((n, i) => i < 9 ? c(`Panel: ${n}`, `Alt+CmdOrCtrl+${i + 1}`, `panel.${i}`) : { label: `Panel: ${n}`, click: () => run(`panel.${i}`) }),
+        ...(['tl.timeline', 'tl.network', 'tl.console', 'tl.elements', 'tl.sources', 'tl.storage', 'tl.perf', 'tl.coverage', 'tl.a11y', 'tl.profiler', 'tl.seo', 'tl.server', 'tl.components', 'tl.renders'] as Key[]).map((k, i) => i < 9 ? c(t('menu.panel', { n: t(k) }), `Alt+CmdOrCtrl+${i + 1}`, `panel.${i}`) : { label: t('menu.panel', { n: t(k) }), click: () => run(`panel.${i}`) }),
         { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' },
         { type: 'separator' }, { role: 'togglefullscreen' }
       ]

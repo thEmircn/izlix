@@ -36,7 +36,7 @@ export function RulesPanel({ onClose }: { onClose(): void }) {
 
   return (
     <div className="overlay" style={{ paddingTop: '6vh' }} onMouseDown={onClose}>
-      <div className="dialog" style={{ width: 'min(820px, 94vw)', maxHeight: '86vh' }} role="dialog" aria-label="Request Rules" onMouseDown={(e) => e.stopPropagation()}
+      <div className="dialog" style={{ width: 'min(820px, 94vw)', maxHeight: '86vh' }} role="dialog" aria-label={t('rr.title')} onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 10, alignItems: 'center' }}>
           <b style={{ flex: 1 }}>{t('rr.title', { ws: wsName ?? '' })}</b>

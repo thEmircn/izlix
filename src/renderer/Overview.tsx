@@ -3,15 +3,18 @@ import type { BusEvent } from '../shared/events'
 import { LANE_COLOR, eventLabel, type Lane } from '../shared/label'
 import { formatBytes, formatMs } from '../shared/network'
 import { summarizeOverview } from '../shared/overview'
-import { useStore, useT } from './store'
-import { CountUp, Spark } from './ui'
+import { useStore, useT, wsName } from './store'
+import { Bars, CountUp, Donut, Spark } from './ui'
 
+const TYPE_COLORS = ['#ff6a2b', '#f5b83d', '#5ad08a', '#a1a1aa', '#2dd4bf', '#d4d4d8', '#71717a', '#8b8b92']
 const laneOf = (e: BusEvent): Lane => (e.kind === 'navigation' || e.kind === 'marker' ? 'input' : (e.kind as Lane))
 const clock = (ts: number, t0: number): string => `+${((ts - t0) / 1000).toFixed(1)}s`
 
 /** Overview: sayfanin durumunu tek bakista gosteren bento gosterge paneli. */
 export function Overview({ events }: { events: BusEvent[] }) {
   const t = useT()
+  const lang = useStore((s) => s.settings.language)
+  const laneName = (k: string): string => { const key = `lane.${k}` as any; const v = t(key); return v === key ? k : v }
   const set = useStore((s) => s.set)
   const ws = useStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId))
   const nRules = useStore((s) => (s.rules[s.activeWorkspaceId]?.rules ?? []).filter((r) => r.enabled).length)
@@ -22,19 +25,21 @@ export function Overview({ events }: { events: BusEvent[] }) {
   return (
     <div className="ov">
       <div className="ov-head">
-        <div className="ov-sub">{ws?.name ?? ''}</div>
+        <div className="ov-sub">{wsName(ws)}</div>
         <span className={`pill ${o.healthy ? 'ok' : 'bad'}`}><i />{o.healthy ? t('ov.healthy') : t('ov.issues', { n: o.errors + o.failed })}</span>
       </div>
       <div className="bento">
         <div className="tile">
           <div className="mlabel">{t('ov.requests')}</div>
           <div className="big"><CountUp value={o.requests} /></div>
-          <Spark values={o.reqSeries} color="var(--ac)" height={30} />
+          <Spark values={o.reqSeries} color="var(--ac)" height={34} format={(v) => `${v}`} />
         </div>
         <div className={`tile ${o.failed ? 'warn' : ''}`}>
           <div className="mlabel">{t('ov.failed')}</div>
-          <div className="big"><CountUp value={o.failed} /></div>
-          <div className="tsub">{o.requests ? t('ov.ofReq', { p: Math.round((o.failed / o.requests) * 100) }) : '—'}</div>
+          <div className="tile-ring">
+            <div><div className="big"><CountUp value={o.failed} /></div><div className="tsub">{o.requests ? t('ov.ofReq', { p: Math.round((o.failed / o.requests) * 100) }) : '—'}</div></div>
+            <Donut size={58} thickness={7} segments={[{ value: Math.max(0, o.requests - o.failed), color: 'var(--ok)', label: 'ok' }, { value: o.failed, color: 'var(--bad)', label: 'failed' }]} />
+          </div>
         </div>
         <div className="tile">
           <div className="mlabel">{t('ov.transfer')}</div>
@@ -45,6 +50,22 @@ export function Overview({ events }: { events: BusEvent[] }) {
           <div className="mlabel">{t('ov.console')}</div>
           <div className="big"><CountUp value={o.errors} /><small>{t('ov.errors')}</small></div>
           <div className="tsub" title={o.lastError ?? ''}>{o.lastError ?? t('ov.warnings', { n: o.warns })}</div>
+        </div>
+
+        <div className="tile wide">
+          <div className="mlabel">{t('ov.traffic')} <span className="mdim">{t('ov.last', { s: Math.round(o.spanMs / 1000) })}</span></div>
+          <Bars values={o.reqSeries} bad={o.failSeries} height={78} labels={[`-${Math.round(o.spanMs / 1000)}s`, t('ov.now')]} />
+        </div>
+        <div className="tile wide">
+          <div className="mlabel">{t('ov.byType')}</div>
+          {o.types.length ? (
+            <div className="tile-ring">
+              <Donut size={92} thickness={10} segments={o.types.map((x, i) => ({ value: x.bytes || 0.0001, color: TYPE_COLORS[i % TYPE_COLORS.length], label: x.type }))}>
+                <b>{o.types.reduce((a, x) => a + x.count, 0)}</b>
+              </Donut>
+              <div className="legend">{o.types.slice(0, 5).map((x, i) => <div key={x.type}><i style={{ background: TYPE_COLORS[i % TYPE_COLORS.length] }} /><span>{x.type}</span><code>{formatBytes(x.bytes)}</code></div>)}</div>
+            </div>
+          ) : <div className="tsub">{t('ov.noTraffic')}</div>}
         </div>
 
         <div className="tile wide">
@@ -72,7 +93,7 @@ export function Overview({ events }: { events: BusEvent[] }) {
           <div className="mlabel">{t('ov.activity')} <span className="mdim">{ws?.servers.length ? t('ov.servers', { n: ws.servers.length }) : ''}{nRules ? ` · ${t('ov.rules', { n: nRules })}` : ''}</span></div>
           {o.activity.length ? o.activity.map((e) => (
             <button key={e.id} className="act" onClick={() => go(e.id)}>
-              <i style={{ background: LANE_COLOR[laneOf(e)] }} /><code>{clock(e.ts, t0)}</code><span>{eventLabel(e)}</span><em>{e.kind}</em>
+              <i style={{ background: LANE_COLOR[laneOf(e)] }} /><code>{clock(e.ts, t0)}</code><span>{eventLabel(e, lang)}</span><em>{laneName(e.kind)}</em>
             </button>
           )) : <div className="tsub">{t('tl.empty')}</div>}
         </div>

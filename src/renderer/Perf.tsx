@@ -53,8 +53,8 @@ export function Perf({ events }: { events: BusEvent[] }) {
       </div>
       <div className="net-stats">
         <div className="stat"><span>TBT</span><b className={sum.tbt > 200 ? 'bad' : ''}>{sum.tbt} ms</b></div>
-        <div className="stat"><span>DOMContentLoaded</span><b>{sum.dcl != null ? `${Math.round(sum.dcl)} ms` : '—'}</b></div>
-        <div className="stat"><span>Load</span><b>{sum.load != null ? `${Math.round(sum.load)} ms` : '—'}</b></div>
+        <div className="stat"><span title="DOMContentLoaded">DCL</span><b>{sum.dcl != null ? `${Math.round(sum.dcl)} ms` : '—'}</b></div>
+        <div className="stat"><span>{t('perf.load')}</span><b>{sum.load != null ? `${Math.round(sum.load)} ms` : '—'}</b></div>
         <div className="stat"><span>{t('perf.shifts')}</span><b>{sum.shifts}</b></div>
       </div>
       <h4 className="sec">{t('perf.memory')}</h4>

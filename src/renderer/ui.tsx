@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 // Sade yardimci bilesenler: hover'da hafifce belirginlesen kart ve tus etiketi.
 
@@ -45,16 +45,89 @@ export function CountUp({ value, decimals = 0, ms = 600 }: { value: number; deci
   return <>{shown.toFixed(decimals)}</>
 }
 
-/** Kucuk cizgi grafigi (son degerler). Reduced-motion disinda cizgi giriste cizilir. */
-export function Spark({ values, color = '#d4d4d8', height = 36 }: { values: number[]; color?: string; height?: number }) {
-  const w = 160
-  if (values.length < 2) return <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} />
-  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1
-  const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${height - 3 - ((v - lo) / span) * (height - 8)}`)
+function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null)
+  const [w, setW] = useState(160)
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return
+    const ro = new ResizeObserver(() => setW(Math.max(40, el.clientWidth))); ro.observe(el); setW(Math.max(40, el.clientWidth))
+    return () => ro.disconnect()
+  }, [])
+  return [ref, w]
+}
+
+/** Egrisel alan grafigi: cizgi giriste cizilir, alan solar, son nokta nabiz atar, imlec en yakin degeri gosterir. */
+export function Spark({ values, color = 'var(--ac)', height = 40, format }: { values: number[]; color?: string; height?: number; format?: (v: number) => string }) {
+  const [ref, w] = useWidth()
+  const id = useId().replace(/:/g, '')
+  const [hover, setHover] = useState<number | null>(null)
+  const n = values.length
+  const lo = Math.min(0, ...values), hi = Math.max(1, ...values), span = hi - lo || 1
+  const pad = 4
+  const X = (i: number): number => (n < 2 ? 0 : (i / (n - 1)) * (w - 2 * pad) + pad)
+  const Y = (v: number): number => height - pad - ((v - lo) / span) * (height - 2 * pad - 2)
+  let d = ''
+  if (n >= 2) {
+    d = `M${X(0)},${Y(values[0])}`
+    for (let i = 0; i < n - 1; i++) { const x0 = X(i), y0 = Y(values[i]), x1 = X(i + 1), y1 = Y(values[i + 1]), cx = (x0 + x1) / 2; d += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}` }
+  }
+  const last = n ? { x: X(n - 1), y: Y(values[n - 1]) } : null
+  const hv = hover != null && n ? { x: X(hover), y: Y(values[hover]), v: values[hover] } : null
   return (
-    <svg width="100%" height={height} viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" className="spark">
-      <polyline points={`0,${height} ${pts.join(' ')} ${w},${height}`} fill={color} fillOpacity=".08" stroke="none" />
-      <polyline points={pts.join(' ')} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-    </svg>
+    <div ref={ref} className="spark" style={{ height, color }}
+      onMouseMove={(e) => { if (n < 2) return; const r = e.currentTarget.getBoundingClientRect(); setHover(Math.max(0, Math.min(n - 1, Math.round(((e.clientX - r.left - pad) / (w - 2 * pad)) * (n - 1))))) }}
+      onMouseLeave={() => setHover(null)}>
+      <svg width={w} height={height}>
+        <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".28" /><stop offset="1" stopColor="currentColor" stopOpacity="0" /></linearGradient></defs>
+        {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={0} x2={w} y1={height * f} y2={height * f} className="spark-grid" />)}
+        {n >= 2 && <><path d={`${d} L${X(n - 1)},${height} L${X(0)},${height} Z`} fill={`url(#${id})`} className="spark-area" />
+          <path d={d} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" pathLength={1} className="spark-line" /></>}
+        {last && !hv && <><circle cx={last.x} cy={last.y} r="7" fill="currentColor" opacity=".18" className="spark-ping" /><circle cx={last.x} cy={last.y} r="2.6" fill="currentColor" className="spark-dot" /></>}
+        {hv && <><line x1={hv.x} x2={hv.x} y1={0} y2={height} className="spark-cur" /><circle cx={hv.x} cy={hv.y} r="3.4" fill="var(--bg)" stroke="currentColor" strokeWidth="1.8" /></>}
+      </svg>
+      {hv && <div className="spark-tip" style={{ left: Math.min(w - 54, Math.max(0, hv.x - 24)) }}>{format ? format(hv.v) : hv.v}</div>}
+    </div>
+  )
+}
+
+/** Animasyonlu sutun grafigi: sutunlar sirayla buyur; hata kismi ustte kirmizi yigilir. */
+export function Bars({ values, bad = [], height = 84, labels }: { values: number[]; bad?: number[]; height?: number; labels?: [string, string] }) {
+  const hi = Math.max(1, ...values)
+  return (
+    <div className="bars-wrap">
+      <div className="bars" style={{ height }}>
+        {values.map((v, i) => {
+          const b = Math.min(v, bad[i] ?? 0), h = (v / hi) * 100
+          return (
+            <div key={i} className={`bar ${v ? '' : 'zero'}`} style={{ ['--i' as any]: i }} title={`${v}${b ? ` (${b} !)` : ''}`}>
+              <i style={{ height: v ? `${Math.max(h, 6)}%` : '3px' }}>{b > 0 && <u style={{ height: `${(b / v) * 100}%` }} />}</i>
+            </div>
+          )
+        })}
+      </div>
+      {labels && <div className="bars-axis"><span>{labels[0]}</span><span>{labels[1]}</span></div>}
+    </div>
+  )
+}
+
+/** Halka grafik: dilimler soldan saat yonunde suzulerek dolar; ortada serbest icerik. */
+export function Donut({ segments, size = 104, thickness = 11, children }: { segments: { value: number; color: string; label: string }[]; size?: number; thickness?: number; children?: ReactNode }) {
+  const r = (size - thickness) / 2, C = 2 * Math.PI * r
+  const total = segments.reduce((a, x) => a + x.value, 0) || 1
+  const [on, setOn] = useState(false)
+  useEffect(() => { const h = requestAnimationFrame(() => setOn(true)); return () => cancelAnimationFrame(h) }, [])
+  let acc = 0
+  return (
+    <div className="donut" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={thickness} />
+        {segments.filter((x) => x.value > 0).map((x, i) => {
+          const len = Math.max(0, (x.value / total) * C - 2), off = acc; acc += (x.value / total) * C
+          return <circle key={x.label} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={x.color} strokeWidth={thickness} strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            strokeDasharray={`${on ? len : 0} ${C}`} strokeDashoffset={-off} style={{ transition: `stroke-dasharray .9s var(--ease) ${i * 90}ms` }}><title>{x.label}</title></circle>
+        })}
+      </svg>
+      <div className="donut-c">{children}</div>
+    </div>
   )
 }

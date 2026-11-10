@@ -11,7 +11,8 @@ import { A11y } from './A11y'
 import { Coverage } from './Coverage'
 import { Overview } from './Overview'
 import { Rail } from './Rail'
-import { LANES, LANE_COLOR as COLOR, eventLabel as label, shortUrl, type Lane } from '../shared/label'
+import { LANES, LANE_COLOR as COLOR, eventLabel, shortUrl, type Lane } from '../shared/label'
+import { translate } from '../shared/i18n'
 import { Profiler } from './Profiler'
 import { Seo } from './Seo'
 import { Server } from './Server'
@@ -20,6 +21,11 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { Console } from './Console'
 import { causeChain, effectsOf, sinceNavigation } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
+
+// Dil: panel bilesenleri modul duzeyindeki etiket fonksiyonunu kullanir; Timeline her render'da gunceller
+let curLang: 'en' | 'tr' = 'en'
+const label = (e: Ev): string => eventLabel(e, curLang)
+const laneName = (l: string): string => { const k = `lane.${l}` as any; const v = translate(curLang, k); return v === k ? l : v }
 
 // ---- sabitler ----
 const LANE_H = 30, PAD_L = 62, PAD_R = 14, AXIS_H = 20, DEFAULT_WINDOW = 15_000
@@ -44,6 +50,7 @@ type PTab = PanelTab
 /** Unified Developer Timeline v0: 6 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
 export function Timeline({ width, height }: { width: number; height: number }) {
   const t = useT()
+  curLang = useStore((s) => s.settings.language) as 'en' | 'tr'
   const events = useStore((s) => s.events)
   const activeTabId = useStore((s) => s.activeTabId)
   const selected = useStore((s) => s.selectedEventId)
@@ -95,7 +102,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
         <span className="mlabel">{labels[tab].replace(/ \(\d+\)$/, '')}</span>
         {tab === 'timeline' && <>
           {LANES.map((l) => (
-            <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
+            <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{laneName(l)}</button>
           ))}
           <button type="button" aria-pressed={allReq} className={`lane-chip ${allReq ? '' : 'off'}`} style={{ ['--c' as any]: '#8b8ba0' }} onClick={() => setAllReq(!allReq)}>{t('tl.allRequests')}</button>
           <input className="search" style={{ maxWidth: 150 }} placeholder={t('tl.search')} value={tq} onChange={(e) => setTq(e.target.value)} />
@@ -170,7 +177,7 @@ function Lanes(props: {
         {lanes.map((l) => (
           <g key={l}>
             <line x1={PAD_L} x2={W - PAD_R} y1={laneY(l)} y2={laneY(l)} stroke="#2e2e30" />
-            <text x={6} y={laneY(l) + 4} fill={COLOR[l]} fontSize={11}>{l}</text>
+            <text x={6} y={laneY(l) + 4} fill={COLOR[l]} fontSize={11}>{laneName(l)}</text>
           </g>
         ))}
         {ticks.map((t) => (
@@ -229,7 +236,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
     a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: '#f4f4f5' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
   return (
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
-      <div><b style={{ color: ev.kind === 'marker' ? '#fbbf24' : COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
+      <div><b style={{ color: ev.kind === 'marker' ? '#fbbf24' : COLOR[(laneOf(ev, true) ?? 'input')] }}>{laneName(ev.kind)}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
       <Chain ev={ev} byId={byId} onSelect={onSelect} />
       {ev.kind === 'request' && <QuickRules ev={ev} byId={byId} />}
       {ev.links.map((l) => (
@@ -286,7 +293,7 @@ export function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; o
     <div key={e.id + tag} style={{ display: 'flex', gap: 6, alignItems: 'baseline', paddingLeft: 4 }}>
       <span style={{ color: exact === false ? '#ffb454' : '#a3e635', width: 10 }}>{exact === false ? '┄' : '│'}</span>
       <span style={{ color: 'var(--dim)', minWidth: 48 }}>{dt != null ? `+${dt} ms` : ''}</span>
-      <a href="#" onClick={(x) => { x.preventDefault(); onSelect(e.id) }} style={{ color }}>{e.kind} #{e.id} {label(e)}</a>
+      <a href="#" onClick={(x) => { x.preventDefault(); onSelect(e.id) }} style={{ color }}>{laneName(e.kind)} #{e.id} {label(e)}</a>
     </div>
   )
   return (

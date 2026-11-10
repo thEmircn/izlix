@@ -31,7 +31,7 @@ export function Palette({ onClose }: { onClose(): void }) {
   }
   return (
     <div className="overlay" onMouseDown={onClose}>
-      <div className="dialog" role="dialog" aria-label="Command Palette" onMouseDown={(e) => e.stopPropagation()} onKeyDown={key}>
+      <div className="dialog" role="dialog" aria-label={t('cmd.paletteTitle')} onMouseDown={(e) => e.stopPropagation()} onKeyDown={key}>
         <input className="pal-input" autoFocus placeholder={t('pal.placeholder')} value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="pal-list" ref={list} role="listbox">
           {shown.map((c, i) => (

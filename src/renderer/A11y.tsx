@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast, useStore, useT } from './store'
 import { CountUp } from './ui'
+import { trAudit } from '../shared/audit-tr'
 
 interface Issue { rule: string; sev: 'error' | 'warn'; selector: string; html: string; detail: string; wcag: string }
 
@@ -9,6 +10,7 @@ const HL = { contentColor: { r: 248, g: 113, b: 113, a: 0.22 }, borderColor: { r
 /** Erisilebilirlik denetimi: sayfada hizli WCAG kurallari; sorunlu ogeyi sayfada vurgular. */
 export function A11y() {
   const t = useT()
+  const lang = useStore((s) => s.settings.language)
   const tabId = useStore((s) => s.activeTabId)
   const [issues, setIssues] = useState<Issue[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -62,7 +64,7 @@ export function A11y() {
             </div>
             {open === rule && <div className="aitems">{items.slice(0, 40).map((i, k) => (
               <div key={k} className="aitem" onMouseEnter={() => void highlight(i.selector)} onMouseLeave={() => void highlight(null)} onClick={() => { void navigator.clipboard?.writeText(i.selector); toast(t('toast.copied')) }}>
-                <code className="sel">{i.selector}</code><div className="adetail">{i.detail}</div><pre className="ahtml">{i.html}</pre>
+                <code className="sel">{i.selector}</code><div className="adetail">{trAudit(i.detail, lang)}</div><pre className="ahtml">{i.html}</pre>
               </div>))}</div>}
           </div>
         ))}

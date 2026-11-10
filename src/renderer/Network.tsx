@@ -7,7 +7,7 @@ import { Close } from './icons'
 import { Seg } from './ui'
 import { JwtList } from './Jwt'
 import { findJwts } from '../shared/jwt'
-import { toast, useStore, useT, writePref } from './store'
+import { toast, useStore, useT, writePref, tNow } from './store'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
 
@@ -98,7 +98,7 @@ function Row({ r, t0, span, now, selected, onClick }: { r: NetRow; t0: number; s
   return (
     <div className={`net-row ${selected ? 'sel' : ''} ${cls}`} onClick={onClick}>
       <span className={`m m-${r.method}`}>{r.method}</span>
-      <span className="name" title={r.url}>{r.name}<i>{r.host}</i>{r.modified && <u className="mod">modified</u>}</span>
+      <span className="name" title={r.url}>{r.name}<i>{r.host}</i>{r.modified && <u className="mod">{tNow('ev.modified')}</u>}</span>
       <span className={`pill ${cls}`}>{r.failed ? 'failed' : r.type === 'ws' && r.closed ? 'closed' : r.status ?? '···'}</span>
       <span className="num">{r.type === 'ws' ? `${r.frames} msg` : r.fromCache ? 'cache' : formatBytes(r.size)}</span>
       <span className="num">{dur != null ? formatMs(dur) : ''}</span>

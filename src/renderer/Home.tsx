@@ -1,4 +1,4 @@
-import { useStore, useT } from './store'
+import { useStore, useT, wsName } from './store'
 import { IcFolder, IcServer, Plus, Star } from './icons'
 
 /** Sekme yokken gorunen ana sayfa: Workspace, calisan dev sunuculari, yer imleri, hizli eylemler. */
@@ -12,7 +12,7 @@ export function Home({ style }: { style: React.CSSProperties }) {
     <div className="home" style={style}>
       <div className="home-in">
         <div className="mlabel">{t('home.title')}</div>
-        <h1>{ws?.name ?? 'Workspace'}</h1>
+        <h1>{wsName(ws) || 'Workspace'}</h1>
         <p className="home-sub">{ws?.rootDir ?? t('home.noFolder')}</p>
         <div className="bento">
           <div className="tile wide">

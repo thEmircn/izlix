@@ -1,4 +1,4 @@
-import { PANEL_TABS, useStore, writePref, tNow as t, toast } from './store'
+import { PANEL_TABS, wsName, useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
 import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS } from '../shared/emulation'
 import { DEVICES, MAX_VIEWPORTS, deviceById } from '../shared/lab'
@@ -86,7 +86,7 @@ export function buildCommands(): Command[] {
   for (const g of GEO_PRESETS) cmds.push({ id: `geo.${g.id}`, title: t('cmd.geo', { p: g.label }), hint: emu?.geo === g.id ? 'active' : g.locale, run: () => setEmu({ geo: g.id }) })
   if (emu?.geo) cmds.push({ id: 'geo.off', title: t('cmd.geoOff'), run: () => setEmu({ geo: null }) })
   // Panel sekmeleri
-  const PANEL_NAMES: Record<string, string> = { overview: 'Overview', timeline: 'Timeline', network: 'Network', console: 'Console', elements: 'Elements', sources: 'Sources', storage: 'Storage', perf: 'Performance', coverage: 'Coverage', a11y: 'Accessibility', profiler: 'Profiler', seo: 'Meta & SEO', server: 'Server', components: 'Components', renders: 'Renders', raw: 'Raw events' }
+  const PANEL_NAMES = Object.fromEntries(PANEL_TABS.map((k) => [k, t(`tl.${k}` as any)])) as Record<string, string>
   PANEL_TABS.forEach((k, i) => cmds.push({ id: `panel.${k}`, title: t('cmd.panel', { n: PANEL_NAMES[k] }), hint: i < 9 ? `⌥⌘${i + 1}` : '', run: () => s.set({ panelTab: k }) }))
   // Responsive Lab (#7)
   const lab = active?.lab
@@ -103,10 +103,10 @@ export function buildCommands(): Command[] {
     cmds.push({ id: `dock.${d}`, title: d === 'off' ? t('cmd.dockHide') : t('cmd.dockAt', { pos: d }), run: () => { writePref('dock', d); s.set({ dock: d }) } })
   }
   for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId)) {
-    cmds.push({ id: `tab:${tb.id}`, title: t('cmd.tab', { t: tb.title || 'New Tab' }), hint: tb.url, run: () => void api.activateTab(tb.id) })
+    cmds.push({ id: `tab:${tb.id}`, title: t('cmd.tab', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.activateTab(tb.id) })
   }
   for (const w of s.workspaces) {
-    cmds.push({ id: `ws:${w.id}`, title: t('cmd.workspace', { w: w.name }), hint: w.id === s.activeWorkspaceId ? 'active' : w.rootDir ?? '', run: () => void api.switchWorkspace(w.id) })
+    cmds.push({ id: `ws:${w.id}`, title: t('cmd.workspace', { w: wsName(w) }), hint: w.id === s.activeWorkspaceId ? 'active' : w.rootDir ?? '', run: () => void api.switchWorkspace(w.id) })
   }
   for (const b of s.bookmarks[s.activeWorkspaceId] ?? []) cmds.push({ id: `bm:${b.url}`, title: t('cmd.bookmarkItem', { t: b.title }), hint: b.url, run: () => void api.createTab(b.url) })
   for (const d of s.downloads.slice().reverse()) cmds.push({ id: `dl:${d.id}`, title: t('cmd.download', { t: d.name }), hint: d.state === 'progressing' && d.total ? `${Math.round((d.received / d.total) * 100)}%` : d.state, run: () => void api.showDownload(d.id) })

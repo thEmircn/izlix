@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { attrMap, autoCollapsed, findByKey, findNode, flatten, keyOf, nodeLabel, pathTo, selectorOf, type DomNode, type DomRow } from '../shared/dom'
-import { toast, useStore, useT } from './store'
+import { toast, useStore, useT, tNow } from './store'
 import { Seg } from './ui'
 
 const ROW = 21
@@ -134,7 +134,7 @@ function TreeRow({ r, top, selected, match, dim, onToggle, onSelect, onHover }: 
   else body = <span className="cm">{nodeLabel(n)}</span>
   return (
     <div className={`el-row ${selected ? 'sel' : ''} ${match ? 'match' : ''} ${dim ? 'dim' : ''}`} style={{ top, paddingLeft: indent }} onClick={onSelect} onMouseEnter={() => onHover(true)}>
-      {r.hasChildren && !r.close ? <button className={`arw ${r.open ? 'open' : ''}`} onClick={(e) => { e.stopPropagation(); onToggle() }} aria-label="toggle" /> : <span className="arw-sp" />}
+      {r.hasChildren && !r.close ? <button className={`arw ${r.open ? 'open' : ''}`} onClick={(e) => { e.stopPropagation(); onToggle() }} aria-label={tNow('el.toggle')} /> : <span className="arw-sp" />}
       <span className="el-lbl">{body}</span>
     </div>
   )
