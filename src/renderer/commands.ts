@@ -28,6 +28,7 @@ export function buildCommands(): Command[] {
     { id: 'ws.rename', title: t('cmd.wsRename'), run: () => s.set({ overlay: 'rename' }) },
     ...(s.activeWorkspaceId !== 'default' ? [{ id: 'ws.delete', title: t('cmd.wsDelete'), run: () => void api.deleteWorkspace(s.activeWorkspaceId) }] : []),
     { id: 'find.open', title: t('cmd.find'), hint: '⌘F', run: () => s.set({ find: { open: true, active: 0, total: 0 } }) },
+    { id: 'autoopen', title: t(s.settings.autoOpen ? 'cmd.autoOpenOff' : 'cmd.autoOpenOn'), run: () => void api.setSettings({ autoOpen: !s.settings.autoOpen }) },
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
     { id: 'lang.switch', title: t('cmd.language', { lang: lang === 'en' ? 'Türkçe' : 'English' }), run: () => void api.setSettings({ language: lang === 'en' ? 'tr' : 'en' }) },

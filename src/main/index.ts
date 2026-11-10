@@ -34,6 +34,7 @@ let settings: SettingsStore
 let telemetry: Telemetry
 let demo: DemoServer
 let samplesDir = ''
+let polledOnce = false
 let downloads: Downloads
 let activeWorkspaceId = 'default'
 let detected: DetectedServer[] = []
@@ -206,7 +207,16 @@ async function pollServers(): Promise<void> {
     if (next === null) return // lsof zaman asimi: son bilinen durumu koru
     const sig = (l: DetectedServer[]): string => l.map((s) => s.port + s.pid).join()
     if (sig(next) === sig(detected)) return
+    const fresh = next.filter((n) => !detected.some((d) => d.port === n.port))
+    const firstPoll = !polledOnce; polledOnce = true
     detected = next
+    // Workspace'e ait YENI dev sunucusu basladiysa (ilk tarama sayilmaz) istege bagli sekme ac
+    if (settings?.get().autoOpen && !firstPoll) {
+      for (const s of fresh) {
+        const w = s.cwd ? workspaces.workspaceForCwd(s.cwd) : undefined
+        if (w) void tabs.create({ url: `localhost:${s.port}`, workspaceId: w.id, activate: w.id === activeWorkspaceId })
+      }
+    }
     const byWs = new Map<string, { port: number; framework?: string }[]>()
     for (const s of next) {
       const w = s.cwd ? workspaces.workspaceForCwd(s.cwd) : undefined

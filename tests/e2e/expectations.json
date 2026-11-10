@@ -613,5 +613,17 @@
       "eq",
       "now-up"
     ]
+  ],
+  "autoopen": [
+    [
+      "delta",
+      "eq",
+      1
+    ],
+    [
+      "urls[0]",
+      "contains",
+      "5993"
+    ]
   ]
 }
