@@ -81,7 +81,7 @@ export function buildCommands(): Command[] {
   for (const g of GEO_PRESETS) cmds.push({ id: `geo.${g.id}`, title: t('cmd.geo', { p: g.label }), hint: emu?.geo === g.id ? 'active' : g.locale, run: () => setEmu({ geo: g.id }) })
   if (emu?.geo) cmds.push({ id: 'geo.off', title: t('cmd.geoOff'), run: () => setEmu({ geo: null }) })
   // Panel sekmeleri
-  const PANEL_NAMES: Record<string, string> = { timeline: 'Timeline', network: 'Network', console: 'Console', elements: 'Elements', storage: 'Storage', perf: 'Performance', coverage: 'Coverage', a11y: 'Accessibility', components: 'Components', renders: 'Renders', raw: 'Raw events' }
+  const PANEL_NAMES: Record<string, string> = { timeline: 'Timeline', network: 'Network', console: 'Console', elements: 'Elements', storage: 'Storage', perf: 'Performance', coverage: 'Coverage', a11y: 'Accessibility', seo: 'Meta & SEO', components: 'Components', renders: 'Renders', raw: 'Raw events' }
   PANEL_TABS.forEach((k, i) => cmds.push({ id: `panel.${k}`, title: t('cmd.panel', { n: PANEL_NAMES[k] }), hint: i < 9 ? `⌥⌘${i + 1}` : '', run: () => s.set({ panelTab: k }) }))
   // Responsive Lab (#7)
   const lab = active?.lab

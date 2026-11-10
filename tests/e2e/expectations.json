@@ -1409,5 +1409,62 @@
       "eq",
       "console"
     ]
+  ],
+  "seo": [
+    [
+      "data.title",
+      "eq",
+      "Short"
+    ],
+    [
+      "data.h1",
+      "eq",
+      2
+    ],
+    [
+      "data.links.nofollow",
+      "eq",
+      1
+    ],
+    [
+      "data.links.external",
+      "eq",
+      1
+    ],
+    [
+      "data.noAlt",
+      "eq",
+      1
+    ],
+    [
+      "data.jsonld",
+      "contains",
+      "Article"
+    ],
+    [
+      "items",
+      "contains",
+      "Title is short (5 chars; aim for 10–60)"
+    ],
+    [
+      "items",
+      "contains",
+      "Multiple <h1> elements (2)"
+    ],
+    [
+      "items",
+      "contains",
+      "Add og:image"
+    ],
+    [
+      "items",
+      "contains",
+      "Add twitter:card"
+    ],
+    [
+      "og",
+      "eq",
+      "OG Title"
+    ]
   ]
 }

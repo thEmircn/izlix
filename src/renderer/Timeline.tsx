@@ -9,6 +9,7 @@ import { Storage } from './Storage'
 import { Perf } from './Perf'
 import { A11y } from './A11y'
 import { Coverage } from './Coverage'
+import { Seo } from './Seo'
 import { Console } from './Console'
 import { causeChain, effectsOf, sinceNavigation } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
@@ -92,7 +93,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
         <div style={{ flexBasis: '100%' }}><Seg<PTab> value={tab} onChange={setTab} items={[
-          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') }, { key: 'coverage', label: t('tl.coverage') }, { key: 'a11y', label: t('tl.a11y') },
+          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') }, { key: 'elements', label: t('tl.elements') }, { key: 'storage', label: t('tl.storage') }, { key: 'perf', label: t('tl.perf') }, { key: 'coverage', label: t('tl.coverage') }, { key: 'a11y', label: t('tl.a11y') }, { key: 'seo', label: t('tl.seo') },
           { key: 'components', label: t('tl.components') }, { key: 'renders', label: t('tl.renders') }, { key: 'raw', label: `${t('tl.raw')} (${all.length})` }
         ]} /></div>
         {tab === 'timeline' && <>
@@ -107,7 +108,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
         </>}
       </div>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={events} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={events} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={events} onOpen={open} onSelect={select} />

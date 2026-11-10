@@ -62,6 +62,7 @@ export const api = {
   permRemove: (origin: string, permission: string) => call(Ch.permRemove, { origin, permission }),
   onPermAsk: sub(Ch.permAsk),
   cssSnapshot: (id: string) => call(Ch.cssSnap, { id }),
+  seoAudit: (id: string) => call(Ch.seoAudit, { id }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),
