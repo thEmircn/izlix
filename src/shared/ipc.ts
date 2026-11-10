@@ -44,5 +44,8 @@ export const schemas = {
   reqBody: z.object({ id: z.string().max(64), requestId: z.string().max(128) }),
   wsRename: z.object({ id: z.string().max(64), name: z.string().min(1).max(64) }),
   findStart: z.object({ id: z.string().max(64), text: z.string().min(1).max(200), forward: z.boolean(), next: z.boolean() }),
+  dtCall: z.object({ id: z.string().max(64), method: z.string().max(80), params: z.record(z.string(), z.any()).optional() }),
+  dtFeature: z.object({ id: z.string().max(64), feature: z.enum(['elements', 'storage']) }),
+  dtReact: z.object({ id: z.string().max(64), nodeId: z.number().int().min(0) }),
   overlay: z.object({ open: z.boolean() })
 }

@@ -16,6 +16,7 @@ import { Telemetry, TELEMETRY_EVENTS, type TelemetryEvent } from './telemetry'
 import { DemoServer } from './demo'
 import { restoreWindowState, trackWindowState } from './window-state'
 import { saveSnapshot } from './snapshot'
+import { CdpProxy } from './cdpproxy'
 import { exportReport } from './report'
 import { installMenu } from './menu'
 import { WorkspaceStore, detectServers, partitionFor, type DetectedServer } from './workspace'
@@ -34,6 +35,7 @@ let settings: SettingsStore
 let telemetry: Telemetry
 let demo: DemoServer
 let samplesDir = ''
+let proxy: CdpProxy
 let polledOnce = false
 let downloads: Downloads
 let activeWorkspaceId = 'default'
@@ -82,7 +84,7 @@ async function newTab(url?: string): Promise<string> { return tabs.create({ url,
 
 function registerIpc(): void {
   handle(Ch.tabsCreate, schemas.tabsCreate, ({ url }) => newTab(url))
-  handle(Ch.tabsClose, schemas.tabId, ({ id }) => tabs.close(id))
+  handle(Ch.tabsClose, schemas.tabId, ({ id }) => { proxy.drop(id); tabs.close(id) })
   handle(Ch.tabsActivate, schemas.tabId, ({ id }) => tabs.activate(id))
   handle(Ch.navGo, schemas.navGo, ({ id, input }) => tabs.go(id, input))
   handle(Ch.navBack, schemas.tabId, ({ id }) => tabs.back(id))
@@ -189,6 +191,23 @@ function registerIpc(): void {
   handle(Ch.findStart, schemas.findStart, ({ id, text, forward, next }) => { tabs.get(id)?.view.webContents.findInPage(text, { forward, findNext: next }) })
   handle(Ch.findStop, schemas.tabId, ({ id }) => { tabs.get(id)?.view.webContents.stopFindInPage('clearSelection') })
   handle(Ch.tabsReopen, null, () => tabs.reopenClosed())
+  // Elements / Storage panelleri: izin listeli CDP koprusu (yalnizca shell cagirabilir)
+  handle(Ch.dtCall, schemas.dtCall, ({ id, method, params }) => proxy.call(id, method, params))
+  handle(Ch.dtEnable, schemas.dtFeature, ({ id, feature }) => proxy.enable(id, feature))
+  handle(Ch.dtDisable, schemas.dtFeature, ({ id, feature }) => proxy.disable(id, feature))
+  handle(Ch.dtReact, schemas.dtReact, async ({ id, nodeId }) => {
+    const chain = await proxy.reactChain(id, nodeId)
+    const comps = [...(tabs.get(id)?.cdp?.resolver.components.values() ?? [])]
+    return chain?.map((c) => {
+      const m = c.src ? /^(.*):(\d+):(\d+)$/.exec(c.src) : null
+      const known = comps.find((x) => x.name === c.name)
+      const file = m ? m[1] : known?.file
+      const resolver = tabs.get(id)?.cdp?.resolver
+      // derleme eklentisinden gelen yol sayfa kontrollu: yalnizca guvenilir kok altindaysa "bilinen" olur
+      if (file && resolver && m && isInsideAny([workspaces.get(tabs.get(id)!.info.workspaceId)?.rootDir, resolver.rootProvider?.()], file)) resolver.knownFiles.add(file)
+      return { name: c.name, file, line: m ? Number(m[2]) : known?.line }
+    }) ?? null
+  })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
@@ -256,6 +275,7 @@ async function createWindow(): Promise<void> {
     return workspaces.get(wsId)?.rootDir ?? null
   }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); if (!process.env.DB_NOPERM) lockPermissions(ses); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd))
+  proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
   registerIpc()
   setInterval(() => bus.compact(), 10_000).unref()
   bus.subscribe((ev, change) => send(change === 'new' ? Ch.evNew : Ch.evUpdate, ev))
