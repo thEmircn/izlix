@@ -13,6 +13,7 @@ export function buildCommands(): Command[] {
   const lang = s.settings.language
   const cmds: Command[] = [
     { id: 'tab.new', title: t('cmd.newTab'), hint: '⌘T', run: () => void api.createTab() },
+    { id: 'tab.reopen', title: t('cmd.reopen'), hint: '⇧⌘T', run: () => void api.reopenTab() },
     { id: 'tab.close', title: t('cmd.closeTab'), hint: '⌘W', run: () => active && void api.closeTab(active.id) },
     { id: 'nav.reload', title: t('cmd.reload'), hint: '⌘R', run: () => active && void api.reload(active.id) },
     { id: 'nav.back', title: t('cmd.back'), run: () => active && void api.back(active.id) },

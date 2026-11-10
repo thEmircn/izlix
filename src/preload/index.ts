@@ -40,6 +40,7 @@ export const api = {
   findStart: (id: string, text: string, forward: boolean, next: boolean) => call(Ch.findStart, { id, text, forward, next }),
   findStop: (id: string) => call(Ch.findStop, { id }),
   onFind: sub(Ch.findResult),
+  reopenTab: () => call(Ch.tabsReopen),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

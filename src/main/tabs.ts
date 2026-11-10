@@ -30,6 +30,7 @@ export class TabManager {
   private order: string[] = []
   private activeId: string | null = null
   private seq = 0
+  private closed: { url: string; workspaceId: string }[] = []
   private layoutParams: LayoutParams = { dock: 'right', panelRatio: 0.4, chromeHeight: 84 }
   private sessionFile = join(app.getPath('userData'), 'session.json')
 
@@ -162,6 +163,7 @@ export class TabManager {
     const e = this.tabs.get(id)
     if (!e) return
     const idx = this.order.indexOf(id)
+    if (e.info.url) { this.closed.push({ url: e.info.url, workspaceId: e.info.workspaceId }); if (this.closed.length > 20) this.closed.shift() }
     this.win.contentView.removeChildView(e.view)
     this.releaseDevTools(e)
     void e.lab?.dispose(); e.interceptor?.detach()
@@ -217,6 +219,15 @@ export class TabManager {
   setOverlay(open: boolean): void {
     const cur = this.active()
     cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open); cur?.lab?.setVisible(!open)
+  }
+
+  /** Son kapatilan sekmeyi geri acar (en yeni once); Workspace'i silinmisse atlar */
+  async reopenClosed(): Promise<string | null> {
+    while (this.closed.length) {
+      const c = this.closed.pop()!
+      if (this.workspaces.get(c.workspaceId)) return this.create({ url: c.url, workspaceId: c.workspaceId })
+    }
+    return null
   }
 
   go(id: string, input: string): void { void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input)).catch(() => {}) }

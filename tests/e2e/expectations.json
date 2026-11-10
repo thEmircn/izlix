@@ -567,5 +567,22 @@
       "eq",
       true
     ]
+  ],
+  "reopen": [
+    [
+      "reopened",
+      "eq",
+      true
+    ],
+    [
+      "delta",
+      "eq",
+      1
+    ],
+    [
+      "url",
+      "contains",
+      "?r=1"
+    ]
   ]
 }

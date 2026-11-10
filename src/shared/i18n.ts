@@ -38,6 +38,7 @@ const en = {
   'cmd.snapshot': 'Timeline: Save snapshot (.ndjson.gz)',
   'cmd.wsRename': 'Workspace: Rename current…', 'cmd.wsDelete': 'Workspace: Delete current…', 'ws.rename.title': 'Rename workspace', 'ws.rename.ok': 'Rename',
   'find.placeholder': 'Find in page', 'find.close': 'Close find', 'cmd.find': 'Find in Page…',
+  'cmd.reopen': 'Reopen Closed Tab',
   'cmd.dockHide': 'DevTools: Hide', 'cmd.dockAt': 'DevTools: Dock {pos}', 'cmd.tab': 'Tab: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Bookmark: {t}', 'cmd.download': 'Download: {t}', 'cmd.history': 'History: {t}', 'cmd.openServer': 'Open localhost:{port}{fw}',
   'cmd.ruleOff': 'Rule: Disable “{n}”', 'cmd.ruleOn': 'Rule: Enable “{n}”'
 } as const
@@ -81,6 +82,7 @@ const tr: Record<Key, string> = {
   'cmd.snapshot': 'Timeline: Anlık görüntü kaydet (.ndjson.gz)',
   'cmd.wsRename': 'Workspace: Mevcut olanı yeniden adlandır…', 'cmd.wsDelete': 'Workspace: Mevcut olanı sil…', 'ws.rename.title': 'Workspace\'i yeniden adlandır', 'ws.rename.ok': 'Yeniden adlandır',
   'find.placeholder': 'Sayfada bul', 'find.close': 'Aramayı kapat', 'cmd.find': 'Sayfada Bul…',
+  'cmd.reopen': 'Kapatılan Sekmeyi Geri Aç',
   'cmd.dockHide': 'DevTools: Gizle', 'cmd.dockAt': 'DevTools: {pos} yerleştir', 'cmd.tab': 'Sekme: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Yer imi: {t}', 'cmd.download': 'İndirme: {t}', 'cmd.history': 'Geçmiş: {t}', 'cmd.openServer': 'localhost:{port} aç{fw}',
   'cmd.ruleOff': 'Kural: “{n}” kapat', 'cmd.ruleOn': 'Kural: “{n}” aç'
 }

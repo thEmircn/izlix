@@ -46,6 +46,7 @@ export function App() {
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
+          case 'tab.reopen': void api.reopenTab(); break
           case 'tab.new': void api.createTab(); break
           case 'tab.close': if (act) void api.closeTab(act.id); break
           case 'nav.reload': if (act) void api.reload(act.id); break
