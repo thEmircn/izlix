@@ -35,6 +35,7 @@ export function buildCommands(): Command[] {
     { id: 'shortcuts', title: t('cmd.shortcuts'), hint: '⌘/', run: () => s.set({ overlay: 'shortcuts' }) },
     { id: 'srv.start', title: t('cmd.srvStart'), run: () => { s.set({ panelTab: 'server' }); void api.serverInfo(s.activeWorkspaceId).then((i: any) => { const sc = i?.scripts?.find((x: any) => x.likely) ?? i?.scripts?.[0]; if (sc) void api.serverStart(s.activeWorkspaceId, sc.name) }) } },
     { id: 'srv.stop', title: t('cmd.srvStop'), run: () => void api.serverStop(s.activeWorkspaceId) },
+    { id: 'marker', title: t('cmd.marker'), hint: '⇧⌘M', run: () => s.set({ overlay: 'marker' }) },
     { id: 'settings', title: t('cmd.settings'), hint: '⌘,', run: () => s.set({ overlay: 'settings' }) },
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },

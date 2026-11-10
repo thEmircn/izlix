@@ -6,6 +6,7 @@ import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
 import { Settings } from './Settings'
 import { Shortcuts } from './Shortcuts'
+import { MarkerPrompt } from './MarkerPrompt'
 import { PermissionPrompt } from './PermissionPrompt'
 import { Back, Forward, Reload, Plus, Close, Star, Download, Spinner } from './icons'
 import { RenameWorkspace } from './RenameWorkspace'
@@ -53,6 +54,7 @@ export function App() {
         switch (cmd) {
           case 'palette.open': void api.track('palette.open'); st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
+          case 'marker.open': st.set({ overlay: 'marker' }); break
           case 'shortcuts.open': st.set({ overlay: st.overlay === 'shortcuts' ? null : 'shortcuts' }); break
           case 'settings.open': st.set({ overlay: 'settings' }); break
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
@@ -196,6 +198,7 @@ export function App() {
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       <Toasts />
       <PermissionPrompt />
+      {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}

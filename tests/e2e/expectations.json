@@ -1670,5 +1670,37 @@
       "gt",
       0
     ]
+  ],
+  "marker-sort": [
+    [
+      "markerLine",
+      "eq",
+      1
+    ],
+    [
+      "markerText",
+      "contains",
+      "bug burada"
+    ],
+    [
+      "detail",
+      "eq",
+      true
+    ],
+    [
+      "reportHas",
+      "eq",
+      true
+    ],
+    [
+      "desc",
+      "eq",
+      true
+    ],
+    [
+      "head",
+      "contains",
+      "↓"
+    ]
   ]
 }

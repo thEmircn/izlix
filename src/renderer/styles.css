@@ -332,3 +332,5 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .srvstat { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; } .srvstat .vdot { background: #71717a; } .srvstat.running .vdot { background: #a3e635; box-shadow: 0 0 8px #a3e635; } .srvstat.starting .vdot { background: var(--warn); animation: breathe 1s ease-in-out infinite; } .srvstat.exited .vdot { background: var(--bad); }
 .srv-log { flex: 1; overflow: auto; padding: 6px 12px 12px; font: 11.5px/1.55 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; background: var(--bg2); border-top: 1px solid var(--line); }
 .srv-log .e { color: #fca5a5; } .srv-log .w { color: #fcd34d; } .srv-log .sys { color: var(--dim); }
+
+.hsort { background: none; border: 0; color: var(--dim); font-size: 11px; text-align: left; cursor: pointer; padding: 0; } .hsort:hover, .hsort.on { color: var(--fg); } .net-head .hsort:nth-child(4), .net-head .hsort:nth-child(5) { text-align: right; }

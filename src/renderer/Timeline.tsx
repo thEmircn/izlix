@@ -45,6 +45,7 @@ function label(e: Ev): string {
     case 'render': return `commit · ${p.count} render`
     case 'error': return String(p.text ?? p.errorText ?? 'error').split('\n')[0]
     case 'hmr': return `HMR ${p.file ?? p.action}`
+    case 'marker': return `Marker: ${p.text}`
     case 'console': return String(p.text ?? '')
     default: return e.source
   }
@@ -118,7 +119,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
       {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
-          <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
+          <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
         </>
       )}
@@ -128,10 +129,10 @@ export function Timeline({ width, height }: { width: number; height: number }) {
 }
 
 function Lanes(props: {
-  events: Ev[]; width: number; from: number; to: number; selected: number | null
+  markers: Ev[]; events: Ev[]; width: number; from: number; to: number; selected: number | null
   onSelect(id: number): void; onRange(r: [number, number]): void; allReq: boolean; hidden: Set<Lane>
 }) {
-  const { events, width: W, from, to, selected, onSelect, onRange, allReq, hidden } = props
+  const { events, markers, width: W, from, to, selected, onSelect, onRange, allReq, hidden } = props
   const ref = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<[number, number] | null>(null)
 
@@ -214,6 +215,13 @@ function Lanes(props: {
             </g>
           )
         })}
+        {markers.map((m) => (
+          <g key={m.id} className="marker" style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(m.id)}>
+            <line x1={x(m.ts)} x2={x(m.ts)} y1={0} y2={lanes.length * LANE_H} stroke="#fbbf24" strokeWidth={1.5} strokeDasharray="4 3" opacity={selected === m.id ? 1 : 0.75} />
+            <path d={`M${x(m.ts)},0 l10,4 l-10,4 z`} fill="#fbbf24" /><title>{String(m.payload.text)}</title>
+            <text x={x(m.ts) + 13} y={9} fill="#fbbf24" fontSize={10}>{String(m.payload.text).slice(0, 24)}</text>
+          </g>
+        ))}
         {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={lanes.length * LANE_H} fill="#f4f4f5" opacity={0.15} />}
       </svg>
     </div>
@@ -229,7 +237,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
     a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: '#f4f4f5' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
   return (
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
-      <div><b style={{ color: COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
+      <div><b style={{ color: ev.kind === 'marker' ? '#fbbf24' : COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
       <Chain ev={ev} byId={byId} onSelect={onSelect} />
       {ev.kind === 'request' && <QuickRules ev={ev} byId={byId} />}
       {ev.links.map((l) => (

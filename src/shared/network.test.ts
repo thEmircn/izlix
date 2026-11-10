@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
+import { sortRows, typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
 
 const ev = (id: number, ts: number, kind: BusEvent['kind'], payload: any): BusEvent => ({ id, tabId: 't', ts, kind, source: 's', payload, causeIds: [], links: [] })
 
@@ -75,5 +75,22 @@ describe('typeBreakdown', () => {
     const b = typeBreakdown([{ type: 'js', size: 3000 }, { type: 'js', size: 1000 }, { type: 'css', size: 1000 }, { type: 'img', size: null }])
     expect(b.map((x) => [x.type, x.bytes, x.count])).toEqual([['js', 4000, 2], ['css', 1000, 1], ['img', 0, 1]])
     expect(Math.round(b[0].pct)).toBe(80); expect(typeBreakdown([])).toEqual([])
+  })
+})
+
+describe('sortRows', () => {
+  const rows = [
+    { start: 1, name: 'b.js', status: 200, size: 500, durationMs: 30 },
+    { start: 2, name: 'A.css', status: 404, size: null, durationMs: null },
+    { start: 3, name: 'c.png', status: 200, size: 9000, durationMs: 10 }
+  ]
+  it('boyuta gore azalan; null (bekleyen) her zaman sonda', () => {
+    expect(sortRows(rows, 'size', 'desc').map((r) => r.name)).toEqual(['c.png', 'b.js', 'A.css'])
+    expect(sortRows(rows, 'size', 'asc').map((r) => r.name)).toEqual(['b.js', 'c.png', 'A.css'])
+  })
+  it('ada gore buyuk/kucuk harf duyarsiz; duruma gore; zaman varsayilan', () => {
+    expect(sortRows(rows, 'name', 'asc').map((r) => r.name)).toEqual(['A.css', 'b.js', 'c.png'])
+    expect(sortRows(rows, 'status', 'desc').map((r) => r.status)).toEqual([404, 200, 200])
+    expect(sortRows(rows, 'time', 'asc').map((r) => r.start)).toEqual([1, 2, 3]); expect(sortRows(rows, 'duration', 'asc').map((r) => r.durationMs)).toEqual([10, 30, null])
   })
 })

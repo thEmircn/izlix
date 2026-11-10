@@ -60,5 +60,6 @@ export const schemas = {
   tabMove: z.object({ id: z.string().max(64), index: z.number().int().min(0).max(1000) }),
   srvStart: z.object({ wsId: z.string().max(64), script: z.string().max(100) }),
   wsId: z.object({ wsId: z.string().max(64) }),
+  marker: z.object({ id: z.string().max(64), text: z.string().min(1).max(200) }),
   overlay: z.object({ open: z.boolean() })
 }

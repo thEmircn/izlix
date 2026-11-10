@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { SENSITIVE_KEYS } from '../shared/mask'
-import { typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
+import { sortRows, type SortKey, typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
 import { Seg } from './ui'
@@ -17,6 +17,7 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
   const [filter, setFilter] = useState<'all' | NetType>('all')
   const [q, setQ] = useState('')
   const [clearedAt, setClearedAt] = useState(0)
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'time', dir: 'asc' })
   const selectedId = useStore((s) => s.selectedEventId)
   const tabId = useStore((s) => s.activeTabId)
   const preserve = useStore((s) => s.preserveLog)
@@ -28,8 +29,8 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
   const counts = useMemo(() => { const c: Record<string, number> = { all: all.length }; for (const r of all) c[r.type] = (c[r.type] ?? 0) + 1; return c }, [all])
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    return all.filter((r) => (filter === 'all' || r.type === filter) && (!needle || r.url.toLowerCase().includes(needle) || String(r.status ?? '').includes(needle) || r.method.toLowerCase() === needle))
-  }, [all, filter, q])
+    return sortRows(all, sort.key, sort.dir).filter((r) => (filter === 'all' || r.type === filter) && (!needle || r.url.toLowerCase().includes(needle) || String(r.status ?? '').includes(needle) || r.method.toLowerCase() === needle))
+  }, [all, filter, q, sort])
   const pending = rows.some((r) => r.end == null && !r.failed)
   useEffect(() => { if (!pending) return; const h = setInterval(() => setNow(Date.now()), 120); return () => clearInterval(h) }, [pending])
 
@@ -66,7 +67,13 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
           <div className="brkleg">{typeBreakdown(rows).filter((x) => x.bytes > 0).slice(0, 5).map((x) => <span key={x.type}><i className={`bt-${x.type}`} />{x.type} {formatBytes(x.bytes)}</span>)}</div>
         </div>
       )}
-      <div className="net-head"><span>{t('net.method')}</span><span>{t('net.name')}</span><span>{t('net.status')}</span><span>{t('net.size')}</span><span>{t('net.time')}</span><span>{t('net.waterfall')}</span></div>
+      <div className="net-head">
+        <span>{t('net.method')}</span>
+        {([['name', t('net.name')], ['status', t('net.status')], ['size', t('net.size')], ['duration', t('net.time')]] as [SortKey, string][]).map(([k, label]) => (
+          <button key={k} className={`hsort ${sort.key === k ? 'on' : ''}`} onClick={() => setSort((x) => ({ key: k, dir: x.key === k && x.dir === 'asc' ? 'desc' : 'asc' }))}>{label}{sort.key === k ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</button>
+        ))}
+        <button className={`hsort ${sort.key === 'time' ? 'on' : ''}`} onClick={() => setSort({ key: 'time', dir: 'asc' })}>{t('net.waterfall')}</button>
+      </div>
       <div className="net-list">
         {rows.map((r) => <Row key={r.id} r={r} t0={t0} span={span} now={now} selected={r.id === selectedId} onClick={() => set({ selectedEventId: r.id === selectedId ? null : r.id })} />)}
         {!rows.length && <div className="empty-hint">{t('net.empty')}</div>}

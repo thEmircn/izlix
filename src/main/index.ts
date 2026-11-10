@@ -301,6 +301,7 @@ function registerIpc(): void {
   handle(Ch.srvInfo, schemas.wsId, ({ wsId }) => servers.info(wsId, workspaces.get(wsId)?.rootDir ?? null))
   handle(Ch.srvStart, schemas.srvStart, ({ wsId, script }) => { const w = workspaces.get(wsId); return w?.rootDir ? servers.start(wsId, w.rootDir, script) : false })
   handle(Ch.srvStop, schemas.wsId, ({ wsId }) => servers.stop(wsId))
+  handle(Ch.marker, schemas.marker, ({ id, text }) => { if (tabs.get(id)) bus.emit({ tabId: id, kind: 'marker', source: 'user:marker', payload: { text } }) })
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

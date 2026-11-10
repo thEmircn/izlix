@@ -71,6 +71,7 @@ export const api = {
   serverStart: (wsId: string, script: string) => call(Ch.srvStart, { wsId, script }),
   serverStop: (wsId: string) => call(Ch.srvStop, { wsId }),
   onServer: sub(Ch.srvEvent),
+  addMarker: (id: string, text: string) => call(Ch.marker, { id, text }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

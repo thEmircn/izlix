@@ -106,3 +106,16 @@ export function typeBreakdown(rows: Pick<NetRow, 'type' | 'size'>[]): { type: Ne
   const total = [...m.values()].reduce((a, b) => a + b.bytes, 0)
   return [...m.entries()].map(([type, v]) => ({ type, bytes: v.bytes, count: v.count, pct: total ? (v.bytes / total) * 100 : 0 })).sort((a, b) => b.bytes - a.bytes)
 }
+
+export type SortKey = 'time' | 'name' | 'status' | 'size' | 'duration'
+/** Sutun siralamasi: 'time' = istek sirasi (varsayilan, artan). Bekleyenler sona. Kararli. */
+export function sortRows<T extends Pick<NetRow, 'start' | 'name' | 'status' | 'size' | 'durationMs'>>(rows: T[], key: SortKey, dir: 'asc' | 'desc'): T[] {
+  const val = (r: T): number | string | null => key === 'time' ? r.start : key === 'name' ? r.name.toLowerCase() : key === 'status' ? r.status : key === 'size' ? r.size : r.durationMs
+  const m = dir === 'asc' ? 1 : -1
+  return rows.map((r, i) => ({ r, i, v: val(r) })).sort((a, b) => {
+    if (a.v === null && b.v === null) return a.i - b.i
+    if (a.v === null) return 1
+    if (b.v === null) return -1
+    return (a.v < b.v ? -1 : a.v > b.v ? 1 : 0) * m || a.i - b.i
+  }).map((x) => x.r)
+}

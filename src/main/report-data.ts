@@ -57,6 +57,8 @@ export function buildSummary(events: BusEvent[], env: ReportEnv): string {
     `- Nedensellik bağları: ${links.filter((l) => l.certainty === 'exact').length} kesin, ${links.filter((l) => l.certainty === 'estimated').length} tahmini`,
     `- Request Rules ile değiştirilen istek: ${modified.length}`, ''
   ]
+  const markers = events.filter((e) => e.kind === 'marker')
+  if (markers.length) { md.push('## İşaretler', ''); for (const m of markers) md.push(`- ${new Date(m.ts).toISOString().slice(11, 23)} ${maskString(String(m.payload.text))}`); md.push('') }
   const pf = summarizeVitals(events)
   if (pf.vitals.length || pf.tbt) {
     md.push('## Performans', '')

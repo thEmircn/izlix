@@ -15,6 +15,7 @@ export function installMenu(run: (cmd: string) => void): void {
       submenu: [
         c('Command Palette…', 'CmdOrCtrl+K', 'palette.open'),
         c('Reload', 'CmdOrCtrl+R', 'nav.reload'),
+        c('Add Timeline Marker…', 'CmdOrCtrl+Shift+M', 'marker.open'),
         c('Request Rules…', 'CmdOrCtrl+Shift+R', 'rules.open'),
         c('Toggle DevTools', 'Alt+CmdOrCtrl+I', 'devtools.toggle'),
         { type: 'separator' },

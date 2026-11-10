@@ -25,7 +25,7 @@ interface State {
   preserveLog: boolean
   toasts: { id: number; text: string }[]
   find: { open: boolean; active: number; total: number }
-  overlay: 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | 'shortcuts' | null
+  overlay: 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | 'shortcuts' | 'marker' | null
   settings: Settings
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void

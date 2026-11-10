@@ -1,7 +1,7 @@
 // Olay modeli (plan bolum 4): her olay ayni semayi tasir.
 export type EventKind =
   | 'input' | 'state' | 'request' | 'response' | 'render'
-  | 'console' | 'error' | 'navigation' | 'hmr' | 'vital' | 'ws'
+  | 'console' | 'error' | 'navigation' | 'hmr' | 'vital' | 'ws' | 'marker'
 
 export type Certainty = 'exact' | 'estimated'
 export interface Link { from: number; certainty: Certainty; type: string }
