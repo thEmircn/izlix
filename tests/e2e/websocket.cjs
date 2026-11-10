@@ -19,6 +19,7 @@ module.exports = async ({ tabs, sleep, shellEval, pageEval, bus }) => {
   out.rows = await shellEval(`[...document.querySelectorAll('.net-row')].map(r=>r.innerText.replace(/\\s+/g,' '))`)
   await shellEval(`document.querySelector('.net-row').click()`); await sleep(700)
   out.msgs = await shellEval(`[...document.querySelectorAll('.ws-row')].map(r=>r.innerText.replace(/\\s+/g,' ').slice(0,40))`)
+  out.msgCount = out.msgs.length
   srv.close()
   return out
 }

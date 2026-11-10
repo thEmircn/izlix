@@ -959,7 +959,7 @@
       "ping1"
     ],
     [
-      "msgs",
+      "msgCount",
       "gte",
       4
     ]
