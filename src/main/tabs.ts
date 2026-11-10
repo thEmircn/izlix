@@ -35,7 +35,7 @@ export class TabManager {
   private activeId: string | null = null
   private seq = 0
   private closed: { url: string; workspaceId: string }[] = []
-  private layoutParams: LayoutParams = { dock: 'right', panelRatio: 0.4, chromeHeight: 84 }
+  private layoutParams: LayoutParams = { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }
   private sessionFile = join(app.getPath('userData'), 'session.json')
 
   constructor(private win: BrowserWindow, private bus: EventBus, private workspaces: WorkspaceStore, private onChange: () => void,

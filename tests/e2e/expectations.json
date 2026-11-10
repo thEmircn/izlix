@@ -659,5 +659,62 @@
       "gt",
       0.55
     ]
+  ],
+  "netpanel": [
+    [
+      "indicatorMoved",
+      "eq",
+      true
+    ],
+    [
+      "rows",
+      "gte",
+      8
+    ],
+    [
+      "has500",
+      "eq",
+      true
+    ],
+    [
+      "errorsStat",
+      "eq",
+      "1"
+    ],
+    [
+      "drawer",
+      "eq",
+      true
+    ],
+    [
+      "headersShown",
+      "eq",
+      true
+    ],
+    [
+      "body",
+      "contains",
+      "boom"
+    ],
+    [
+      "drawerClosed",
+      "eq",
+      true
+    ],
+    [
+      "jsFiltered",
+      "eq",
+      true
+    ],
+    [
+      "repeat",
+      "eq",
+      "4"
+    ],
+    [
+      "errorRows",
+      "gte",
+      2
+    ]
   ]
 }

@@ -35,7 +35,7 @@ export function App() {
     const api = window.izlix
     const queue: any[] = []
     const offs = [
-      api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId, dock: p.dock })),
+      api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),

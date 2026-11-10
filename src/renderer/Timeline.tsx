@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
 import { useStore, writePref, useT } from './store'
 import { Inspector, RenderTracker } from './Inspector'
+import { Network } from './Network'
+import { Seg } from './ui'
+import { Console } from './Console'
 import { causeChain, effectsOf } from '../shared/chain'
 import { ruleFromRequest } from '../shared/rules'
 
@@ -41,6 +44,7 @@ function label(e: Ev): string {
 const shortUrl = (u: string): string => { try { const x = new URL(u); return x.pathname + x.search } catch { return u } }
 const fmtT = (ms: number): string => (ms / 1000).toFixed(2) + 's'
 
+type PTab = 'timeline' | 'network' | 'console' | 'raw' | 'components' | 'renders'
 /** Unified Developer Timeline v0: 6 serit, kesin (duz) / tahmini (kesikli) oklar, filtre, aralik secimi. */
 export function Timeline({ width, height }: { width: number; height: number }) {
   const t = useT()
@@ -49,7 +53,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const selected = useStore((s) => s.selectedEventId)
   const editor = useStore((s) => s.editor)
   const set = useStore((s) => s.set)
-  const [tab, setTab] = useState<'timeline' | 'raw' | 'components' | 'renders'>('timeline')
+  const [tab, setTab] = useState<PTab>('timeline')
   const [hidden, setHidden] = useState<Set<Lane>>(new Set())
   const [allReq, setAllReq] = useState(false)
   const [range, setRange] = useState<[number, number] | null>(null)
@@ -77,12 +81,10 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <span className="seg">
-        <b className={tab === 'timeline' ? 'on' : ''} onClick={() => setTab('timeline')}>{t('tl.timeline')}</b>
-        <b className={tab === 'components' ? 'on' : ''} onClick={() => setTab('components')}>{t('tl.components')}</b>
-        <b className={tab === 'renders' ? 'on' : ''} onClick={() => setTab('renders')}>{t('tl.renders')}</b>
-        <b className={tab === 'raw' ? 'on' : ''} onClick={() => setTab('raw')}>{t('tl.raw')} ({all.length})</b>
-        </span>
+        <Seg<PTab> value={tab} onChange={setTab} items={[
+          { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') },
+          { key: 'components', label: t('tl.components') }, { key: 'renders', label: t('tl.renders') }, { key: 'raw', label: `${t('tl.raw')} (${all.length})` }
+        ]} />
         {tab === 'timeline' && <>
           {LANES.map((l) => (
             <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
@@ -95,7 +97,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
         </>}
       </div>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={all} byId={events} /> : tab === 'console' ? <Console events={all} /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <>
           <Lanes events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={width} />
           <Detail ev={sel} byId={events} onOpen={open} onSelect={select} />
@@ -162,7 +164,7 @@ function Lanes(props: {
           if (!a || !b) return null
           const mx = (a.x + b.x) / 2
           return (
-            <path key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
+            <path className="link" key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
               fill="none" stroke={lk.certainty === 'exact' ? '#ddd' : '#999'} strokeWidth={1.2}
               strokeDasharray={lk.certainty === 'estimated' ? '4 3' : undefined} markerEnd={`url(#ar-${lk.certainty})`}
               opacity={selected == null || selected === e.id || selected === lk.from ? 0.9 : 0.35}>
@@ -177,7 +179,7 @@ function Lanes(props: {
           return (
             <g key={e.id}>
               {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="#ffb454" strokeWidth={2} strokeDasharray="3 2" />}
-            <circle cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
+            <circle className="node" cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={selected === e.id ? '#fff' : 'none'} strokeWidth={2}
               style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)}>
               <title>{label(e)}</title>
             </circle>
@@ -201,19 +203,7 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
       <div><b style={{ color: COLOR[(laneOf(ev, true) ?? 'input')] }}>{ev.kind}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
       <Chain ev={ev} byId={byId} onSelect={onSelect} />
-      {ev.kind === 'request' && (
-        <div style={{ margin: '4px 0' }}>{t('tl.ruleFrom')}{' '}
-          {(['mock', 'delay', 'fail'] as const).map((k) => (
-            <button key={k} className="btn" style={{ marginRight: 4 }} onClick={async () => {
-              const body = k === 'mock' ? await window.izlix.responseBody(ev.tabId, p.requestId) : null
-              const mime = [...byId.values()].find((x) => x.kind === 'response' && x.payload.requestId === p.requestId)?.payload.mimeType
-              const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
-              void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k, body, mime)] })
-              st.set({ overlay: 'rules' })
-            }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : 'tl.ruleFail')}</button>
-          ))}
-        </div>
-      )}
+      {ev.kind === 'request' && <QuickRules ev={ev} byId={byId} />}
       {ev.links.map((l) => (
         <div key={l.from} style={{ opacity: 0.85 }}>
           ← <a href="#" onClick={(e) => { e.preventDefault(); onSelect(l.from) }} style={{ color: '#ddd' }}>#{l.from} {byId.get(l.from) ? label(byId.get(l.from)!) : ''}</a>{' '}
@@ -240,8 +230,26 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
   )
 }
 
+export function QuickRules({ ev, byId }: { ev: Ev; byId: Map<number, Ev> }) {
+  const t = useT()
+  const p = ev.payload
+  return (
+    <div className="quick-rules">{t('tl.ruleFrom')}{' '}
+      {(['mock', 'delay', 'fail'] as const).map((k) => (
+        <button key={k} className="btn" onClick={async () => {
+          const body = k === 'mock' ? await window.izlix.responseBody(ev.tabId, p.requestId) : null
+          const mime = [...byId.values()].find((x) => x.kind === 'response' && x.payload.requestId === p.requestId)?.payload.mimeType
+          const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
+          void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k, body, mime)] })
+          st.set({ overlay: 'rules' })
+        }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : 'tl.ruleFail')}</button>
+      ))}
+    </div>
+  )
+}
+
 /** Neden zinciri: kok nedenden secili olaya, adimlar arasi sure ve bag kesinligiyle; altinda dogrudan sonuclar. */
-function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; onSelect(id: number): void }) {
+export function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; onSelect(id: number): void }) {
   const t = useT()
   const steps = causeChain(byId, ev.id)
   const effects = effectsOf(byId.values(), ev.id)

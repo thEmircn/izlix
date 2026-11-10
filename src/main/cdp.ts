@@ -26,21 +26,39 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
   resolver.rootProvider = rootProvider ?? null
   const correlator = new Correlator(bus, resolver, tabId)
   const clock = new ClockSync()
+  const reqEvents = new Map<string, number>(), resEvents = new Map<string, number>()
 
   const onMessage = (_e: unknown, method: string, p: any): void => {
     const now = Date.now()
     switch (method) {
       case 'Network.requestWillBeSent':
         if (p.wallTime) clock.observe(p.timestamp, p.wallTime)
-        bus.emit({ tabId, kind: 'request', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
-          requestId: p.requestId, url: p.request.url, method: p.request.method, type: p.type, initiator: p.initiator
-        } })
+        {
+          const ev = bus.emit({ tabId, kind: 'request', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
+            requestId: p.requestId, url: p.request.url, method: p.request.method, type: p.type, initiator: p.initiator,
+            headers: p.request.headers, postData: typeof p.request.postData === 'string' ? p.request.postData.slice(0, 20_000) : undefined
+          } })
+          reqEvents.set(p.requestId, ev.id)
+          if (reqEvents.size > 2000) reqEvents.delete(reqEvents.keys().next().value!)
+        }
         break
       case 'Network.responseReceived':
-        bus.emit({ tabId, kind: 'response', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
-          requestId: p.requestId, url: p.response.url, status: p.response.status, mimeType: p.response.mimeType, type: p.type
-        } })
+        {
+          const ev = bus.emit({ tabId, kind: 'response', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
+            requestId: p.requestId, url: p.response.url, status: p.response.status, statusText: p.response.statusText, mimeType: p.response.mimeType, type: p.type,
+            headers: p.response.headers, protocol: p.response.protocol, remote: p.response.remoteIPAddress, fromCache: !!(p.response.fromDiskCache || p.response.fromServiceWorker),
+            timing: p.response.timing
+          } })
+          resEvents.set(p.requestId, ev.id)
+          if (resEvents.size > 2000) resEvents.delete(resEvents.keys().next().value!)
+        }
         break
+      case 'Network.loadingFinished': {
+        // indirme bitti: toplam bayt ve bitis zamani yanit olayina eklenir (waterfall + boyut)
+        const id = resEvents.get(p.requestId)
+        if (id != null) bus.patch(id, { size: p.encodedDataLength, finishedTs: clock.toEpoch(p.timestamp, now) })
+        break
+      }
       case 'Network.loadingFailed':
         if (p.canceled || /ERR_ABORTED|ERR_CACHE_MISS/.test(p.errorText ?? '')) break // gurultu: iptal/onbellek
         bus.emit({ tabId, kind: 'error', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: { requestId: p.requestId, errorText: p.errorText } })

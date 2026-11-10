@@ -1,6 +1,7 @@
 // MVP #3: gomulu DevTools yuklenir; yerlesim (sag/alt) ve sekme basina ayri DevTools
 module.exports = async ({ tabs, sleep, shellEval }) => {
   const out = {}
+  tabs.setLayout({ dock: 'right', panelRatio: 0.4, chromeHeight: 84 })
   const a = await tabs.create({ url: 'localhost:5173', workspaceId: 'default' }); await sleep(3500)
   const dt = tabs.get(a).devtools
   out.devtoolsUrl = dt && dt.webContents.getURL().slice(0, 60)

@@ -157,8 +157,13 @@ function registerIpc(): void {
     const e = tabs.get(id); if (!e) return null
     try {
       const r: any = await e.view.webContents.debugger.sendCommand('Network.getResponseBody', { requestId })
-      if (r.base64Encoded || String(r.body).length > 200_000) return null
-      return String(r.body)
+      if (String(r.body).length > 300_000) return null
+      if (!r.base64Encoded) return String(r.body)
+      // base64 gelen govde (content-type yok): gecerli UTF-8 ve kontrol karakteri icermiyorsa metin say
+      const buf = Buffer.from(r.body, 'base64')
+      if (buf.length > 200_000) return null
+      const text = buf.toString('utf8')
+      return !text.includes('\uFFFD') && !/[\u0000-\u0008\u000E-\u001F]/.test(text) ? text : null
     } catch { return null }
   })
   handle(Ch.wsRename, schemas.wsRename, ({ id, name }) => { const ok = workspaces.rename(id, name); if (ok) pushWorkspaces(); return ok })

@@ -1,0 +1,33 @@
+import { describe, expect, it } from 'vitest'
+import type { BusEvent } from './events'
+import { buildNetworkRows, formatBytes, formatMs, nameOf, statusClass, typeOf } from './network'
+
+const ev = (id: number, ts: number, kind: BusEvent['kind'], payload: any): BusEvent => ({ id, tabId: 't', ts, kind, source: 's', payload, causeIds: [], links: [] })
+
+describe('buildNetworkRows', () => {
+  const events = [
+    ev(1, 1000, 'request', { requestId: 'a', url: 'http://x.com/api/items?p=1', method: 'GET', type: 'Fetch' }),
+    ev(2, 1100, 'response', { requestId: 'a', status: 200, mimeType: 'application/json', size: 2048, finishedTs: 1150 }),
+    ev(3, 1200, 'request', { requestId: 'b', url: 'http://x.com/app.js', method: 'GET', type: 'Script', modified: { kinds: ['delay'] } }),
+    ev(4, 1300, 'request', { requestId: 'c', url: 'http://x.com/nope', method: 'POST', type: 'XHR' }),
+    ev(5, 1350, 'error', { requestId: 'c', errorText: 'net::ERR_FAILED' }),
+    ev(6, 1400, 'console', { text: 'x' })
+  ]
+  const rows = buildNetworkRows(events)
+  it('istek, yanit ve hatayi requestId ile birlestirir; sira korunur', () => {
+    expect(rows.map((r) => r.requestId)).toEqual(['a', 'b', 'c'])
+    expect(rows[0]).toMatchObject({ status: 200, size: 2048, durationMs: 150, type: 'xhr', name: 'items?p=1', host: 'x.com', resId: 2 })
+  })
+  it('bekleyen, basarisiz ve degistirilmis istekler', () => {
+    expect(rows[1]).toMatchObject({ status: null, durationMs: null, modified: true, type: 'js' })
+    expect(rows[2]).toMatchObject({ failed: 'net::ERR_FAILED', durationMs: 50 })
+    expect(statusClass(rows[1])).toBe('pending'); expect(statusClass(rows[2])).toBe('failed'); expect(statusClass(rows[0])).toBe('ok')
+  })
+  it('yardimcilar', () => {
+    expect(statusClass({ status: 404, failed: null })).toBe('client'); expect(statusClass({ status: 503, failed: null })).toBe('server'); expect(statusClass({ status: 302, failed: null })).toBe('redirect')
+    expect(formatBytes(512)).toBe('512 B'); expect(formatBytes(2048)).toBe('2.0 kB'); expect(formatBytes(5 * 1048576)).toBe('5.0 MB'); expect(formatBytes(null)).toBe('')
+    expect(formatMs(80)).toBe('80 ms'); expect(formatMs(1500)).toBe('1.50 s')
+    expect(typeOf('Stylesheet')).toBe('css'); expect(typeOf('???')).toBe('other')
+    expect(nameOf('http://a.com/')).toBe('a.com'); expect(nameOf('garbage')).toBe('garbage')
+  })
+})

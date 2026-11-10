@@ -1,6 +1,6 @@
 // Hassas veri maskeleme (plan bolum 11): Authorization, Cookie, Set-Cookie ve JWT'ler rapor ve HAR'dan otomatik maskelenir.
 export const MASK = '[MASKED]'
-const SENSITIVE_KEYS = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|x-auth-token|x-csrf-token|x-xsrf-token|password|passwd|secret|client_secret|access_token|refresh_token|id_token|api_key|apikey|token)$/i
+export const SENSITIVE_KEYS = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|x-auth-token|x-csrf-token|x-xsrf-token|password|passwd|secret|client_secret|access_token|refresh_token|id_token|api_key|apikey|token)$/i
 const JWT = /eyJ[A-Za-z0-9_-]{5,}\.eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]*/g
 const BEARER = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi
 const QUERY_SECRET = /([?&](?:access_token|refresh_token|id_token|token|api_key|apikey|key|secret|password|sig|signature)=)[^&#\s"']+/gi
