@@ -257,3 +257,10 @@ pre.code { margin: 6px 0; padding: 10px 12px; border-radius: 8px; background: va
 h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
 .tasks { padding: 0 12px 14px; } .task { display: grid; grid-template-columns: 70px 1fr 60px; gap: 10px; align-items: center; padding: 2px 0; font-variant-numeric: tabular-nums; animation: rowin .25s var(--ease) both; }
 .task > div { height: 8px; background: rgba(255,255,255,.05); border-radius: 4px; overflow: hidden; } .task b { display: block; height: 100%; background: #d4d4d8; border-radius: 4px; animation: grow .5s var(--ease); transform-origin: left; } .task b.bad { background: var(--bad); } .task code { background: none; text-align: right; padding: 0; }
+
+/* ---- WebSocket mesajlari ---- */
+.ws-row { display: grid; grid-template-columns: 18px 1fr auto auto; gap: 10px; align-items: baseline; padding: 4px 6px; border-radius: 6px; cursor: default; font: 11.5px ui-monospace, Menlo, monospace; animation: rowin .25s var(--ease) both; }
+.ws-row:hover { background: rgba(255,255,255,.04); } .ws-row .data { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ws-row code { background: none; padding: 0; color: var(--dim); }
+.ws-row.sent .arrow { color: #fbbf24; } .ws-row.recv .arrow { color: #a3e635; } .arrow { font-style: normal; font-weight: 700; }
+.ws-row.sent { background: rgba(251,191,36,.04); } .ws-row.recv { background: rgba(163,230,53,.04); }
+.ws-row.sys { grid-template-columns: 1fr auto; color: var(--dim); } .ws-row.sys.err { color: #fca5a5; } .ws-row pre { grid-column: 1 / -1; margin: 4px 0; }

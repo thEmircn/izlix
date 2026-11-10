@@ -7,7 +7,7 @@ import { Close } from './icons'
 import { Seg } from './ui'
 import { toast, useStore, useT } from './store'
 
-const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'js', 'css', 'img', 'doc', 'font', 'other']
+const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
 
 /** Network paneli: canli akan satirlar, waterfall ve aşagidan acilan ayrinti cekmecesi. */
 export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number, BusEvent> }) {
@@ -78,18 +78,19 @@ function Row({ r, t0, span, now, selected, onClick }: { r: NetRow; t0: number; s
     <div className={`net-row ${selected ? 'sel' : ''} ${cls}`} onClick={onClick}>
       <span className={`m m-${r.method}`}>{r.method}</span>
       <span className="name" title={r.url}>{r.name}<i>{r.host}</i>{r.modified && <u className="mod">modified</u>}</span>
-      <span className={`pill ${cls}`}>{r.failed ? 'failed' : r.status ?? '···'}</span>
-      <span className="num">{r.fromCache ? 'cache' : formatBytes(r.size)}</span>
+      <span className={`pill ${cls}`}>{r.failed ? 'failed' : r.type === 'ws' && r.closed ? 'closed' : r.status ?? '···'}</span>
+      <span className="num">{r.type === 'ws' ? `${r.frames} msg` : r.fromCache ? 'cache' : formatBytes(r.size)}</span>
       <span className="num">{dur != null ? formatMs(dur) : ''}</span>
       <span className="wf"><b className={`${cls} ${r.modified ? 'mod' : ''} ${r.end == null && !r.failed ? 'live' : ''}`} style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }} /></span>
     </div>
   )
 }
 
-type DTab = 'headers' | 'payload' | 'response' | 'timing' | 'cause'
+type DTab = 'headers' | 'payload' | 'response' | 'timing' | 'cause' | 'messages'
 function Drawer({ r, byId, onClose }: { r: NetRow; byId: Map<number, BusEvent>; onClose(): void }) {
   const t = useT()
-  const [tab, setTab] = useState<DTab>('headers')
+  const isWs = r.type === 'ws'
+  const [tab, setTab] = useState<DTab>(isWs ? 'messages' : 'headers')
   const req = byId.get(r.id), res = r.resId != null ? byId.get(r.resId) : undefined
   return (
     <div className="drawer">
@@ -100,8 +101,9 @@ function Drawer({ r, byId, onClose }: { r: NetRow; byId: Map<number, BusEvent>; 
         <button className="btn sm" onClick={() => { void navigator.clipboard?.writeText(toFetch(r.method, r.url, req?.payload.headers, req?.payload.postData)); toast(t('toast.copied')) }}>fetch</button>
         <button className="icon-btn" aria-label={t('rr.close')} onClick={onClose}><Close /></button>
       </div>
-      <Seg<DTab> small value={tab} onChange={setTab} items={(['headers', 'payload', 'response', 'timing', 'cause'] as DTab[]).map((k) => ({ key: k, label: t(`net.tab.${k}` as any) }))} />
+      <Seg<DTab> small value={tab} onChange={setTab} items={((isWs ? ['messages', 'headers', 'cause'] : ['headers', 'payload', 'response', 'timing', 'cause']) as DTab[]).map((k) => ({ key: k, label: t(`net.tab.${k}` as any) }))} />
       <div className="drawer-b" key={tab}>
+        {tab === 'messages' && <Messages r={r} byId={byId} />}
         {tab === 'headers' && <Headers r={r} req={req} res={res} />}
         {tab === 'payload' && <Payload data={req?.payload.postData} empty={t('net.noPayload')} />}
         {tab === 'response' && <Body r={r} />}
@@ -129,6 +131,34 @@ function Headers({ r, req, res }: { r: NetRow; req?: BusEvent; res?: BusEvent })
   const t = useT()
   const general: Record<string, string> = { URL: r.url, Method: r.method, Status: r.failed ? r.failed : `${r.status ?? ''} ${res?.payload.statusText ?? ''}`.trim(), ...(res?.payload.remote ? { Remote: res.payload.remote } : {}), ...(res?.payload.protocol ? { Protocol: res.payload.protocol } : {}), ...(r.modified ? { Modified: 'by Request Rules' } : {}) }
   return <><KV title={t('net.general')} data={general} /><KV title={t('net.resHeaders')} data={res?.payload.headers} /><KV title={t('net.reqHeaders')} data={req?.payload.headers} /></>
+}
+
+function Messages({ r, byId }: { r: NetRow; byId: Map<number, BusEvent> }) {
+  const t = useT()
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState<number | null>(null)
+  const frames = useMemo(() => [...byId.values()].filter((e) => e.kind === 'ws' && e.payload.requestId === r.requestId).sort((a, b) => a.ts - b.ts), [byId, r.requestId])
+  const shown = frames.filter((e) => !q || String(e.payload.data ?? '').toLowerCase().includes(q.toLowerCase()))
+  const t0 = frames[0]?.ts ?? 0
+  return (
+    <div className="ws">
+      <input className="search" style={{ width: '100%', marginBottom: 6 }} placeholder={t('ws.filter')} value={q} onChange={(e) => setQ(e.target.value)} />
+      {shown.map((e) => {
+        const p = e.payload
+        if (p.dir === 'closed') return <div key={e.id} className="ws-row sys">{t('ws.closed')}<code>+{Math.round(e.ts - t0)} ms</code></div>
+        if (p.dir === 'error') return <div key={e.id} className="ws-row sys err">{p.data}</div>
+        return (
+          <div key={e.id} className={`ws-row ${p.dir}`} onClick={() => setOpen(open === e.id ? null : e.id)}>
+            <i className="arrow">{p.dir === 'sent' ? '↑' : '↓'}</i>
+            <span className="data">{String(p.data).slice(0, 160)}</span>
+            <code>{formatBytes(p.size)}</code><code>+{Math.round(e.ts - t0)} ms</code>
+            {open === e.id && <pre className="code" onClick={(x) => x.stopPropagation()}>{pretty(String(p.data))}</pre>}
+          </div>
+        )
+      })}
+      {!shown.length && <div className="empty-hint">{t('ws.empty')}</div>}
+    </div>
+  )
 }
 
 const pretty = (s: string): string => { try { return JSON.stringify(JSON.parse(s), null, 2) } catch { return s } }

@@ -1,6 +1,6 @@
 import type { BusEvent } from './events'
 
-export type NetType = 'doc' | 'css' | 'js' | 'img' | 'font' | 'xhr' | 'other'
+export type NetType = 'doc' | 'css' | 'js' | 'img' | 'font' | 'xhr' | 'ws' | 'other'
 
 export interface NetRow {
   id: number            // istek olayinin kimligi
@@ -20,9 +20,12 @@ export interface NetRow {
   modified: boolean
   resId: number | null
   fromCache: boolean
+  /** WebSocket: mesaj sayisi ve kapandi mi */
+  frames: number
+  closed: boolean
 }
 
-const TYPE_MAP: Record<string, NetType> = { Document: 'doc', Stylesheet: 'css', Script: 'js', Image: 'img', Font: 'font', XHR: 'xhr', Fetch: 'xhr', Other: 'other', Media: 'img', Manifest: 'other', WebSocket: 'other', Ping: 'xhr', Preflight: 'xhr' }
+const TYPE_MAP: Record<string, NetType> = { Document: 'doc', Stylesheet: 'css', Script: 'js', Image: 'img', Font: 'font', XHR: 'xhr', Fetch: 'xhr', Other: 'other', Media: 'img', Manifest: 'other', WebSocket: 'ws', Ping: 'xhr', Preflight: 'xhr' }
 export const typeOf = (t: string | undefined): NetType => TYPE_MAP[t ?? ''] ?? 'other'
 
 export function nameOf(url: string): string {
@@ -40,7 +43,7 @@ export function buildNetworkRows(events: Iterable<BusEvent>): NetRow[] {
       try { host = new URL(p.url).host } catch { /* ham url */ }
       rows.set(p.requestId, {
         id: e.id, requestId: p.requestId, method: p.method, url: p.url, name: nameOf(p.url), host, type: typeOf(p.type), status: null, failed: null, mime: '', size: null,
-        start: e.ts, end: null, durationMs: null, modified: !!p.modified, resId: null, fromCache: false
+        start: e.ts, end: null, durationMs: null, modified: !!p.modified, resId: null, fromCache: false, frames: 0, closed: false
       })
       order.push(p.requestId)
     } else if (e.kind === 'response' && rows.has(p.requestId)) {
@@ -48,6 +51,9 @@ export function buildNetworkRows(events: Iterable<BusEvent>): NetRow[] {
       r.status = p.status; r.mime = p.mimeType ?? ''; r.resId = e.id; r.fromCache = !!p.fromCache
       r.end = typeof p.finishedTs === 'number' ? p.finishedTs : e.ts
       if (typeof p.size === 'number') r.size = p.size
+    } else if (e.kind === 'ws' && rows.has(p.requestId)) {
+      const r = rows.get(p.requestId)!
+      if (p.dir === 'closed') { r.closed = true; r.end = e.ts } else if (p.dir === 'sent' || p.dir === 'recv') r.frames++
     } else if (e.kind === 'error' && p.requestId && rows.has(p.requestId)) {
       const r = rows.get(p.requestId)!
       r.failed = String(p.errorText ?? 'failed'); r.end = e.ts

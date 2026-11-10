@@ -931,5 +931,37 @@
       "gte",
       1
     ]
+  ],
+  "websocket": [
+    [
+      "dirs",
+      "contains",
+      "sent"
+    ],
+    [
+      "dirs",
+      "contains",
+      "recv"
+    ],
+    [
+      "rows[0]",
+      "contains",
+      "WS"
+    ],
+    [
+      "rows[0]",
+      "contains",
+      "101"
+    ],
+    [
+      "msgs[0]",
+      "contains",
+      "ping1"
+    ],
+    [
+      "msgs",
+      "gte",
+      4
+    ]
   ]
 }

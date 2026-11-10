@@ -53,6 +53,30 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
           if (resEvents.size > 2000) resEvents.delete(resEvents.keys().next().value!)
         }
         break
+      case 'Network.webSocketCreated': {
+        const ev = bus.emit({ tabId, kind: 'request', ts: now, source: `cdp:${method}`, payload: { requestId: p.requestId, url: p.url, method: 'WS', type: 'WebSocket', initiator: p.initiator } })
+        reqEvents.set(p.requestId, ev.id)
+        break
+      }
+      case 'Network.webSocketHandshakeResponseReceived': {
+        const ev = bus.emit({ tabId, kind: 'response', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: { requestId: p.requestId, url: '', status: p.response.status, statusText: p.response.statusText, type: 'WebSocket', headers: p.response.headers, mimeType: 'websocket' } })
+        resEvents.set(p.requestId, ev.id)
+        break
+      }
+      case 'Network.webSocketFrameSent':
+      case 'Network.webSocketFrameReceived': {
+        const text = String(p.response?.payloadData ?? '')
+        bus.emit({ tabId, kind: 'ws', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
+          requestId: p.requestId, dir: method.endsWith('Sent') ? 'sent' : 'recv', opcode: p.response?.opcode, size: p.response?.opcode === 2 ? Math.floor(text.length * 0.75) : Buffer.byteLength(text), data: text.slice(0, 8000), truncated: text.length > 8000
+        } })
+        break
+      }
+      case 'Network.webSocketFrameError':
+        bus.emit({ tabId, kind: 'ws', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: { requestId: p.requestId, dir: 'error', data: String(p.errorMessage ?? '') } })
+        break
+      case 'Network.webSocketClosed':
+        bus.emit({ tabId, kind: 'ws', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: { requestId: p.requestId, dir: 'closed' } })
+        break
       case 'Network.loadingFinished': {
         // indirme bitti: toplam bayt ve bitis zamani yanit olayina eklenir (waterfall + boyut)
         const id = resEvents.get(p.requestId)

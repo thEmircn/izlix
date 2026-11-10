@@ -47,3 +47,15 @@ describe('toCurl / toFetch', () => {
     expect(f).toContain('fetch("http://a.com"'); expect(f).toContain('"method": "PUT"'); expect(f).toContain('"X-A": "1"'); expect(f).not.toContain('Host')
   })
 })
+
+describe('WebSocket satirlari', () => {
+  it('baglanti, el sikisma, mesaj sayisi ve kapanis', () => {
+    const rows = buildNetworkRows([
+      ev(1, 1000, 'request', { requestId: 'w', url: 'ws://x/live', method: 'WS', type: 'WebSocket' }),
+      ev(2, 1010, 'response', { requestId: 'w', status: 101, type: 'WebSocket' }),
+      ev(3, 1100, 'ws', { requestId: 'w', dir: 'sent', data: 'hi', size: 2 }), ev(4, 1200, 'ws', { requestId: 'w', dir: 'recv', data: 'yo', size: 2 }),
+      ev(5, 1300, 'ws', { requestId: 'w', dir: 'closed' })
+    ])
+    expect(rows[0]).toMatchObject({ type: 'ws', status: 101, frames: 2, closed: true, durationMs: 300 })
+  })
+})
