@@ -46,7 +46,7 @@ export const schemas = {
   wsRename: z.object({ id: z.string().max(64), name: z.string().min(1).max(64) }),
   findStart: z.object({ id: z.string().max(64), text: z.string().min(1).max(200), forward: z.boolean(), next: z.boolean() }),
   dtCall: z.object({ id: z.string().max(64), method: z.string().max(80), params: z.record(z.string(), z.any()).optional() }),
-  dtFeature: z.object({ id: z.string().max(64), feature: z.enum(['elements', 'storage', 'perf']) }),
+  dtFeature: z.object({ id: z.string().max(64), feature: z.enum(['elements', 'storage', 'perf', 'coverage']) }),
   dtReact: z.object({ id: z.string().max(64), nodeId: z.number().int().min(0) }),
   dtEval: z.object({ id: z.string().max(64), expression: z.string().min(1).max(20000) }),
   emuSet: z.object({ id: z.string().max(64), network: z.string().max(20).nullable().optional(), cpu: z.number().int().min(1).max(20).nullable().optional(), geo: z.string().max(20).nullable().optional() }),

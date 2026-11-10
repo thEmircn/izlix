@@ -299,3 +299,9 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .spark { display: block; margin-top: 4px; }
 
 .permrow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: center; padding: 3px 0; } .permrow code { background: none; color: var(--dim); } .permrow em { font-style: normal; font-size: 10.5px; border-radius: 999px; padding: 0 8px; background: rgba(255,255,255,.08); } .permrow em.allow { color: #bef264; } .permrow em.deny { color: #fca5a5; }
+
+/* ---- Coverage ---- */
+.cov { display: flex; flex-direction: column; flex: 1; min-height: 0; } .cov-body { flex: 1; overflow: auto; padding-bottom: 14px; }
+.covlist { padding: 0 12px; } .covrow { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(70px, 120px) 40px 60px; gap: 10px; align-items: center; padding: 3px 0; animation: rowin .25s var(--ease) both; } .covrow .u { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .covrow code { background: none; padding: 0; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+.covbar { height: 8px; border-radius: 4px; background: rgba(248,113,113,.25); overflow: hidden; } .covbar b { display: block; height: 100%; background: #a3e635; border-radius: 4px; animation: grow .6s var(--ease); transform-origin: left; } .covbar b.low { background: #fbbf24; }
+.selist { padding: 0 12px; display: flex; flex-wrap: wrap; gap: 4px; } .selist code { font-size: 11px; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; background: rgba(255,255,255,.03); }

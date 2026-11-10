@@ -21,6 +21,7 @@ import { buildHar } from './report-data'
 import { maskDeep } from '../shared/mask'
 import { CdpProxy } from './cdpproxy'
 import { A11Y_AUDIT } from './a11y-audit'
+import { CSS_SNAPSHOT } from './css-snapshot'
 import { captureShot, shotName } from './shots'
 import { formatEval } from './evalformat'
 import { exportReport } from './report'
@@ -273,6 +274,7 @@ function registerIpc(): void {
   handle(Ch.permAnswer, schemas.permAnswer, ({ id, answer }) => { const f = pendingPerms.get(id); if (f) { pendingPerms.delete(id); f(answer) } })
   handle(Ch.permList, null, () => perms.list())
   handle(Ch.permRemove, schemas.permRemove, ({ origin, permission }) => perms.remove(origin, permission))
+  handle(Ch.cssSnap, schemas.tabId, ({ id }) => evalInPage(id, CSS_SNAPSHOT))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
   handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {

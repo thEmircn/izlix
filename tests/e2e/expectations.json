@@ -1345,5 +1345,27 @@
       "eq",
       "granted"
     ]
+  ],
+  "coverage": [
+    [
+      "recording",
+      "eq",
+      true
+    ],
+    [
+      "rows[0]",
+      "contains",
+      "app.js"
+    ],
+    [
+      "selectors",
+      "contains",
+      ".never-used"
+    ],
+    [
+      "selectors",
+      "contains",
+      ".also-unused .deep"
+    ]
   ]
 }
