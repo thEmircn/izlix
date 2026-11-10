@@ -130,6 +130,7 @@ export class Lab {
       await this.setup(lv)
       if (/^https?:/.test(url)) void view.webContents.loadURL(url).catch(() => {})
     }
+    if (this.media.length) await this.applyMedia(this.media)
     if (this.lastArea) this.layout(this.lastArea)
   }
 
@@ -143,6 +144,13 @@ export class Lab {
       void this.emulate(v, s.scale)
     })
   }
+
+  /** Medya emulasyonu (tema/hareket) Lab'daki TUM gorunumlere uygulanir */
+  async applyMedia(features: { name: string; value: string }[]): Promise<void> {
+    for (const v of this.views) if (!v.wc.isDestroyed()) await v.wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features }).catch(() => {})
+  }
+  get mediaFeatures(): { name: string; value: string }[] { return this.media }
+  media: { name: string; value: string }[] = []
 
   addViews(): void { if (this.visible) for (const v of this.extraViews) this.win.contentView.addChildView(v) }
   removeViews(): void { for (const v of this.extraViews) this.win.contentView.removeChildView(v) }

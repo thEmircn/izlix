@@ -30,6 +30,7 @@ const en = {
   'cmd.rules': 'Request Rules: Edit…', 'cmd.wsNew': 'Workspace: New from Folder…', 'cmd.tlClear': 'Timeline: Clear Selection', 'cmd.bookmark': 'Bookmark: Toggle This Page', 'cmd.report': 'Bug Report: Export zip',
   'cmd.demo': 'Open Demo Project', 'cmd.welcome': 'Show Welcome', 'cmd.language': 'Language: Switch to {lang}', 'cmd.telemetryOn': 'Telemetry: Allow anonymous usage counts', 'cmd.telemetryOff': 'Telemetry: Turn off',
   'cmd.labStart': 'Responsive Lab: Start (iPhone SE + iPad mini + Laptop)', 'cmd.labStartWith': 'Responsive Lab: Start with {d}', 'cmd.labExit': 'Responsive Lab: Exit', 'cmd.labAdd': 'Responsive Lab: Add {d}', 'cmd.labRemove': 'Responsive Lab: Remove {d}',
+  'cmd.emuDark': 'Emulate: Dark color scheme', 'cmd.emuLight': 'Emulate: Light color scheme', 'cmd.emuMotionOn': 'Emulate: Reduced motion on', 'cmd.emuMotionOff': 'Emulate: Reduced motion off', 'cmd.emuReset': 'Emulate: Reset (theme + motion)',
   'cmd.dockHide': 'DevTools: Hide', 'cmd.dockAt': 'DevTools: Dock {pos}', 'cmd.tab': 'Tab: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Bookmark: {t}', 'cmd.download': 'Download: {t}', 'cmd.history': 'History: {t}', 'cmd.openServer': 'Open localhost:{port}{fw}',
   'cmd.ruleOff': 'Rule: Disable “{n}”', 'cmd.ruleOn': 'Rule: Enable “{n}”'
 } as const
@@ -65,6 +66,7 @@ const tr: Record<Key, string> = {
   'cmd.rules': 'Request Rules: Düzenle…', 'cmd.wsNew': 'Workspace: Klasörden Yeni…', 'cmd.tlClear': 'Timeline: Seçimi Temizle', 'cmd.bookmark': 'Yer imi: Bu Sayfayı Ekle/Çıkar', 'cmd.report': 'Hata Raporu: Zip Dışa Aktar',
   'cmd.demo': 'Demo Projesini Aç', 'cmd.welcome': 'Karşılama Ekranını Göster', 'cmd.language': 'Dil: {lang} yap', 'cmd.telemetryOn': 'Telemetri: Anonim kullanım sayılarına izin ver', 'cmd.telemetryOff': 'Telemetri: Kapat',
   'cmd.labStart': 'Responsive Lab: Başlat (iPhone SE + iPad mini + Laptop)', 'cmd.labStartWith': 'Responsive Lab: {d} ile başlat', 'cmd.labExit': 'Responsive Lab: Çık', 'cmd.labAdd': 'Responsive Lab: {d} ekle', 'cmd.labRemove': 'Responsive Lab: {d} çıkar',
+  'cmd.emuDark': 'Emülasyon: Koyu tema', 'cmd.emuLight': 'Emülasyon: Açık tema', 'cmd.emuMotionOn': 'Emülasyon: Azaltılmış hareket açık', 'cmd.emuMotionOff': 'Emülasyon: Azaltılmış hareket kapalı', 'cmd.emuReset': 'Emülasyon: Sıfırla (tema + hareket)',
   'cmd.dockHide': 'DevTools: Gizle', 'cmd.dockAt': 'DevTools: {pos} yerleştir', 'cmd.tab': 'Sekme: {t}', 'cmd.workspace': 'Workspace: {w}', 'cmd.bookmarkItem': 'Yer imi: {t}', 'cmd.download': 'İndirme: {t}', 'cmd.history': 'Geçmiş: {t}', 'cmd.openServer': 'localhost:{port} aç{fw}',
   'cmd.ruleOff': 'Kural: “{n}” kapat', 'cmd.ruleOn': 'Kural: “{n}” aç'
 }

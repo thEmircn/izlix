@@ -28,6 +28,8 @@ export interface TabInfo {
   canGoForward: boolean
   /** Responsive Lab acikken cihaz kimlikleri (ilki birincil gorunum) */
   lab?: string[]
+  /** Emulasyon: acik/koyu tema ve azaltilmis hareket (Emulation.setEmulatedMedia) */
+  media?: { colorScheme?: 'light' | 'dark'; reducedMotion?: boolean }
 }
 
 export interface WorkspaceInfo {

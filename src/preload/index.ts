@@ -32,6 +32,7 @@ export const api = {
   track: (name: string, props?: Record<string, string | number | boolean>) => call(Ch.track, { name, props }),
   openDemo: () => call(Ch.demoOpen),
   onSettings: sub(Ch.settingsState),
+  setMedia: (id: string, colorScheme: 'light' | 'dark' | null, reducedMotion: boolean) => call(Ch.mediaSet, { id, colorScheme, reducedMotion }),
   setLab: (id: string, devices: string[] | null) => call(Ch.labSet, { id, devices }),
   inspectTree: (id: string) => call(Ch.inspTree, { id }),
   inspectNode: (id: string, node: number, t: number | undefined, name: string) => call(Ch.inspNode, { id, node, t, name }),

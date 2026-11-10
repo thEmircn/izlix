@@ -176,6 +176,19 @@ export class TabManager {
     this.onChange(); this.persist()
   }
 
+  /** Emulasyon: acik/koyu tema, azaltilmis hareket. Lab aciksa tum viewport'lara uygulanir. */
+  async setMedia(id: string, colorScheme: 'light' | 'dark' | null, reducedMotion: boolean): Promise<void> {
+    const e = this.tabs.get(id)
+    if (!e || e.view.webContents.isDestroyed()) return
+    const features: { name: string; value: string }[] = []
+    if (colorScheme) features.push({ name: 'prefers-color-scheme', value: colorScheme })
+    if (reducedMotion) features.push({ name: 'prefers-reduced-motion', value: 'reduce' })
+    await e.view.webContents.debugger.sendCommand('Emulation.setEmulatedMedia', { features }).catch(() => {})
+    if (e.lab) { e.lab.media = features; await e.lab.applyMedia(features) }
+    e.info.media = colorScheme || reducedMotion ? { colorScheme: colorScheme ?? undefined, reducedMotion: reducedMotion || undefined } : undefined
+    this.onChange()
+  }
+
   /** Responsive Lab: cihaz kimlikleri listesi (ilki birincil gorunum); null = kapat */
   async setLab(id: string, ids: string[] | null): Promise<void> {
     const e = this.tabs.get(id)
@@ -186,7 +199,10 @@ export class TabManager {
       e.info.lab = undefined
       e.view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); this.layout()
     } else {
-      e.lab ??= new Lab(this.win, e.view, session.fromPartition(partitionFor(e.info.workspaceId)))
+      if (!e.lab) {
+        e.lab = new Lab(this.win, e.view, session.fromPartition(partitionFor(e.info.workspaceId)))
+        if (e.info.media) e.lab.media = [...(e.info.media.colorScheme ? [{ name: 'prefers-color-scheme', value: e.info.media.colorScheme }] : []), ...(e.info.media.reducedMotion ? [{ name: 'prefers-reduced-motion', value: 'reduce' }] : [])]
+      }
       await e.lab.setDevices(devices)
       e.info.lab = devices.map((d) => d.id)
       if (this.activeId === id) e.lab.addViews()

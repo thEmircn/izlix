@@ -10,6 +10,7 @@ npm run dev          # geliştirme (electron-vite)
 npm test             # birim testleri (vitest)
 npm run typecheck
 npm run pack         # imzasız .app (dist/), Electron fuse'ları uygulanır
+npm run e2e          # uçtan uca regresyon paketi (17 betik, geçti/kaldı); önkoşul: localhost:5173'te test uygulaması
 ```
 
 > Ortamında `ELECTRON_RUN_AS_NODE` tanımlıysa Electron Node gibi çalışır; script'ler bunu `env -u` ile temizler.

@@ -30,6 +30,15 @@ export function buildCommands(): Command[] {
       ? { id: 'telemetry.off', title: t('cmd.telemetryOff'), run: () => void api.setSettings({ telemetry: 'denied' }) }
       : { id: 'telemetry.on', title: t('cmd.telemetryOn'), run: () => void api.setSettings({ telemetry: 'granted' }) }
   ]
+  // Emulasyon (P3): tema ve azaltilmis hareket
+  const media = active?.media
+  const setMedia = (cs: 'light' | 'dark' | null, rm: boolean): void => { if (active) void api.setMedia(active.id, cs, rm) }
+  cmds.push(
+    { id: 'emu.dark', title: t('cmd.emuDark'), run: () => setMedia('dark', !!media?.reducedMotion) },
+    { id: 'emu.light', title: t('cmd.emuLight'), run: () => setMedia('light', !!media?.reducedMotion) },
+    { id: 'emu.motion', title: media?.reducedMotion ? t('cmd.emuMotionOff') : t('cmd.emuMotionOn'), run: () => setMedia(media?.colorScheme ?? null, !media?.reducedMotion) }
+  )
+  if (media) cmds.push({ id: 'emu.reset', title: t('cmd.emuReset'), run: () => setMedia(null, false) })
   // Responsive Lab (#7)
   const lab = active?.lab
   const setLab = (ids: string[] | null): void => { if (active) { if (ids) void api.track('lab.start'); void api.setLab(active.id, ids) } }
