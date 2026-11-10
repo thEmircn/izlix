@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BusEvent } from './events'
-import { aggregateRenders, wastedRatio } from './tracker'
+import { aggregateRenders, isMinifiedName, wastedRatio } from './tracker'
 
 const commit = (id: number, ts: number, components: any[]): BusEvent => ({ id, tabId: 't', ts, kind: 'render', source: 'bridge:commit', payload: { count: components.length, components }, causeIds: [], links: [] })
 describe('aggregateRenders', () => {
@@ -27,5 +27,12 @@ describe('aggregateRenders', () => {
   it('ayni isimli farkli tipler ayri satir', () => {
     const rows = aggregateRenders([commit(1, 1, [{ name: 'X', t: 1, reason: 'mount' }, { name: 'X', t: 2, reason: 'mount' }])])
     expect(rows).toHaveLength(2)
+  })
+})
+
+describe('isMinifiedName', () => {
+  it('minify adlari yakalanir, gercek bilesen adlari yakalanmaz', () => {
+    for (const n of ['b', 'N', 'l_', 'eY', 'e$', 'x1']) expect(isMinifiedName(n)).toBe(true)
+    for (const n of ['App', 'List', 'Row', 'Page', 'Nav', 'Ab']) expect(isMinifiedName(n)).toBe(false)
   })
 })

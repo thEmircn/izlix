@@ -30,3 +30,6 @@ export function aggregateRenders(events: BusEvent[], range?: [number, number]): 
 
 /** "Gereksiz render" ipucu: yalnizca ust bilesen yuzunden (props/state degismeden) render olanlar. */
 export const wastedRatio = (r: TrackerRow): number => (r.renders ? (r.reasons.parent ?? 0) / r.renders : 0)
+
+/** Minify edilmis dahili bilesen adi (orn. Next dev overlay: "b", "l_", "eY"): 1-2 harf, istege bagli rakam/_/$ */
+export const isMinifiedName = (name: string): boolean => /^[A-Za-z_$][A-Za-z0-9_$]?$/.test(name) && !/^[A-Z][a-z]$/.test(name)

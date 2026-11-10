@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
-import { aggregateRenders, wastedRatio, type TrackerRow } from '../shared/tracker'
+import { aggregateRenders, isMinifiedName, wastedRatio, type TrackerRow } from '../shared/tracker'
 import { useStore, useT } from './store'
 
 interface Node { id: number; depth: number; name: string; t?: number; key?: string }
@@ -38,6 +38,7 @@ export function Inspector({ height }: { height: number }) {
   const [detail, setDetail] = useState<any>(null)
   const [scroll, setScroll] = useState(0)
   const [auto, setAuto] = useState(true)
+  const [hideMin, setHideMin] = useState(true)
   const seen = useRef(-1)
   const render = latestRenderId(events, tabId)
   const counts = useMemo(() => new Map(aggregateRenders([...events.values()].filter((e) => e.tabId === tabId)).map((r) => [r.key, r])), [events, tabId])
@@ -54,7 +55,7 @@ export function Inspector({ height }: { height: number }) {
     return () => clearTimeout(h)
   }, [render, auto, refresh])
 
-  const shown = useMemo(() => { const q = filter.trim().toLowerCase(); return q ? nodes.filter((n) => n.name.toLowerCase().includes(q)) : nodes }, [nodes, filter])
+  const shown = useMemo(() => { const q = filter.trim().toLowerCase(); const base = hideMin ? nodes.filter((n) => !isMinifiedName(n.name)) : nodes; return q ? base.filter((n) => n.name.toLowerCase().includes(q)) : base }, [nodes, filter, hideMin])
   const viewH = Math.max(100, height * 0.5)
   const first = Math.max(0, Math.floor(scroll / ROW_H) - 5), last = Math.min(shown.length, Math.ceil((scroll + viewH) / ROW_H) + 5)
 
@@ -68,6 +69,7 @@ export function Inspector({ height }: { height: number }) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', gap: 8, padding: '4px 8px', alignItems: 'center' }}>
         <input placeholder={t('insp.search')} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: '#121214', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
+        <label><input type="checkbox" checked={hideMin} onChange={(e) => setHideMin(e.target.checked)} /> {t('insp.hideMin')}</label>
         <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {t('insp.auto')}</label>
         <button className="btn" onClick={() => void refresh()}>{t('insp.refresh')}</button>
         <span style={{ color: 'var(--dim)' }}>{t('insp.count', { n: nodes.length })}{truncated ? '+' : ''}</span>

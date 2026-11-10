@@ -1,9 +1,15 @@
 import type { WebContents } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping'
+import { TraceMap, FlattenMap, originalPositionFor } from '@jridgewell/trace-mapping'
 
 export interface SrcLoc { file: string; line: number; column: number } // line 1-bazli, orijinal kaynak
+
+/** Duz harita (Vite/webpack) veya indeksli/bolumlu harita (Next.js Turbopack: `sections`) */
+export function parseSourceMap(text: string, url: string): TraceMap {
+  const json = JSON.parse(text)
+  return Array.isArray(json.sections) ? (new FlattenMap(json, url) as unknown as TraceMap) : new TraceMap(json, url)
+}
 
 interface Script { scriptId: string; url: string; sourceMapURL?: string; map?: Promise<TraceMap | null> }
 
@@ -70,7 +76,7 @@ export class SourceResolver {
           const res = await this.wc.session.fetch(new URL(s.sourceMapURL, s.url).href)
           text = await res.text()
         }
-        return new TraceMap(text, s.url)
+        return parseSourceMap(text, s.url)
       } catch { return null }
     })()
     return s.map
