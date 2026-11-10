@@ -68,7 +68,10 @@ export function Timeline({ width, height }: { width: number; height: number }) {
     if (!sent.current.has('chain') && all.some((e) => e.links.some((l) => l.certainty === 'exact'))) { sent.current.add('chain'); void window.izlix.track('chain.seen') }
   }, [all, tab, activeTabId, wsId])
   const tMax = all.length ? all[all.length - 1].ts : Date.now()
-  const [from, to] = range ?? [tMax - DEFAULT_WINDOW, tMax]
+  // Varsayilan aralik: son 15 sn icindeki verinin kapsadigi bolge (en az 2 sn); olaylar sagda sikismasin
+  const recentStart = all.find((e) => e.ts >= tMax - DEFAULT_WINDOW)?.ts ?? tMax - DEFAULT_WINDOW
+  const autoSpan = Math.max(2000, tMax - recentStart)
+  const [from, to] = range ?? [tMax - autoSpan * 1.06, tMax + autoSpan * 0.03]
   const visible = useMemo(
     () => all.filter((e) => { const l = laneOf(e, allReq); return l && !hidden.has(l) && e.ts >= from && e.ts <= to }),
     [all, hidden, allReq, from, to]
@@ -81,10 +84,10 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
-        <Seg<PTab> value={tab} onChange={setTab} items={[
+        <div style={{ flexBasis: '100%' }}><Seg<PTab> value={tab} onChange={setTab} items={[
           { key: 'timeline', label: t('tl.timeline') }, { key: 'network', label: t('tl.network') }, { key: 'console', label: t('tl.console') },
           { key: 'components', label: t('tl.components') }, { key: 'renders', label: t('tl.renders') }, { key: 'raw', label: `${t('tl.raw')} (${all.length})` }
-        ]} />
+        ]} /></div>
         {tab === 'timeline' && <>
           {LANES.map((l) => (
             <button key={l} type="button" aria-pressed={!hidden.has(l)} className={`lane-chip ${hidden.has(l) ? 'off' : ''}`} style={{ ['--c' as any]: COLOR[l] }} onClick={() => toggle(l)}>{l}</button>
