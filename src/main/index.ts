@@ -282,6 +282,23 @@ function registerIpc(): void {
     }
     return { history: n }
   })
+  // Yer imi yoneticisi + cubuk menuleri
+  handle(Ch.bmUpdate, schemas.bmUpdate, ({ url, newUrl, ...p }) => { const ok = library.updateBookmark(activeWorkspaceId, url, { ...p, ...(newUrl !== undefined ? { url: newUrl } : {}) }); pushLibrary(); return ok })
+  handle(Ch.bmRemove, schemas.bmRemove, ({ url }) => { library.removeBookmark(activeWorkspaceId, url); pushLibrary() })
+  handle(Ch.bmFolder, schemas.bmFolder, ({ name, to }) => { library.editFolder(activeWorkspaceId, name, to); pushLibrary() })
+  handle(Ch.bmMenu, schemas.bmMenu, ({ folder, url }) => {
+    const ws = activeWorkspaceId, here = tabs.active()
+    const go = (u: string, newTab: boolean): void => { if (newTab || !here) void newTab_(u); else tabs.go(here.info.id, u) }
+    const newTab_ = (u: string): Promise<string> => newTab(u)
+    if (url) { // tek yer imi: sag tik menusu
+      Menu.buildFromTemplate([
+        { label: tr('bm.openNew'), click: () => go(url, true) }, { label: tr('bm.openPrivate'), click: () => void newTab(url, 'incognito') },
+        { type: 'separator' }, { label: tr('bm.delete'), click: () => { library.removeBookmark(ws, url); pushLibrary() } }
+      ]).popup({ window: curWin ?? win }); return
+    }
+    const items = library.bookmarks(ws).filter((b) => (folder ? b.folder === folder : !b.folder))
+    Menu.buildFromTemplate(items.length ? items.map((b) => ({ label: (b.title || b.url).slice(0, 60), click: () => go(b.url, false) })) : [{ label: tr('bm.empty'), enabled: false }]).popup({ window: curWin ?? win })
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 export interface Visit { url: string; title: string; ts: number }
-export interface Bookmark { url: string; title: string; ts: number }
+export interface Bookmark { url: string; title: string; ts: number; /** klasor adi (yoksa kok) */ folder?: string }
 interface Data { history: Visit[]; bookmarks: Record<string, Bookmark[]> }
 
 const MAX_HISTORY = 5000
@@ -78,6 +78,25 @@ export class Library {
     const before = this.data.history.length
     this.data.history = since <= 0 ? [] : this.data.history.filter((v) => v.ts < since)
     this.save(); return before - this.data.history.length
+  }
+  // ---- yer imi yonetimi: duzenleme, klasorler ----
+  updateBookmark(wsId: string, url: string, patch: { title?: string; url?: string; folder?: string | null }): boolean {
+    const b = this.bookmarks(wsId).find((x) => x.url === url); if (!b) return false
+    if (patch.title !== undefined) b.title = patch.title.slice(0, 300) || b.url
+    if (patch.url !== undefined && /^https?:\/\//.test(patch.url) && !this.bookmarks(wsId).some((x) => x !== b && x.url === patch.url)) b.url = patch.url
+    if (patch.folder !== undefined) { if (patch.folder) b.folder = patch.folder.slice(0, 80); else delete b.folder }
+    this.save(); return true
+  }
+  removeBookmark(wsId: string, url: string): boolean {
+    const l = this.bookmarks(wsId), i = l.findIndex((x) => x.url === url); if (i < 0) return false
+    l.splice(i, 1); this.data.bookmarks[wsId] = l; this.save(); return true
+  }
+  folders(wsId: string): string[] { return [...new Set(this.bookmarks(wsId).map((b) => b.folder).filter((f): f is string => !!f))].sort((a, b) => a.localeCompare(b)) }
+  /** Klasoru yeniden adlandirir (to bos degilse) ya da siler (icindekiler koke tasinir) */
+  editFolder(wsId: string, name: string, to?: string): number {
+    let n = 0
+    for (const b of this.bookmarks(wsId)) if (b.folder === name) { if (to) b.folder = to.slice(0, 80); else delete b.folder; n++ }
+    if (n) this.save(); return n
   }
   clearHistory(): void { this.data.history = []; this.save() }
 

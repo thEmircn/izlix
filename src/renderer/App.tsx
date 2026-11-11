@@ -5,6 +5,7 @@ import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
 import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune, IcKey } from './icons'
 import { SiteSettings } from './SiteSettings'
 import { HistoryPage } from './HistoryPage'
+import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
@@ -65,7 +66,7 @@ export function App() {
   const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
   const vertical = s.tabLayout === 'side'
   const sideW = vertical ? (s.sideCollapsed ? SIDE_W_COLLAPSED : SIDE_W) : 0
-  const chromeH = (vertical ? CHROME_H_SIDE : CHROME_H) + (active?.lab ? LAB_BAR_H : 0)
+  const chromeH = (vertical ? CHROME_H_SIDE : CHROME_H) + (active?.lab ? LAB_BAR_H : 0) + (s.bmBar ? BM_H : 0)
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 
   useEffect(() => {
@@ -107,6 +108,8 @@ export function App() {
           case 'tab.reopen': void api.reopenTab(); break
           case 'zoom.in': case 'zoom.out': case 'zoom.reset': if (act) void api.zoom(act.id, cmd.slice(5) as 'in' | 'out' | 'reset'); break
           case 'pw.fill': if (act && act.logins) void api.pwFill(act.id); break
+          case 'bm.open': st.set({ overlay: 'bookmarks' }); break
+          case 'bmbar.toggle': { const v = !st.bmBar; writePref('bmBar', v ? '1' : '0'); st.set({ bmBar: v }); break }
           case 'history.open': st.set({ overlay: 'history' }); break
           case 'site.open': st.set({ overlay: 'site' }); break
           case 'page.print': void api.printPage('print'); break
@@ -272,6 +275,7 @@ export function App() {
         <button className={`tb-btn dash-btn ${s.dashboard ? 'on' : ''}`} aria-pressed={s.dashboard} title={`${t('dash.title')}  ⌥⌘D`} aria-label={t('dash.title')} onClick={() => s.set({ dashboard: !s.dashboard })}><IcOverview /></button>
         <button className={`tb-btn panel-toggle ${s.panelOpen && !s.dashboard ? 'on' : ''}`} aria-pressed={s.panelOpen && !s.dashboard} title={`${t('panel.toggle')}  ⌥⌘B`} aria-label={t('panel.toggle')} onClick={() => s.set({ panelOpen: !s.panelOpen, dashboard: false })}>{side === 'left' ? <IcDockL /> : side === 'bottom' ? <IcDockB /> : <IcPanel />}</button>
       </div>
+      {s.bmBar && <BookmarkBar left={sideW} />}
 
       {active?.loading && <div className="load-bar" aria-hidden><i /></div>}
       {active?.lab && (
@@ -302,6 +306,7 @@ export function App() {
       {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'bookmarks' && <BookmarkManager onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'history' && <HistoryPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}

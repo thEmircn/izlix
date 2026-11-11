@@ -38,4 +38,15 @@ describe('Library', () => {
     expect(l.clearSince(3000)).toBe(1); expect(l.visits().map((v) => v.ts)).toEqual([2000])
     expect(l.clearSince(0)).toBe(1); expect(l.visits()).toEqual([])
   })
+  it('yer imi duzenleme: baslik/url/klasor, silme, klasor yeniden adlandirma/silme', () => {
+    const l = lib()
+    l.toggleBookmark('w', 'https://a.com/', 'A', 1); l.toggleBookmark('w', 'https://b.com/', 'B', 2)
+    expect(l.updateBookmark('w', 'https://a.com/', { title: 'Alfa', folder: 'Is' })).toBe(true)
+    expect(l.updateBookmark('w', 'https://b.com/', { folder: 'Is', url: 'https://a.com/' })).toBe(true) // ayni url baska yer iminde var: url degismez
+    expect(l.bookmarks('w').map((b) => [b.url, b.title, b.folder])).toEqual([['https://a.com/', 'Alfa', 'Is'], ['https://b.com/', 'B', 'Is']])
+    expect(l.folders('w')).toEqual(['Is']); expect(l.editFolder('w', 'Is', 'Is2')).toBe(2); expect(l.folders('w')).toEqual(['Is2'])
+    expect(l.editFolder('w', 'Is2')).toBe(2); expect(l.folders('w')).toEqual([])
+    expect(l.removeBookmark('w', 'https://a.com/')).toBe(true); expect(l.removeBookmark('w', 'https://yok/')).toBe(false); expect(l.bookmarks('w')).toHaveLength(1)
+    expect(l.updateBookmark('w', 'https://b.com/', { url: 'javascript:alert(1)' })).toBe(true); expect(l.bookmarks('w')[0].url).toBe('https://b.com/')
+  })
 })

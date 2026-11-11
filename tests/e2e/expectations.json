@@ -3392,5 +3392,57 @@
       "eq",
       true
     ]
+  ],
+  "bookmarks": [
+    [
+      "rows",
+      "eq",
+      2
+    ],
+    [
+      "folderSet",
+      "eq",
+      "Meyve"
+    ],
+    [
+      "folders",
+      "contains",
+      "Meyve"
+    ],
+    [
+      "titleEdited",
+      "eq",
+      "Armut Yeni"
+    ],
+    [
+      "bar",
+      "eq",
+      true
+    ],
+    [
+      "chips",
+      "contains",
+      "Armut Yeni"
+    ],
+    [
+      "chips",
+      "contains",
+      "Meyve▾"
+    ],
+    [
+      "pageShifted",
+      "eq",
+      30
+    ],
+    [
+      "navigated",
+      "eq",
+      true
+    ],
+    [
+      "removed",
+      "eq",
+      true
+    ]
   ]
 }
