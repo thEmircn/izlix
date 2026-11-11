@@ -186,7 +186,7 @@ export class TabManager {
     entry.cdp = await attachCdp(wc, id, this.bus, () => {
       const u = wc.getURL()
       return this.rootFor(/^https?:/.test(u) ? u : entry.lastHttpUrl ?? u, opts.workspaceId)
-    })
+    }, () => !!entry.info.service || !!entry.info.private)
     await this.hooks.onAttached?.(wc, id) // belge-basi betikler hedef sayfa yuklenmeden kurulur
     entry.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(opts.workspaceId), this.adHook(wc))
     await entry.interceptor.refresh()
@@ -571,7 +571,7 @@ export class TabManager {
       const wc = view.webContents
       await wc.loadURL('about:blank')
       if (/^https?:/.test(target)) e.lastHttpUrl = target
-      e.cdp = await attachCdp(wc, id, this.bus, () => { const u = wc.getURL(); return this.rootFor(/^https?:/.test(u) ? u : e.lastHttpUrl ?? u, e.info.workspaceId) })
+      e.cdp = await attachCdp(wc, id, this.bus, () => { const u = wc.getURL(); return this.rootFor(/^https?:/.test(u) ? u : e.lastHttpUrl ?? u, e.info.workspaceId) }, () => !!e.info.service || !!e.info.private)
       await this.hooks.onAttached?.(wc, id) // belge-basi betikler hedef sayfa yuklenmeden kurulur
       e.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(e.info.workspaceId), this.adHook(wc))
       await e.interceptor.refresh()

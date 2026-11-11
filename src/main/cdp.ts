@@ -1,3 +1,4 @@
+import { isSensitiveRequest, scrubHeaders } from '../shared/sensitive'
 import type { WebContents } from 'electron'
 import type { EventBus } from './bus'
 import { ADAPTERS, BINDING } from './adapters'
@@ -20,7 +21,7 @@ export class ClockSync {
 // CDP toplayici: Network, Runtime, Page olaylarini ve React koprusunu veriyoluna baglar.
 // NOT: webContents'e ilk sayfa yuklenmeden CDP komutlari yanit vermez; cagiran once about:blank yuklemeli.
 // NOT: Debugger domain'i burada ACILMAZ: yukleme suresini ~%60 sisirir (bkz. docs/faz0-raporu.md). Bkz. sources.ts.
-export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, rootProvider?: () => string | null): Promise<Tab> {
+export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, rootProvider?: () => string | null, sensitiveTab?: () => boolean): Promise<Tab> {
   const dbg = wc.debugger
   dbg.attach('1.3')
   const resolver = new SourceResolver(wc)
@@ -37,7 +38,7 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
         {
           const ev = bus.emit({ tabId, kind: 'request', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
             requestId: p.requestId, url: p.request.url, method: p.request.method, type: p.type, initiator: p.initiator,
-            headers: p.request.headers, postData: typeof p.request.postData === 'string' ? p.request.postData.slice(0, 20_000) : undefined
+            ...(isSensitiveRequest(p.request.url, p.request.method, sensitiveTab?.()) ? { headers: scrubHeaders(p.request.headers), sensitive: true } : { headers: p.request.headers, postData: typeof p.request.postData === 'string' ? p.request.postData.slice(0, 20_000) : undefined })
           } })
           reqEvents.set(p.requestId, ev.id)
           if (reqEvents.size > 2000) reqEvents.delete(reqEvents.keys().next().value!)
@@ -47,7 +48,7 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
         {
           const ev = bus.emit({ tabId, kind: 'response', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
             requestId: p.requestId, url: p.response.url, status: p.response.status, statusText: p.response.statusText, mimeType: p.response.mimeType, type: p.type,
-            headers: p.response.headers, protocol: p.response.protocol, remote: p.response.remoteIPAddress, fromCache: !!(p.response.fromDiskCache || p.response.fromServiceWorker),
+            headers: isSensitiveRequest(p.response.url, 'POST', sensitiveTab?.()) && sensitiveTab?.() ? scrubHeaders(p.response.headers) : p.response.headers, protocol: p.response.protocol, remote: p.response.remoteIPAddress, fromCache: !!(p.response.fromDiskCache || p.response.fromServiceWorker),
             timing: p.response.timing,
             security: p.response.securityDetails ? { protocol: p.response.securityDetails.protocol, cipher: p.response.securityDetails.cipher, subject: p.response.securityDetails.subjectName, issuer: p.response.securityDetails.issuer, validFrom: p.response.securityDetails.validFrom, validTo: p.response.securityDetails.validTo } : undefined
           } })
