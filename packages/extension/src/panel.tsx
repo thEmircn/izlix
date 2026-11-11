@@ -29,6 +29,7 @@ const real: Record<string, (...a: any[]) => any> = {
 ;(window as any).izlix = new Proxy(real, { get: (t, p: string) => t[p] ?? ((...a: any[]) => (p.startsWith('on') ? () => {} : Promise.resolve(null))) })
 
 useStore.setState({
+  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
   activeTabId: KEY, panelOpen: true, panelTab: 'timeline', activeWorkspaceId: 'default',
   settings: { ...useStore.getState().settings, language: lang, onboarded: true } as any,
   tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any]

@@ -2,6 +2,7 @@ import { useRef, type ComponentType, type SVGProps } from 'react'
 import type { PanelTab } from './store'
 import { IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcStyle, IcTimeline, IcState } from './icons'
 import { Seg } from './ui'
+import { useStore } from './store'
 
 type Ic = ComponentType<SVGProps<SVGSVGElement>>
 export const RAIL_ICONS: Record<PanelTab, Ic> = {
@@ -22,11 +23,12 @@ export const groupOf = (tab: PanelTab): RailGroup | undefined => RAIL_GROUPS.fin
 
 /** Alt dock: panelin altinda yuzen cam hap; ikonlar, secili olan etiketiyle acilir. */
 export function Rail({ value, onChange, labels, groupLabels, badges = {} }: { value: PanelTab; onChange(k: PanelTab): void; labels: Record<PanelTab, string>; groupLabels: Record<RailGroup['label'], string>; badges?: Partial<Record<RailGroup['label'], number>> }) {
+  const allowed = useStore((s) => s.allowedPanels)
   const mem = useRef<Record<string, PanelTab>>({}) // grup basina son kullanilan sekme
   mem.current[groupOf(value)?.label ?? ''] = value
   return (
     <nav className="rail seg2 dock" role="tablist" aria-orientation="horizontal" data-labels={labels.timeline}>
-      {RAIL_SETS.map((set, si) => [
+      {RAIL_SETS.map((set) => (allowed ? set.filter((g) => g.tabs.some((t) => allowed.includes(t))) : set)).filter((set) => set.length).map((set, si) => [
         si > 0 ? <i key={`s${si}`} className="rail-sep" /> : null,
         ...set.map((g) => {
           const I = g.icon, on = g.tabs.includes(value), name = groupLabels[g.label]
@@ -43,7 +45,8 @@ export function Rail({ value, onChange, labels, groupLabels, badges = {} }: { va
 
 /** Panel basliginda grubun alt sekmeleri. Test/erisilebilirlik icin diger gruplarin alt sekmeleri DOM'da gizli tutulur. */
 export function SubNav({ value, onChange, labels }: { value: PanelTab; onChange(k: PanelTab): void; labels: Record<PanelTab, string> }) {
-  const mk = (g: RailGroup) => <Seg<PanelTab> small value={g.tabs.includes(value) ? value : g.tabs[0]} onChange={onChange} items={g.tabs.map((k) => ({ key: k, label: labels[k] }))} />
+  const allowed = useStore((s) => s.allowedPanels)
+  const mk = (g: RailGroup) => { const tabs = allowed ? g.tabs.filter((t) => allowed.includes(t)) : g.tabs; return <Seg<PanelTab> small value={tabs.includes(value) ? value : tabs[0]} onChange={onChange} items={tabs.map((k) => ({ key: k, label: labels[k] }))} /> }
   const cur = groupOf(value)
   return (
     <>
