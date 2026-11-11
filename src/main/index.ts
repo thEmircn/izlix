@@ -1,3 +1,4 @@
+import { editorCommand } from '../shared/editor'
 import { GROUP_COLOR_NAMES } from '../shared/groups'
 import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
 import { translateUrl } from '../shared/translate'
@@ -680,7 +681,7 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
   const root = e.cdp?.resolver.rootProvider?.() ?? workspaces.get(e.info.workspaceId)?.rootDir ?? null
   const editorLabel = EDITOR_LABEL[settings.get().editor ?? 'vscode'] ?? 'VS Code'
   const items = buildCtxMenu({ ...p, pageURL: url0, canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), editFlags: p.editFlags,
-    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.windowIds().length, hasSelector: !!probe?.sel } })
+    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.windowIds().length, hasSelector: !!probe?.sel, clickable: probe?.clickable, href: probe?.href } })
   const open = (url: string, priv?: 'incognito' | 'tor'): void => { void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...((priv ?? e.info.private) ? { private: priv ?? e.info.private } : {}) }) }
   const run = async (it: CtxItem): Promise<void> => {
     const a = it.arg ?? ''
@@ -688,7 +689,7 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
       case 'newTab': open('', undefined); break
       case 'newWindow': void openWindow(); break
       case 'linkSplit': void tabs.create({ url: a, workspaceId: e.info.workspaceId, winId: e.winId, activate: false, ...(e.info.private ? { private: e.info.private } : {}) }).then((nid) => { tabs.inWin(e.winId, () => tabs.setSplit(nid)) }); break
-      case 'linkOtherWin': { const other = tabs.windowIds().find((w) => w !== e.winId); if (other !== undefined) void tabs.create({ url: a, workspaceId: e.info.workspaceId, winId: other, ...(e.info.private ? { private: e.info.private } : {}) }); break }
+      case 'linkOtherWin': void openInNewWindow(a, e.info.workspaceId, e.winId, e.info.private); break
       case 'component': {
         const c = probe?.comp; if (!c) break
         const resolver = e.cdp?.resolver; let loc: { file: string; line: number; column: number } | null = null
@@ -711,6 +712,12 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
       case 'back': wc.navigationHistory.goBack(); break
       case 'forward': wc.navigationHistory.goForward(); break
       case 'reload': wc.reload(); break
+      case 'btnNewTab': case 'btnNewWindow': {
+        tabs.divertNext(tabId, it.act === 'btnNewTab' ? 'tab' : 'window')
+        wc.sendInputEvent({ type: 'mouseDown', x: p.x, y: p.y, button: 'left', clickCount: 1 }); wc.sendInputEvent({ type: 'mouseUp', x: p.x, y: p.y, button: 'left', clickCount: 1 })
+        break
+      }
+      case 'linkNewWindow': void openInNewWindow(a, e.info.workspaceId, e.winId, e.info.private); break
       case 'linkNewTab': case 'imgNewTab': open(a); break
       case 'linkNewPrivate': open(a, 'incognito'); break
       case 'linkCopy': case 'imgCopyUrl': case 'mediaCopyUrl': clipboard.writeText(a); break
@@ -747,24 +754,39 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
 /** Dosya yolu sayfanin source map'inden / derleme eklentisinden gelir (guvenilmez): yalnizca bilinen VE guvenilir bir kokun
  *  (Workspace klasoru, dev sunucusunun proje klasoru, demo) altindaki dosyalar editorde acilir. */
 async function openInEditor(file: string, line: number, column: number, editor: Editor): Promise<boolean> {
+  let root: string | null = null
   const known = tabs.list().tabs.some((t) => {
     const e = tabs.get(t.id)
     if (!e?.cdp?.resolver.knownFiles.has(file)) return false
-    return isInsideAny([workspaces.get(e.info.workspaceId)?.rootDir, e.cdp.resolver.rootProvider?.(), join(samplesDir, 'demo-src')], file)
+    const roots = [workspaces.get(e.info.workspaceId)?.rootDir, e.cdp.resolver.rootProvider?.(), join(samplesDir, 'demo-src')]
+    if (!isInsideAny(roots, file)) return false
+    root = roots.find((r): r is string => !!r && isInsideAny([r], file)) ?? null
+    return true
   })
   if (!known) return false
-  if (process.env.DB_SCRIPT) { lastEditorOpen = { file, line, column, editor }; return true } // testlerde editor baslatilmaz
-  await shell.openExternal(editorUrl(editor, file, line, column))
+  await launchEditor(editor, { file, line, column, root }) // proje klasoru yeni pencerede, dosya o satirda
   return true
 }
-let lastEditorOpen: { file: string; line: number; column: number; editor: string } | null = null
+let lastEditorOpen: { file: string; line: number; column: number; editor: string; args?: string[] } | null = null
 const EDITOR_LABEL: Record<string, string> = { vscode: 'VS Code', cursor: 'Cursor', webstorm: 'WebStorm' }
+
+/** URL'yi baska bir pencerede ac (yalniz bir pencere varsa ikincisini acar) */
+async function openInNewWindow(url: string, workspaceId: string, fromWin: number, priv?: 'incognito' | 'tor'): Promise<void> {
+  const other = tabs.windowIds().find((w) => w !== fromWin) ?? await openWindow()
+  void tabs.create({ url, workspaceId, winId: other, ...(priv ? { private: priv } : {}) })
+}
+/** Editoru YENI pencerede ac (CLI + -n): acik editor pencerelerine/oturumlarina dokunmaz; CLI yoksa URL semasina duser */
+async function launchEditor(editor: Editor, t: { file?: string; line?: number; column?: number; root?: string | null }): Promise<void> {
+  const cmd = editorCommand(editor, t)
+  if (process.env.DB_SCRIPT) { lastEditorOpen = { file: t.file ?? t.root ?? '', line: t.line ?? 1, column: t.column ?? 1, editor, args: cmd.args }; return }
+  const bin = cmd.bins.find((b) => existsSync(b))
+  if (bin) { execFile(bin, cmd.args, () => {}).unref(); return }
+  await shell.openExternal(editorUrl(editor, t.file ?? t.root ?? '', t.line ?? 1, t.column ?? 1))
+}
 
 /** Klasoru editorde ac (yalnizca kendi tespit ettigimiz proje/Workspace klasoru) */
 async function openInEditor0(dir: string): Promise<void> {
-  const ed = settings.get().editor ?? 'vscode'
-  if (process.env.DB_SCRIPT) { lastEditorOpen = { file: dir, line: 1, column: 1, editor: ed }; return }
-  await shell.openExternal(editorUrl(ed, dir, 1, 1))
+  await launchEditor(settings.get().editor ?? 'vscode', { root: dir })
 }
 let lastShot: string | null = null
 
@@ -776,9 +798,18 @@ const CTX_PROBE_FN = `function () {
   let sel = ''
   if (el.id) sel = '#' + esc(el.id)
   else { const parts = []; for (let n = el, i = 0; n && n.nodeType === 1 && i < 5 && n !== document.documentElement; n = n.parentElement, i++) { let s = n.tagName.toLowerCase(); if (n.id) { parts.unshift('#' + esc(n.id)); break } const p = n.parentElement; if (p) { const same = [...p.children].filter((c) => c.tagName === n.tagName); if (same.length > 1) s += ':nth-of-type(' + (same.indexOf(n) + 1) + ')' } parts.unshift(s) } sel = parts.join(' > ') }
-  return { comp: comp, sel: sel }
+  const cl = el.closest ? el.closest('button,[role=button],[role=link],[role=tab],[role=menuitem],summary,input[type=button],input[type=submit],[onclick],[data-href],[data-url],[data-link]') : null
+  const clickable = !!cl || getComputedStyle(el).cursor === 'pointer'
+  let href = ''
+  const abs = (v) => { try { const u = new URL(v, location.href); return /^https?:$/.test(u.protocol) ? u.href : '' } catch (e) { return '' } }
+  const host = cl || el
+  const fa = host.getAttribute && host.getAttribute('formaction'); if (fa) href = abs(fa)
+  if (!href && host.closest) { const h = host.closest('[data-href],[data-url],[data-link]'); if (h) href = abs(h.getAttribute('data-href') || h.getAttribute('data-url') || h.getAttribute('data-link') || '') }
+  if (!href && host.getAttribute) { const oc = host.getAttribute('onclick') || ''; const m = /(?:location(?:\\.href)?\\s*=|location\\.assign\\(|window\\.open\\()\\s*['"]([^'"]+)['"]/.exec(oc); if (m) href = abs(m[1]) }
+  if (!href && host.closest) { const f = host.closest('form'); if (f && host.tagName === 'BUTTON' && (host.type || 'submit') === 'submit' && f.action && abs(f.action) !== location.href) href = abs(f.action) }
+  return { comp: comp, sel: sel, clickable: clickable, href: href }
 }`
-interface Probe { comp?: { id: number; name: string; t?: number; src?: string }; sel?: string; backendNodeId?: number }
+interface Probe { comp?: { id: number; name: string; t?: number; src?: string }; sel?: string; clickable?: boolean; href?: string; backendNodeId?: number }
 async function probeAt(wc: Electron.WebContents, x: number, y: number): Promise<Probe | null> {
   const run = async (): Promise<Probe | null> => {
     const loc: any = await wc.debugger.sendCommand('DOM.getNodeForLocation', { x: Math.round(x), y: Math.round(y), includeUserAgentShadowDOM: false })
@@ -786,7 +817,7 @@ async function probeAt(wc: Electron.WebContents, x: number, y: number): Promise<
     const objectId = r.object?.objectId; if (!objectId) return null
     const res: any = await wc.debugger.sendCommand('Runtime.callFunctionOn', { objectId, returnByValue: true, functionDeclaration: CTX_PROBE_FN })
     void wc.debugger.sendCommand('Runtime.releaseObject', { objectId }).catch(() => {})
-    const v = res.result?.value; return v ? { comp: v.comp ?? undefined, sel: v.sel || undefined, backendNodeId: loc.backendNodeId } : null
+    const v = res.result?.value; return v ? { comp: v.comp ?? undefined, sel: v.sel || undefined, clickable: !!v.clickable, href: v.href || undefined, backendNodeId: loc.backendNodeId } : null
   }
   try { return await Promise.race([run(), new Promise<null>((r) => setTimeout(() => r(null), 300))]) } catch { return null }
 }
@@ -871,7 +902,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })

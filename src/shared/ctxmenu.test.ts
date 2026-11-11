@@ -40,6 +40,14 @@ describe('buildCtxMenu', () => {
   })
   it('baglantida bolunmus gorunumde ac; ikinci pencere varsa diger pencerede ac', () => {
     const a = (w: number) => acts(buildCtxMenu({ pageURL: 'https://a.com/', linkURL: 'https://b.com/', extra: { windows: w } }))
-    expect(a(1)).toContain('linkSplit'); expect(a(1)).not.toContain('linkOtherWin'); expect(a(2)).toContain('linkOtherWin')
+    expect(a(1)).toContain('linkSplit'); expect(a(1)).toContain('linkNewWindow'); expect(a(2)).toContain('linkNewWindow')
+  })
+  it('tiklanabilir dugme: adres bilinmiyorsa tiklamayi yonlendiren maddeler; biliniyorsa dogrudan baglanti maddeleri; duzenlenebilirde yok', () => {
+    const a = (x: any, extra: any = {}) => acts(buildCtxMenu({ pageURL: 'https://a.com/', ...extra, extra: x }))
+    expect(a({ clickable: true }).slice(0, 2)).toEqual(['btnNewTab', 'btnNewWindow'])
+    expect(a({ clickable: true, href: 'https://a.com/x' }).slice(0, 2)).toEqual(['linkNewTab', 'linkNewWindow'])
+    expect(a({ clickable: true }, { isEditable: true })).not.toContain('btnNewTab')
+    expect(a({ clickable: true }, { linkURL: 'https://b.com/' })).not.toContain('btnNewTab')
+    expect(a({})).not.toContain('btnNewTab')
   })
 })

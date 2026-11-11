@@ -50,6 +50,8 @@ interface Entry {
   failedUrl?: string
   /** ceviri sayfasinda bulunuldu mu (translatedFrom temizligi icin) */
   sawTranslate?: boolean
+  /** sag tik "yeni sekmede/pencerede ac": siradaki ana-belge gezinmesi bu sekmede yapilmaz, yeni yere yonlendirilir */
+  divert?: { mode: 'tab' | 'window'; until: number; from: string }
   /** HTTPS'e yukseltilen http adresi (yukseltme basarisizsa buna donulur) ve bu sekmede yukseltilmeyecek alan adlari */
   upgradedFrom?: string
   upgradedTo?: string
@@ -84,7 +86,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; onDivert?: (tabId: string, url: string, mode: 'tab' | 'window') => void; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
@@ -218,7 +220,7 @@ export class TabManager {
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
     wc.on('render-process-gone', (_ev, d) => { if (d.reason !== 'clean-exit') setTimeout(() => { if (!wc.isDestroyed()) wc.reload() }, 300) })
     // target=_blank ve window.open: yeni sekmede ac (ayni Workspace)
-    wc.setWindowOpenHandler(({ url }) => { if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId, private: e.info.private }); return { action: 'deny' } })
+    wc.setWindowOpenHandler(({ url }) => { const dv = this.takeDivert(e); if (dv && isAllowedPageNavigation(url)) { this.hooks.onDivert?.(e.info.id, url, dv.mode); return { action: 'deny' } }; if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId, private: e.info.private }); return { action: 'deny' } })
     // sayfa kaynakli gezinmeler de http(s) ile sinirli (file://, izlix://, vscode:// vb. engellenir)
     const guard = (event: Electron.Event, url: string): void => { if (!isAllowedPageNavigation(url)) event.preventDefault() }
     // Yukleme hatasi: aciklayici sayfa; loopback adreslerinde sunucu acilana kadar otomatik yeniden dene
@@ -244,6 +246,10 @@ export class TabManager {
       const c = this.upgrade(e, st?.on ? cleanTrackingParams(url, st.dev) : url)
       if (c !== url) { event.preventDefault(); void wc.loadURL(c).catch(() => {}) }
     }
+    // yonlendirilen gezinme: bu sekmede yapilmaz, yeni sekmeye/pencereye gider
+    wc.on('will-navigate', (ev, url) => { if (e.divert) { const dv = this.takeDivert(e); if (dv && isAllowedPageNavigation(url) && url !== dv.from) { ev.preventDefault(); this.hooks.onDivert?.(e.info.id, url, dv.mode); return } } })
+    // SPA (pushState) gezinmesi: yeni yere ac, bu sekmeyi geri sar
+    wc.on('did-navigate-in-page', (_ev, url, isMain) => { if (!isMain || !e.divert) return; const dv = this.takeDivert(e); if (dv && url !== dv.from && isAllowedPageNavigation(url)) { this.hooks.onDivert?.(e.info.id, url, dv.mode); wc.navigationHistory.goBack() } })
     wc.on('will-navigate', (ev, url) => { guard(ev, url); if (!ev.defaultPrevented) clean(ev, url) })
     wc.on('will-redirect', (ev, url) => { guard(ev, url); if (!ev.defaultPrevented) clean(ev, url) })
   }
@@ -641,6 +647,15 @@ export class TabManager {
   isPrivateWc(wc: Electron.WebContents): boolean { for (const e of this.tabs.values()) if (e.view.webContents === wc) return !!e.info.private; return false }
   /** Site ayarlari degisince (zoom/karanlik) tum sekmelerin bilgisini yenile */
   refreshSites(): void { for (const e of this.tabs.values()) this.refreshSite(e); this.onChange() }
+  /** Bir sonraki gezinmeyi (tiklama, pushState, window.open) yeni sekmeye/pencereye yonlendir (2,5 sn icinde) */
+  divertNext(id: string, mode: 'tab' | 'window'): void {
+    const e = this.tabs.get(id); if (!e) return
+    e.divert = { mode, until: Date.now() + 2500, from: e.view.webContents.getURL() }
+  }
+  private takeDivert(e: Entry): { mode: 'tab' | 'window'; from: string } | null {
+    const d = e.divert; e.divert = undefined
+    return d && Date.now() < d.until ? d : null
+  }
   setMuted(id: string, muted: boolean): void {
     const e = this.tabs.get(id); if (!e) return
     if (!e.view.webContents.isDestroyed()) e.view.webContents.setAudioMuted(muted)
