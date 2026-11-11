@@ -1,7 +1,8 @@
 import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { remoteUrl, parseRemote } from '../shared/suggest-remote'
+import { app, net, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
@@ -183,6 +184,15 @@ function registerIpc(): void {
     if (!origins.length) return favicons.all()
     await Promise.all(origins.map((o) => favicons.ensureLoopback(o)))
     return favicons.pick(origins)
+  })
+  handle(Ch.suggestRemote, schemas.suggestRemote, async ({ q }) => {
+    const s = settings.get(); if (s.searchSuggest === false) return []
+    const u = remoteUrl(s.searchEngine ?? 'duckduckgo', q); if (!u) return []
+    try {
+      const r = await net.fetch(u, { signal: AbortSignal.timeout(1500), credentials: 'omit', headers: { 'user-agent': 'Mozilla/5.0' } })
+      if (!r.ok) return []
+      return parseRemote(JSON.parse((await r.text()).slice(0, 20_000)))
+    } catch { return [] }
   })
   handle(Ch.thumbGet, schemas.thumbGet, async ({ url }) => thumbs.get(url) ?? (await thumbs.captureHidden(url)))
   handle(Ch.bookmarkToggle, schemas.tabId, ({ id }) => {

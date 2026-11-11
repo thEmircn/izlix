@@ -33,6 +33,7 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.search')} hint={t('set.searchHint')}>
             <select value={settings.searchEngine ?? 'duckduckgo'} onChange={(e) => void api.setSettings({ searchEngine: e.target.value })}>{ENGINES.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</select>
           </Row>
+          <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>
             <select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></select>
           </Row>

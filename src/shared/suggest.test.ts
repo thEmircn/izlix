@@ -34,6 +34,16 @@ describe('suggest', () => {
   it('limit uygulanir', () => { expect(suggest('a', src, 2, NOW).length).toBeLessThanOrEqual(3) })
 })
 
+describe('populer siteler', () => {
+  it('hic gitmedigin site ad ya da alan adi onekiyle cikar, kullanici verisi ustte', () => {
+    expect(suggest('yout', src, 8, NOW).slice(1).map((x) => x.url)).toContain('https://youtube.com')
+    expect(suggest('trendy', src, 8, NOW)[1]).toMatchObject({ kind: 'site', title: 'Trendyol' })
+    expect(suggest('git', src, 8, NOW)[1].kind).toBe('tab')
+    expect(suggest('xqzv', src, 8, NOW)).toHaveLength(1) // gurultu yok
+  })
+  it('inlineCompletion populer alan adini tamamlar', () => { expect(inlineCompletion('hepsib', ['https://hepsiburada.com'])).toBe('hepsiburada.com') })
+})
+
 describe('inlineCompletion / looksLikeUrl', () => {
   it('host onekini tamamlar, yol/bosluk/sema varken tamamlamaz', () => {
     expect(inlineCompletion('git', ['https://github.com/x'])).toBe('github.com')

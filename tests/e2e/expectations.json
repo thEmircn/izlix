@@ -2644,6 +2644,21 @@
       "startClosed",
       "eq",
       true
+    ],
+    [
+      "popInline",
+      "eq",
+      "youtube.com"
+    ],
+    [
+      "popRows",
+      "contains",
+      "Trendyol"
+    ],
+    [
+      "remoteIsArray",
+      "eq",
+      true
     ]
   ]
 }

@@ -27,5 +27,12 @@ module.exports = async ({ tabs, sleep, shellEval: se }) => {
   // Escape listeyi kapatir
   await key('.hub-filter input', 'Escape'); await sleep(300)
   out.startClosed = await shellEval(`!document.querySelector('.sug')`)
+  // hic gitmedigin populer siteler: tamamlama + liste
+  await type('.addr', 'yout'); await sleep(500)
+  out.popInline = await shellEval(`document.querySelector('.addr').value`)
+  await type('.addr', 'trendy'); await sleep(600)
+  out.popRows = await shellEval(`[...document.querySelectorAll('.sug-row')].map(r=>r.textContent).join('|')`)
+  // canli oneri uc noktasi: ag yoksa bos dizi doner, hata firlatmaz
+  out.remoteIsArray = await shellEval(`window.izlix.suggestRemote('react').then(Array.isArray)`)
   srv.close(); return out
 }
