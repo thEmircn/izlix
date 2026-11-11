@@ -1,0 +1,141 @@
+name: Izlix Browser bundle
+
+# Hazir ungoogled-chromium surumunu (BSD-3) Izlix eklentisi onyuklu olarak yeniden paketler. Derleme yok; imzasiz/ad-hoc.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['browser-v*']
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  linux:
+    name: Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci && npm run build:ext
+      - name: Download ungoogled-chromium
+        run: |
+          mkdir -p work && cd work
+          tag=$(gh release view -R ungoogled-software/ungoogled-chromium-portablelinux --json tagName --jq .tagName)
+          echo "UC_VERSION=$tag" >> "$GITHUB_ENV"
+          gh release download "$tag" -R ungoogled-software/ungoogled-chromium-portablelinux -p '*x86_64_linux.tar.xz'
+          tar xf *.tar.xz && rm *.tar.xz && ls
+      - name: Add Izlix
+        run: |
+          dir=$(ls -d work/ungoogled-chromium-*/ | head -n1); dir=${dir%/}
+          cp -R packages/extension/dist "$dir/izlix-extension"
+          cp LICENSE "$dir/IZLIX-LICENSE"
+          cat > "$dir/izlix" <<'SH'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE/chrome" --load-extension="$HERE/izlix-extension" --silent-debugger-extension-api --user-data-dir="${IZLIX_PROFILE:-$HOME/.config/izlix}" "$@"
+          SH
+          sed -i 's/^          //' "$dir/izlix"; chmod +x "$dir/izlix"
+          echo "BUNDLE_DIR=$dir" >> "$GITHUB_ENV"
+      - name: Smoke test (virtual display)
+        run: xvfb-run -a node tools/bundle-smoke.mjs "$BUNDLE_DIR/izlix" --no-sandbox --disable-gpu
+      - name: Package
+        run: |
+          name="izlix-browser-${UC_VERSION}-linux-x64"
+          mv "$BUNDLE_DIR" "work/$name" && tar czf "$name.tar.gz" -C work "$name" && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+      - uses: actions/upload-artifact@v4
+        with: { name: izlix-browser-linux, path: 'izlix-browser-*' }
+
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci && npm run build:ext
+      - name: Download ungoogled-chromium
+        run: |
+          mkdir -p work && cd work
+          tag=$(gh release view -R ungoogled-software/ungoogled-chromium-windows --json tagName --jq .tagName)
+          echo "UC_VERSION=$tag" >> "$GITHUB_ENV"
+          gh release download "$tag" -R ungoogled-software/ungoogled-chromium-windows -p '*windows_x64.zip'
+          7z x -y *.zip >/dev/null && rm *.zip && ls
+      - name: Add Izlix
+        run: |
+          dir=$(ls -d work/ungoogled-chromium*/ | head -n1); dir=${dir%/}
+          cp -R packages/extension/dist "$dir/izlix-extension"
+          cp LICENSE "$dir/IZLIX-LICENSE"
+          printf '@echo off\r\nstart "" "%%~dp0chrome.exe" --load-extension="%%~dp0izlix-extension" --silent-debugger-extension-api --user-data-dir="%%LOCALAPPDATA%%\\Izlix\\profile" %%*\r\n' > "$dir/Izlix.bat"
+          echo "BUNDLE_DIR=$dir" >> "$GITHUB_ENV"
+      - name: Smoke test
+        run: node tools/bundle-smoke.mjs "$BUNDLE_DIR/chrome.exe" "--load-extension=$PWD/$BUNDLE_DIR/izlix-extension" --silent-debugger-extension-api
+      - name: Package
+        run: |
+          name="izlix-browser-${UC_VERSION}-windows-x64"
+          mv "$BUNDLE_DIR" "work/$name" && (cd work && 7z a -tzip -mx=5 "../$name.zip" "$name" >/dev/null) && sha256sum "$name.zip" > "$name.zip.sha256"
+      - uses: actions/upload-artifact@v4
+        with: { name: izlix-browser-windows, path: 'izlix-browser-*' }
+
+  macos:
+    name: macOS arm64
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci && npm run build:ext
+      - name: Download ungoogled-chromium
+        run: |
+          mkdir -p work && cd work
+          tag=$(gh release view -R ungoogled-software/ungoogled-chromium-macos --json tagName --jq .tagName)
+          echo "UC_VERSION=$tag" >> "$GITHUB_ENV"
+          gh release download "$tag" -R ungoogled-software/ungoogled-chromium-macos -p '*arm64-macos.dmg'
+          hdiutil attach -nobrowse -readonly -mountpoint /tmp/ucmount *.dmg >/dev/null
+          cp -R /tmp/ucmount/*.app . && hdiutil detach /tmp/ucmount >/dev/null && rm *.dmg && ls
+      - name: Add Izlix
+        run: |
+          app=$(ls -d work/*.app | head -n1)
+          exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+          cp -R packages/extension/dist "$app/Contents/Resources/izlix-extension"
+          cp LICENSE "$app/Contents/Resources/IZLIX-LICENSE"
+          mv "$app/Contents/MacOS/$exe" "$app/Contents/MacOS/$exe-real"
+          cat > "$app/Contents/MacOS/$exe" <<SH
+          #!/bin/sh
+          HERE="\$(cd "\$(dirname "\$0")" && pwd)"
+          exec "\$HERE/$exe-real" --load-extension="\$HERE/../Resources/izlix-extension" --silent-debugger-extension-api "\$@"
+          SH
+          sed -i '' 's/^          //' "$app/Contents/MacOS/$exe"; chmod +x "$app/Contents/MacOS/$exe"
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string Izlix' "$app/Contents/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName Izlix' "$app/Contents/Info.plist"
+          codesign --force --deep -s - "$app"
+          mv "$app" work/Izlix.app
+          echo "BUNDLE_EXE=work/Izlix.app/Contents/MacOS/$exe" >> "$GITHUB_ENV"
+      - name: Smoke test
+        run: node tools/bundle-smoke.mjs "$BUNDLE_EXE"
+      - name: Package
+        run: |
+          name="izlix-browser-${UC_VERSION}-macos-arm64"
+          ditto -c -k --keepParent work/Izlix.app "$name.zip" && shasum -a 256 "$name.zip" > "$name.zip.sha256"
+      - uses: actions/upload-artifact@v4
+        with: { name: izlix-browser-macos, path: 'izlix-browser-*' }
+
+  release:
+    name: Publish release (tags only)
+    if: startsWith(github.ref, 'refs/tags/browser-v')
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Create the release
+        run: |
+          cat > notes.md <<'MD'
+          Izlix Browser is a repackaged [ungoogled-chromium](https://github.com/ungoogled-software) build (BSD-3) with the Izlix extension preinstalled and the debugging banner hidden. It is a full Chromium-based browser, so Google sign-in works.
+
+          **These builds are not code-signed.** macOS: right-click > Open the first time (or `xattr -dr com.apple.quarantine Izlix.app`). Windows: SmartScreen may warn; choose "More info > Run anyway". Verify the SHA-256 files.
+          MD
+          gh release create "${GITHUB_REF_NAME}" dist/* --repo "$GITHUB_REPOSITORY" --title "Izlix Browser ${GITHUB_REF_NAME#browser-v}" --notes-file notes.md
