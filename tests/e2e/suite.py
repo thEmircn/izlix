@@ -52,10 +52,17 @@ def run(name):
     if name == 'threat':
         open(ud + '/threat.txt', 'w').write('# test\n127.0.0.1\tmalware-test.invalid\n')
         env['DB_THREAT_LIST'] = ud + '/threat.txt'
-    if name == 'ext': env['DB_EXT_DIR'] = '/tmp/ext-try'
+    if name == 'ext':
+        # test eklentisi (kendi kurar: depo disina bagimli degil)
+        ed = os.path.join(ud, 'ext-try'); os.makedirs(ed)
+        open(os.path.join(ed, 'manifest.json'), 'w').write(json.dumps({'manifest_version': 3, 'name': 'Deneme Eklentisi', 'version': '1.2.3', 'description': 'test', 'content_scripts': [{'matches': ['http://localhost/*', 'http://127.0.0.1/*'], 'js': ['c.js'], 'run_at': 'document_start'}]}))
+        open(os.path.join(ed, 'c.js'), 'w').write("document.documentElement.setAttribute('data-ext','merhaba')")
+        env['DB_EXT_DIR'] = ed
     if name in ('onboarding', 'docshots'): env['DB_ONBOARD'] = '1'
     if name == 'docshots': env['DB_SHOT_DIR'] = os.path.join(APP, 'docs', 'screenshots')
     subprocess.run(['perl', '-e', 'alarm 150; exec @ARGV', 'npx', 'electron', '.'], cwd=APP, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # gecici kullanici verisi her kosudan sonra silinir (disk dolmasin)
+    import shutil; shutil.rmtree(ud, ignore_errors=True)
     if not os.path.exists(out): return None
     return json.load(open(out))['result']
 

@@ -7,6 +7,6 @@ module.exports = async ({ tabs, sleep, pageEval, settings, shellEval }) => {
   out.saved = (settings.get().extensions ?? []).length
   await tabs.create({ url: 'http://localhost:5652/', workspaceId: 'default' }); await sleep(2500)
   out.attr = await pageEval(`document.documentElement.getAttribute('data-ext')`)
-  await shellEval(`window.izlix.extRemove('/tmp/ext-try')`); out.after = (await shellEval(`window.izlix.extList()`)).length; out.savedAfter = (settings.get().extensions ?? []).length
+  await shellEval(`window.izlix.extRemove(${JSON.stringify(process.env.DB_EXT_DIR)})`); out.after = (await shellEval(`window.izlix.extList()`)).length; out.savedAfter = (settings.get().extensions ?? []).length
   srv.close(); return out
 }
