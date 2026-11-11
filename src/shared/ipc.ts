@@ -36,6 +36,8 @@ export const schemas = {
   downloadAct: z.object({ id: z.string().max(64), act: z.enum(['pause', 'resume', 'cancel', 'open', 'show', 'remove', 'clear']) }),
   pwAudit: z.object({ check: z.boolean() }),
   speak: z.object({ mode: z.enum(['auto', 'selection', 'page', 'stop']) }),
+  noteSave: z.object({ tempId: z.string().max(32), note: z.string().max(2000) }),
+  noteDelete: z.object({ id: z.string().max(64) }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

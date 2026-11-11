@@ -4201,5 +4201,65 @@
       "eq",
       true
     ]
+  ],
+  "notes": [
+    [
+      "menuHas",
+      "eq",
+      [
+        "highlight",
+        "addNote"
+      ]
+    ],
+    [
+      "marks1",
+      "eq",
+      [
+        "cumle"
+      ]
+    ],
+    [
+      "stored",
+      "eq",
+      1
+    ],
+    [
+      "crossMarks",
+      "eq",
+      "haba kalin yazi duny"
+    ],
+    [
+      "afterReload",
+      "gte",
+      2
+    ],
+    [
+      "promptShown",
+      "eq",
+      true
+    ],
+    [
+      "tooltip",
+      "contains",
+      "Onemli not"
+    ],
+    [
+      "onMarkItems",
+      "eq",
+      [
+        "editNote",
+        "removeNote"
+      ]
+    ],
+    [
+      "removed",
+      "eq",
+      true
+    ],
+    [
+      "rowsMatch",
+      "eq",
+      true
+    ]
   ]
 }

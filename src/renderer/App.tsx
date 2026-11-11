@@ -8,6 +8,7 @@ import { HistoryPage } from './HistoryPage'
 import { QrDialog } from './QrDialog'
 import { TabSearch } from './TabSearch'
 import { DownloadsPage } from './DownloadsPage'
+import { NotePrompt, NotesPage } from './Notes'
 import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
@@ -86,6 +87,7 @@ export function App() {
       api.onRules((r) => s.set({ rules: r })),
       api.onRec((r: any) => s.set({ rec: r })),
       api.onSpeak((on: boolean) => s.set({ speaking: on })),
+      api.onNoteAsk((a: any) => s.set({ noteAsk: a, overlay: 'notePrompt' })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
       api.onPermAsk((p: any) => useStore.setState((st) => ({ permPrompts: [...st.permPrompts, p] }))),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
@@ -124,6 +126,7 @@ export function App() {
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'inspect.elements': st.set({ panelTab: 'elements', panelOpen: true, dashboard: false }); break
           case 'speak.toggle': if (st.speaking) void api.speak('stop'); else void api.speak('auto'); break
+          case 'notes.open': st.set({ overlay: 'notes' }); break
           case 'tabsearch.open': st.set({ overlay: 'tabsearch' }); break
           case 'downloads.open': st.set({ overlay: 'downloads' }); break
           case 'history.open': st.set({ overlay: 'history' }); break
@@ -349,6 +352,8 @@ export function App() {
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'recorder' && <RecorderDialog onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'qr' && active && <QrDialog tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'notePrompt' && s.noteAsk && <NotePrompt onClose={() => s.set({ overlay: null, noteAsk: null })} />}
+      {s.overlay === 'notes' && <NotesPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'downloads' && <DownloadsPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'tabsearch' && <TabSearch onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'bookmarks' && <BookmarkManager onClose={() => s.set({ overlay: null })} />}

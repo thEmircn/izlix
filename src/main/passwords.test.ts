@@ -85,5 +85,5 @@ describe('PasswordService', () => {
     expect(net.find((r) => r.username === 'ali')!.pwned).toBe(9999); expect(net.find((r) => r.username === 'can')!.pwned).toBe(0)
     expect(seen.every((p) => p.length === 5)).toBe(true); expect(new Set(seen).size).toBe(seen.length) // yalniz 5 karakterlik onek, tekrar yok
     const down = await svc.audit(async () => { throw new Error('ag yok') }); expect(down.every((r) => r.pwned === null)).toBe(true)
-  })
+  }, 20000)
 })

@@ -7,12 +7,12 @@ export interface CtxParams {
   /** menu uretilmeden once sayfadan toplanan baglam (React bileseni, proje klasoru, yuklu tarayicilar...) */
   extra?: CtxExtra
 }
-export interface CtxExtra { /** sag tiklanan oge tiklanabilir mi (dugme/rol/onclick/imlec) ve bagli adresi (a olmayan: data-href, form action, onclick) */ clickable?: boolean; href?: string; component?: string; editorLabel?: string; hasRoot?: boolean; chrome?: boolean; windows?: number; hasSelector?: boolean }
+export interface CtxExtra { /** sag tiklanan oge bir vurgu/not icinde (mark[data-db-note]) */ noteId?: string; /** sag tiklanan oge tiklanabilir mi (dugme/rol/onclick/imlec) ve bagli adresi (a olmayan: data-href, form action, onclick) */ clickable?: boolean; href?: string; component?: string; editorLabel?: string; hasRoot?: boolean; chrome?: boolean; windows?: number; hasSelector?: boolean }
 export type CtxAct =
   | 'back' | 'forward' | 'reload' | 'savePage' | 'print' | 'savePdf' | 'viewSource' | 'inspect' | 'translate' | 'qr'
   | 'linkNewTab' | 'linkNewPrivate' | 'linkCopy' | 'imgNewTab' | 'imgCopy' | 'imgCopyUrl' | 'imgSave' | 'mediaCopyUrl' | 'mediaSave' | 'mediaPip'
   | 'cut' | 'copy' | 'paste' | 'selectAll' | 'search' | 'suggest' | 'addWord'
-  | 'speakSel' | 'speakPage' | 'newTab' | 'newWindow' | 'btnNewTab' | 'btnNewWindow' | 'linkNewWindow' | 'linkSplit' | 'linkOtherWin' | 'component' | 'inspectEl' | 'copySel' | 'openRoot' | 'lab' | 'openChrome' | 'openSafari' | 'shotView' | 'shotFull'
+  | 'highlight' | 'addNote' | 'editNote' | 'removeNote' | 'speakSel' | 'speakPage' | 'newTab' | 'newWindow' | 'btnNewTab' | 'btnNewWindow' | 'linkNewWindow' | 'linkSplit' | 'linkOtherWin' | 'component' | 'inspectEl' | 'copySel' | 'openRoot' | 'lab' | 'openChrome' | 'openSafari' | 'shotView' | 'shotFull'
 export interface CtxItem { act?: CtxAct; label?: string; arg?: string; sep?: true; enabled?: boolean; submenu?: CtxItem[]; /** etiketteki {name}/{editor} yer tutuculari */ vars?: Record<string, string> }
 const isHttp = (u?: string): boolean => !!u && /^https?:/i.test(u)
 
@@ -31,6 +31,7 @@ export function buildCtxMenu(p: CtxParams): CtxItem[] {
     // Bu uygulamaya ozgu: sagtikladigin ogenin React bilesenini dogrudan editorde ac (click-to-source)
     if (x.component) push({ act: 'component', arg: x.component, vars: { name: x.component, editor: x.editorLabel ?? 'VS Code' } }, { sep: true })
   }
+  if (page && x.noteId) { push({ act: 'editNote', arg: x.noteId }, { act: 'removeNote', arg: x.noteId }, { sep: true }) }
   if (btn) {
     if (isHttp(x.href)) push({ act: 'linkNewTab', arg: x.href }, { act: 'linkNewWindow', arg: x.href }, { sep: true })
     else push({ act: 'btnNewTab' }, { act: 'btnNewWindow' }, { sep: true })
@@ -43,7 +44,7 @@ export function buildCtxMenu(p: CtxParams): CtxItem[] {
     }
     push({ act: 'cut', enabled: !!e.canCut }, { act: 'copy', enabled: !!e.canCopy }, { act: 'paste', enabled: !!e.canPaste }, { act: 'selectAll', enabled: !!e.canSelectAll })
   } else if (p.selectionText?.trim()) {
-    push({ act: 'copy' }, { act: 'search', arg: p.selectionText.trim().slice(0, 200) }, { act: 'speakSel' })
+    push({ act: 'copy' }, { act: 'search', arg: p.selectionText.trim().slice(0, 200) }, { act: 'speakSel' }, { act: 'highlight' }, { act: 'addNote' })
   }
   if (isHttp(p.linkURL)) {
     sep(); push({ act: 'linkNewTab', arg: p.linkURL }, { act: 'linkNewPrivate', arg: p.linkURL }, { act: 'linkSplit', arg: p.linkURL })

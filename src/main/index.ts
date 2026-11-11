@@ -10,6 +10,8 @@ import { MockServer } from './mockserver'
 import { engineById, searchUrl } from '../shared/search'
 import { Recorder } from './recorder'
 import { Speaker } from './speak'
+import { NoteStore } from './notes'
+import { CAPTURE_SELECTION, applyNotesScript, pageKey, removeNoteScript } from '../shared/notes'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
 import { siteHost, stepZoom } from '../shared/sites'
@@ -144,7 +146,16 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore
+const pendingNotes = new Map<string, { tabId: string; cap?: { text: string; prefix: string; suffix: string }; noteId?: string }>()
+let noteSeq = 0
+/** Kayitli vurgulari sayfaya uygula (gizli sekmede yok; dinamik icerik icin ikinci deneme) */
+async function applyNotes(wc: Electron.WebContents): Promise<void> {
+  if (wc.isDestroyed() || tabs.isPrivateWc(wc)) return
+  const list = notes?.forPage(wc.getURL()) ?? []; if (!list.length) return
+  await wc.executeJavaScript(applyNotesScript(list)).catch(() => {})
+  setTimeout(() => { if (!wc.isDestroyed()) void wc.executeJavaScript(applyNotesScript(list)).catch(() => {}) }, 1500)
+}
 const recorder = new Recorder((st) => send(Ch.recState, st))
 /** Ambient isik betigini sayfaya koyar (yerel gelistirme sayfalari haric) ve acik/kapali durumunu esitler */
 async function injectAmbient(wc: Electron.WebContents): Promise<void> {
@@ -377,6 +388,19 @@ function registerIpc(): void {
   })
   // Sesli okuma: secili metin, yoksa okuyucu makalesi, yoksa sayfanin ana metni
   handle(Ch.speak, schemas.speak, async ({ mode }) => { const e = tabs.active(); return speakFrom(e?.view.webContents ?? null, mode) })
+  // Sayfa notlari / vurgulari
+  handle(Ch.noteList, null, () => notes.all())
+  handle(Ch.noteSave, schemas.noteSave, ({ tempId, note }) => {
+    const p = pendingNotes.get(tempId); pendingNotes.delete(tempId); if (!p) return false
+    const e = tabs.get(p.tabId); const wc = e?.view.webContents; if (!wc || wc.isDestroyed()) return false
+    if (p.noteId) { const n = notes.update(p.noteId, { note }); if (n) { void wc.executeJavaScript(removeNoteScript(n.id)).then(() => applyNotes(wc)).catch(() => {}) } return !!n }
+    if (!p.cap) return false
+    const n = notes.add(wc.getURL(), p.cap, note); if (n) void applyNotes(wc); return !!n
+  })
+  handle(Ch.noteDelete, schemas.noteDelete, ({ id }) => {
+    const n = notes.remove(id); if (!n) return false
+    tabs.each((wc) => { if (pageKey(wc.getURL()) === n.url) void wc.executeJavaScript(removeNoteScript(id)).catch(() => {}) }); return true
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -717,7 +741,7 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
   const root = e.cdp?.resolver.rootProvider?.() ?? workspaces.get(e.info.workspaceId)?.rootDir ?? null
   const editorLabel = EDITOR_LABEL[settings.get().editor ?? 'vscode'] ?? 'VS Code'
   const items = buildCtxMenu({ ...p, pageURL: url0, canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), editFlags: p.editFlags,
-    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.windowIds().length, hasSelector: !!probe?.sel, clickable: probe?.clickable, href: probe?.href } })
+    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.windowIds().length, hasSelector: !!probe?.sel, clickable: probe?.clickable, href: probe?.href, noteId: probe?.noteId } })
   const open = (url: string, priv?: 'incognito' | 'tor'): void => { void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...((priv ?? e.info.private) ? { private: priv ?? e.info.private } : {}) }) }
   const run = async (it: CtxItem): Promise<void> => {
     const a = it.arg ?? ''
@@ -767,6 +791,16 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
       case 'search': open(searchUrl(settings.get().searchEngine, a)); break
       case 'suggest': wc.replaceMisspelling(a); break
       case 'addWord': wc.session.addWordToSpellCheckerDictionary(a); break
+      case 'highlight': case 'addNote': {
+        if (e.info.private) break
+        const cap = await wc.executeJavaScript(CAPTURE_SELECTION).catch(() => null) as { text: string; prefix: string; suffix: string } | null
+        if (!cap) break
+        if (it.act === 'highlight') { const n = notes.add(url0, cap); if (n) void applyNotes(wc) }
+        else { const tempId = `pn${++noteSeq}`; pendingNotes.set(tempId, { tabId, cap }); owner.webContents.send(Ch.noteAsk, { tempId, text: cap.text, existing: '' }) }
+        break
+      }
+      case 'editNote': { const n = notes.get(a); if (n) { const tempId = `pn${++noteSeq}`; pendingNotes.set(tempId, { tabId, noteId: n.id }); owner.webContents.send(Ch.noteAsk, { tempId, text: n.text, existing: n.note ?? '' }) } break }
+      case 'removeNote': { const n = notes.remove(a); if (n) void wc.executeJavaScript(removeNoteScript(n.id)).catch(() => {}); break }
       case 'speakSel': void speakFrom(wc, 'selection'); break
       case 'speakPage': void speakFrom(wc, 'page'); break
       case 'savePage': void pageOutput(wc, 'save'); break
@@ -878,9 +912,10 @@ const CTX_PROBE_FN = `function () {
   if (!href && host.closest) { const h = host.closest('[data-href],[data-url],[data-link]'); if (h) href = abs(h.getAttribute('data-href') || h.getAttribute('data-url') || h.getAttribute('data-link') || '') }
   if (!href && host.getAttribute) { const oc = host.getAttribute('onclick') || ''; const m = /(?:location(?:\\.href)?\\s*=|location\\.assign\\(|window\\.open\\()\\s*['"]([^'"]+)['"]/.exec(oc); if (m) href = abs(m[1]) }
   if (!href && host.closest) { const f = host.closest('form'); if (f && host.tagName === 'BUTTON' && (host.type || 'submit') === 'submit' && f.action && abs(f.action) !== location.href) href = abs(f.action) }
-  return { comp: comp, sel: sel, clickable: clickable, href: href }
+  const nm = el.closest ? el.closest('mark[data-db-note]') : null
+  return { comp: comp, sel: sel, clickable: clickable, href: href, noteId: nm ? nm.getAttribute('data-db-note') : '' }
 }`
-interface Probe { comp?: { id: number; name: string; t?: number; src?: string }; sel?: string; clickable?: boolean; href?: string; backendNodeId?: number }
+interface Probe { noteId?: string; comp?: { id: number; name: string; t?: number; src?: string }; sel?: string; clickable?: boolean; href?: string; backendNodeId?: number }
 async function probeAt(wc: Electron.WebContents, x: number, y: number): Promise<Probe | null> {
   const run = async (): Promise<Probe | null> => {
     const loc: any = await wc.debugger.sendCommand('DOM.getNodeForLocation', { x: Math.round(x), y: Math.round(y), includeUserAgentShadowDOM: false })
@@ -888,7 +923,7 @@ async function probeAt(wc: Electron.WebContents, x: number, y: number): Promise<
     const objectId = r.object?.objectId; if (!objectId) return null
     const res: any = await wc.debugger.sendCommand('Runtime.callFunctionOn', { objectId, returnByValue: true, functionDeclaration: CTX_PROBE_FN })
     void wc.debugger.sendCommand('Runtime.releaseObject', { objectId }).catch(() => {})
-    const v = res.result?.value; return v ? { comp: v.comp ?? undefined, sel: v.sel || undefined, clickable: !!v.clickable, href: v.href || undefined, backendNodeId: loc.backendNodeId } : null
+    const v = res.result?.value; return v ? { comp: v.comp ?? undefined, sel: v.sel || undefined, clickable: !!v.clickable, href: v.href || undefined, noteId: v.noteId || undefined, backendNodeId: loc.backendNodeId } : null
   }
   try { return await Promise.race([run(), new Promise<null>((r) => setTimeout(() => r(null), 300))]) } catch { return null }
 }
@@ -943,6 +978,7 @@ async function createWindow(): Promise<void> {
   rules = new RuleStore()
   library = new Library()
   sites = new SiteStore()
+  notes = new NoteStore(app.getPath('userData'))
   passwords = new PasswordService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, {
     isPrivate: (wc) => tabs.isPrivateWc(wc),
     changed: () => tabs?.refreshSites(),
@@ -973,7 +1009,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -999,7 +1035,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, shellWins, passwords, cardState, recorder, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
+      newTab, openWindow, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
       ctxPrepare: (id: string, params: Partial<Electron.ContextMenuParams>) => showCtx(id, { x: 20, y: 20, ...params } as Electron.ContextMenuParams, true), editorOpens: () => lastEditorOpen, lastShot: () => lastShot, resetCtx: () => { lastEditorOpen = null; lastShot = null },
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
@@ -1025,5 +1061,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => { quitting = true; speaker.stop(); library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
+app.on('before-quit', () => { quitting = true; speaker.stop(); notes?.flush(); library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
 app.on('window-all-closed', () => app.quit())

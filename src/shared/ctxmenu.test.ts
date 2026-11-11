@@ -13,7 +13,7 @@ describe('buildCtxMenu', () => {
     expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', linkURL: 'javascript:alert(1)' }))).not.toContain('linkNewTab')
   })
   it('secili metin: kopyala + ara; duzenlenebilir alan: kes/kopyala/yapistir; yazim onerileri', () => {
-    expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', selectionText: ' kedi ' })).slice(0, 3)).toEqual(['copy', 'search', 'speakSel'])
+    expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', selectionText: ' kedi ' })).slice(0, 5)).toEqual(['copy', 'search', 'speakSel', 'highlight', 'addNote'])
     const l = buildCtxMenu({ pageURL: 'https://a.com/', isEditable: true, misspelledWord: 'mrb', dictionarySuggestions: ['merhaba', 'mırıl'], editFlags: { canPaste: true } })
     expect(acts(l).slice(0, 7)).toEqual(['suggest', 'suggest', 'addWord', '-', 'cut', 'copy', 'paste'])
     expect(l.find((x) => x.act === 'paste')!.enabled).toBe(true); expect(l.find((x) => x.act === 'cut')!.enabled).toBe(false)
@@ -49,5 +49,9 @@ describe('buildCtxMenu', () => {
     expect(a({ clickable: true }, { isEditable: true })).not.toContain('btnNewTab')
     expect(a({ clickable: true }, { linkURL: 'https://b.com/' })).not.toContain('btnNewTab')
     expect(a({})).not.toContain('btnNewTab')
+  })
+  it('vurgu icinde sag tik: notu duzenle/vurguyu kaldir', () => {
+    const l = buildCtxMenu({ pageURL: 'https://a.com/', selectionText: '', extra: { noteId: 'n1' } })
+    expect(acts(l).slice(0, 2)).toEqual(['editNote', 'removeNote']); expect(l[0].arg).toBe('n1')
   })
 })
