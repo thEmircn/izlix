@@ -26,9 +26,11 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run typecheck:ext
+      - run: npm run typecheck:ui
       - run: npx vitest run
       - run: npm run build
       - run: npm run build:ext
+      - run: npm run build:ui
 
   extension-e2e:
     name: Chrome extension end-to-end

@@ -1,0 +1,9 @@
+.wrap { display: flex; flex-direction: column; gap: 5px; }
+.label { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+.input { height: 32px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--g-brd); background: var(--g1); color: var(--fg); font: inherit; font-size: 12.5px; outline: none; box-shadow: var(--g-hi); transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), box-shadow var(--dur-med) var(--ease-out); }
+.input::placeholder { color: var(--dim); opacity: .7; }
+.input:hover { border-color: var(--g-brd2); }
+.input:focus { border-color: var(--ac); background: var(--g2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 22%, transparent); }
+.input[aria-invalid="true"] { border-color: var(--bad); }
+.hint { font-size: 11px; color: var(--dim); }
+.error { font-size: 11px; color: var(--bad); }

@@ -4,12 +4,10 @@ import { parseLimits, siteList } from '../shared/usage'
 import { BUDGET_KEYS, DEFAULT_BUDGET, unitOf } from '../shared/budgets'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
+import { Switch } from '../../packages/ui/src'
 import { useStore, useT, writePref, toast } from './store'
 import { Kbd } from './ui'
 
-function Switch({ on, onChange, label }: { on: boolean; onChange(v: boolean): void; label: string }) {
-  return <button type="button" role="switch" aria-checked={on} aria-label={label} className={`switch ${on ? 'on' : ''}`} onClick={() => onChange(!on)}><i /></button>
-}
 
 /** Ayarlar (⌘,): dil, editor, telemetri, otomatik sekme, DevTools yerlesimi. */
 const syncErrKey = (e: string): 'set.syncErr.no-pass' | 'set.syncErr.no-icloud' | 'set.syncErr.bad-pass' | 'set.syncErr.corrupt' | 'set.syncErr.error' => (e === 'no-pass' || e === 'no-icloud' || e === 'bad-pass' || e === 'corrupt' ? (`set.syncErr.${e}` as const) : 'set.syncErr.error')

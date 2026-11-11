@@ -1,0 +1,7 @@
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--g-brd); background: var(--g1); color: var(--dim); font: inherit; font-size: 11.5px; cursor: default; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+button.chip { cursor: pointer; }
+button.chip:hover { background: var(--g2); color: var(--fg); }
+button.chip:active { transform: scale(.96); }
+button.chip:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+.on { color: var(--fg); background: color-mix(in srgb, var(--ac) 16%, transparent); border-color: color-mix(in srgb, var(--ac) 55%, transparent); }
+.count { font-family: var(--mono); font-size: 10.5px; opacity: .7; }

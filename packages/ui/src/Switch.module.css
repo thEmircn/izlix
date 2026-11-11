@@ -1,0 +1,8 @@
+.sw { position: relative; flex: none; width: 36px; height: 21px; padding: 0; border: 1px solid var(--g-brd); border-radius: 999px; background: var(--g2); cursor: pointer; transition: background var(--dur-med) var(--ease-out), border-color var(--dur-med) var(--ease-out); }
+.sw:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+.sw:disabled { opacity: .4; cursor: default; }
+.knob { position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); transition: transform var(--dur-med) var(--spring), width var(--dur-fast) var(--ease-out); }
+.sw:active:not(:disabled) .knob { width: 19px; }
+.on { background: var(--ac); border-color: var(--ac); }
+.on .knob { transform: translateX(15px); }
+.on:active:not(:disabled) .knob { transform: translateX(11px); }

@@ -1,0 +1,11 @@
+:root { color-scheme: dark; --fg: #ededee; --dim: #8b8b92; --ac: #ff6a2b; --ok: #5ad08a; --warn: #f5b83d; --bad: #ff5c5c; --mono: ui-monospace, 'SF Mono', Menlo, monospace; --ease: cubic-bezier(.2,.8,.2,1); }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(900px 500px at 100% 0, rgba(255,106,43,.07), transparent 60%), #0a0a0b; color: var(--fg); font: 13px/1.5 -apple-system, 'SF Pro Text', ui-sans-serif, sans-serif; -webkit-font-smoothing: antialiased; }
+.g-page { max-width: 880px; margin: 0 auto; padding: 56px 24px 96px; }
+.g-page h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: -.03em; }
+.g-page header p { margin: 0 0 36px; color: var(--dim); max-width: 560px; }
+.g-sec { margin: 0 0 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.08); }
+.g-sec h2 { margin: 0 0 14px; font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+.g-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.g-row > * { min-width: 0; }
+.g-dim { color: var(--dim); }

@@ -11,7 +11,7 @@ module.exports = async ({ tabs, win, settings, sleep, shellEval, pageEval, click
   win.webContents.send('ui:cmd', 'settings.open'); await sleep(500)
   out.dialog = await shellEval(`!!document.querySelector('[role=dialog][aria-label=Settings]')`)
   out.before = settings.get().autoOpen
-  await shellEval(`[...document.querySelectorAll('.switch')].find(b=>b.getAttribute('aria-label')==='Auto-open new dev servers').click()`); await sleep(400)
+  await shellEval(`[...document.querySelectorAll('[role=switch]')].find(b=>b.getAttribute('aria-label')==='Auto-open new dev servers').click()`); await sleep(400)
   out.after = settings.get().autoOpen
   await shellEval(`(()=>{const sel=document.querySelector('.dialog select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(sel,'tr');sel.dispatchEvent(new Event('change',{bubbles:true}))})()`); await sleep(500)
   out.lang = settings.get().language

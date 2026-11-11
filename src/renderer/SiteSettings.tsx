@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Switch } from '../../packages/ui/src'
 import { useStore, useT, toast } from './store'
 import { Kbd } from './ui'
 
-function Switch({ on, onChange, label }: { on: boolean; onChange(v: boolean): void; label: string }) {
-  return <button type="button" role="switch" aria-checked={on} aria-label={label} className={`switch ${on ? 'on' : ''}`} onClick={() => onChange(!on)}><i /></button>
-}
 
 /** Site ayarlari: bu sitenin yakinlastirmasi, zorla karanligi, kendi CSS'i, izinleri ve site verisi. */
 export function SiteSettings({ tabId, onClose }: { tabId: string; onClose(): void }) {

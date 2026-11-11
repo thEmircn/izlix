@@ -1,0 +1,7 @@
+.seg { position: relative; display: inline-flex; padding: 3px; gap: 2px; border-radius: 11px; border: 1px solid var(--g-brd); background: var(--g1); }
+.item { position: relative; z-index: 1; height: 26px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--dim); font: inherit; font-size: 12px; cursor: pointer; transition: color var(--dur-fast) var(--ease-out); }
+.item:hover { color: var(--fg); }
+.item[aria-selected="true"] { color: var(--fg); }
+.item:focus-visible { outline: 2px solid var(--ac); outline-offset: 1px; }
+.indicator { position: absolute; top: 3px; bottom: 3px; left: 0; border-radius: 8px; background: var(--g3); border: 1px solid var(--g-brd2); box-shadow: var(--g-hi); transition: transform var(--dur-med) var(--spring), width var(--dur-med) var(--spring); pointer-events: none; }
+.sm .item { height: 22px; padding: 0 9px; font-size: 11.5px; }

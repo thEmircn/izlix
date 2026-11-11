@@ -17,7 +17,9 @@
     "build:ext": "node packages/extension/build.mjs",
     "test:ext": "node packages/extension/build.mjs && node packages/extension/tests/e2e.mjs",
     "typecheck:ext": "tsc --noEmit -p packages/extension",
-    "zip:ext": "npm run build:ext && cd packages/extension/dist && rm -f ../izlix-for-chrome.zip && zip -qr ../izlix-for-chrome.zip . && echo packages/extension/izlix-for-chrome.zip"
+    "zip:ext": "npm run build:ext && cd packages/extension/dist && rm -f ../izlix-for-chrome.zip && zip -qr ../izlix-for-chrome.zip . && echo packages/extension/izlix-for-chrome.zip",
+    "typecheck:ui": "tsc --noEmit -p packages/ui",
+    "build:ui": "node packages/ui/build.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

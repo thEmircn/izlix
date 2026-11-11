@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DEFAULT_HUB, SERVICES, serviceUrl, type HubSettings } from '../shared/services'
 import { useStore, useT } from './store'
 import { Kbd, Roll } from './ui'
+import { Button, Switch } from '../../packages/ui/src'
 
 /** Hub: gunluk uygulamalar tek yerde. Her biri kendi izole oturumunda web surumuyle calisir; okunmamis sayilari burada toplanir. */
 export function HubPage({ onClose }: { onClose(): void }) {
@@ -29,7 +30,7 @@ export function HubPage({ onClose }: { onClose(): void }) {
                   <span className="svc-ico" style={{ background: s.color }}>{s.name[0]}</span>
                   <b>{s.name}</b>
                   <span style={{ flex: 1 }} />
-                  <button className="svc-sw" role="switch" aria-checked={enabled} aria-label={s.name} onClick={() => save({ enabled: enabled ? hub.enabled.filter((x) => x !== s.id) : [...hub.enabled, s.id] })}><i /></button>
+                  <Switch on={enabled} label={s.name} onChange={() => save({ enabled: enabled ? hub.enabled.filter((x) => x !== s.id) : [...hub.enabled, s.id] })} />
                 </div>
                 {enabled && <>
                   <div className="svc-count" style={{ color: st.unread ? s.color : 'var(--dim)' }}><Roll text={st.unread} /></div>
@@ -37,9 +38,9 @@ export function HubPage({ onClose }: { onClose(): void }) {
                   <div className="svc-state">{st.tab ? t('svch.running') : url ? t('svch.stopped') : t('svch.needUrl')}</div>
                   {s.custom && <input className="svc-url" value={urlDraft} placeholder="acme.youtrack.cloud" aria-label={`${s.name} URL`} onChange={(e) => setUrlDraft(e.target.value)} onBlur={() => save({ urls: { ...hub.urls, [s.id]: urlDraft.trim() } })} onKeyDown={(e) => { if (e.key === 'Enter') save({ urls: { ...hub.urls, [s.id]: urlDraft.trim() } }) }} />}
                   <div className="svc-act">
-                    <button className="btn primary" disabled={!url && !st.tab} onClick={() => open(s.id)}>{t('svch.open')}</button>
-                    {!st.tab && url && <button className="btn" onClick={() => open(s.id, true)}>{t('svch.startBg')}</button>}
-                    {s.google && <button className="btn" onClick={() => void api.hubOpen(s.id, false, true)}>{t('svch.external')}</button>}
+                    <Button variant="primary" size="sm" disabled={!url && !st.tab} onClick={() => open(s.id)}>{t('svch.open')}</Button>
+                    {!st.tab && url && <Button size="sm" onClick={() => open(s.id, true)}>{t('svch.startBg')}</Button>}
+                    {s.google && <Button size="sm" onClick={() => void api.hubOpen(s.id, false, true)}>{t('svch.external')}</Button>}
                   </div>
                 </>}
               </div>
@@ -47,9 +48,9 @@ export function HubPage({ onClose }: { onClose(): void }) {
           })}
         </div>
         <div className="svc-foot">
-          <button className="btn" onClick={startAll}>{t('svch.startAll')}</button>
-          <button className="btn" onClick={() => void api.hubNext().then((id: string | null) => { if (id) onClose() })} disabled={total === 0}>{t('svch.next')}</button>
-          <label className="svc-auto"><button className="svc-sw" role="switch" aria-checked={hub.autostart} aria-label={t('svch.autostart')} onClick={() => save({ autostart: !hub.autostart })}><i /></button>{t('svch.autostart')}</label>
+          <Button onClick={startAll}>{t('svch.startAll')}</Button>
+          <Button onClick={() => void api.hubNext().then((id: string | null) => { if (id) onClose() })} disabled={total === 0}>{t('svch.next')}</Button>
+          <label className="svc-auto"><Switch on={hub.autostart} label={t('svch.autostart')} onChange={(v) => save({ autostart: v })} />{t('svch.autostart')}</label>
         </div>
         <div className="shint" style={{ padding: '0 16px 12px' }}>{t('svch.note')}</div>
       </div>
