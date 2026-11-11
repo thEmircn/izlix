@@ -309,6 +309,7 @@ function registerIpc(): void {
       { type: 'separator' }, { label: tr('grp.ungroup'), click: () => tabs.ungroup(id) }, { label: tr('grp.close'), click: () => tabs.closeGroup(id) }
     ]).popup({ window: curWin ?? win })
   })
+  handle(Ch.translate, schemas.translate, ({ id, off }) => tabs.translate(id, settings.get().language, off))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -648,7 +649,7 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams): Promise<vo
       case 'savePage': void pageOutput(wc, 'save'); break
       case 'print': void pageOutput(wc, 'print'); break
       case 'savePdf': void pageOutput(wc, 'pdf'); break
-      case 'translate': tabs.go(tabId, translateUrl(wc.getURL(), settings.get().language)); break
+      case 'translate': tabs.translate(tabId, settings.get().language); break
       case 'qr': owner.webContents.send(Ch.cmd, 'qr.open'); break
       case 'inspect': wc.inspectElement(p.x, p.y); break
       case 'viewSource': {

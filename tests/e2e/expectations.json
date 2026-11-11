@@ -3511,5 +3511,52 @@
       "eq",
       true
     ]
+  ],
+  "translate": [
+    [
+      "lang",
+      "eq",
+      "de"
+    ],
+    [
+      "chip",
+      "contains",
+      "Translate"
+    ],
+    [
+      "fromSet",
+      "eq",
+      "http://localhost:5421/de"
+    ],
+    [
+      "goesToTranslate",
+      "eq",
+      true
+    ],
+    [
+      "targetLang",
+      "eq",
+      "en"
+    ],
+    [
+      "originalChip",
+      "eq",
+      1
+    ],
+    [
+      "backOriginal",
+      "eq",
+      true
+    ],
+    [
+      "fromCleared",
+      "eq",
+      true
+    ],
+    [
+      "noChipSameLang",
+      "eq",
+      true
+    ]
   ]
 }

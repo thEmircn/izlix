@@ -28,6 +28,7 @@ export const schemas = {
   tabGroup: z.object({ id: z.string().max(64), group: z.string().max(64).nullable() }),
   groupUpdate: z.object({ id: z.string().max(64), name: z.string().max(40).optional(), color: z.string().max(16).optional(), collapsed: z.boolean().optional() }),
   groupMenu: z.object({ id: z.string().max(64) }),
+  translate: z.object({ id: z.string().max(64), off: z.boolean().optional() }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

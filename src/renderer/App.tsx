@@ -247,6 +247,9 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {active.translatedFrom
+              ? <button type="button" className="chip transchip on nodrag" title={t('tr.showOriginal')} onClick={() => void api.translateTab(active.id, true)}>{t('tr.original')}</button>
+              : active.lang && active.lang !== s.settings.language && <button type="button" className="chip transchip nodrag" title={t('tr.translate')} onClick={() => void api.translateTab(active.id)}>{t('tr.translate')}</button>}
             {!!active.logins && <button type="button" className="chip keybtn nodrag" title={t('pw.fill')} onClick={() => void api.pwFill(active.id)}><IcKey />{active.logins > 1 && <b>{active.logins}</b>}</button>}
             <button type="button" className={`chip sitebtn nodrag ${active.site?.dark ? 'on' : ''}`} title={t('site.title')} onClick={() => s.set({ overlay: 'site' })}><IcTune /></button>
           </>

@@ -6,6 +6,7 @@ import type { TabInfo, DevToolsDock } from '../shared/events'
 import { computeLayout, padRect, CARD_RADIUS, GAP, type LayoutParams, type Rect } from '../shared/layout'
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { cleanTrackingParams } from '../shared/tracking'
+import { translateUrl } from '../shared/translate'
 import { GROUP_COLOR_NAMES, normalizeOrder, type TabGroup } from '../shared/groups'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
@@ -46,6 +47,8 @@ interface Entry {
   lastHttpUrl?: string
   retryTimer?: NodeJS.Timeout
   failedUrl?: string
+  /** ceviri sayfasinda bulunuldu mu (translatedFrom temizligi icin) */
+  sawTranslate?: boolean
 }
 
 /** Sekme yoneticisi: her sekme ayri WebContentsView; oturum Workspace basina ayri bolum (cerez/depolama izolasyonu). */
@@ -187,6 +190,10 @@ export class TabManager {
         title: wc.getURL() === 'about:blank' ? 'New Tab' : wc.getTitle() || e.info.title, url: wc.getURL() === 'about:blank' ? '' : wc.getURL(), loading: wc.isLoading(),
         canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward()
       })
+      if (e.info.translatedFrom) { // ceviri sayfasina gidilmis ve sonra cikilmissa isareti kaldir (gezinme baslarken henuz eski adres gorunur)
+        const onTr = /(^|\.)(translate\.google\.com|translate\.goog)$/.test(new URL(wc.getURL() || 'about:blank', 'http://x').hostname)
+        if (onTr) e.sawTranslate = true; else if (e.sawTranslate) { delete e.info.translatedFrom; e.sawTranslate = false }
+      }
       this.refreshSite(e)
       this.onChange()
     }
@@ -200,7 +207,7 @@ export class TabManager {
     })
     wc.on('did-navigate', () => { e.interceptor?.setPageUrl(null); void e.interceptor?.refresh() })
     for (const ev of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'] as const) wc.on(ev as any, sync)
-    wc.on('did-stop-loading', () => { this.persist(); if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()); this.scheduleThumb(e) })
+    wc.on('did-stop-loading', () => { this.detectLang(e); this.persist(); if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()); this.scheduleThumb(e) })
     wc.on('page-favicon-updated', (_ev, urls) => { if (!e.info.private) this.hooks.onFavicons?.(wc.session, wc.getURL(), urls) })
     wc.on('page-title-updated', () => { if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
@@ -602,6 +609,23 @@ export class TabManager {
     return null
   }
 
+  /** Sayfa dilini (html lang) ogren; ceviri onerisi icin */
+  private detectLang(e: Entry): void {
+    const wc = e.view.webContents; if (wc.isDestroyed() || !/^https?:/.test(wc.getURL())) { delete e.info.lang; return }
+    void wc.executeJavaScript('(document.documentElement.lang||"").slice(0,2).toLowerCase()').then((l: string) => {
+      if (wc.isDestroyed() || e.view.webContents !== wc) return
+      const v = /^[a-z]{2}$/.test(l) ? l : undefined
+      if (v !== e.info.lang) { if (v) e.info.lang = v; else delete e.info.lang; this.onChange() }
+    }).catch(() => {})
+  }
+  /** Sayfayi hedef dile cevir (Google'in ceviri sayfasi) ya da orijinale don */
+  translate(id: string, lang: string, off = false): void {
+    const e = this.tabs.get(id); if (!e) return
+    if (off) { if (e.info.translatedFrom) this.go(id, e.info.translatedFrom); return }
+    const url = e.view.webContents.getURL(); if (!/^https?:/.test(url)) return
+    e.info.translatedFrom = url; e.sawTranslate = false; this.onChange()
+    this.go(id, translateUrl(url, lang))
+  }
   private refreshSite(e: Entry): void { const s = this.hooks.siteInfo?.(e.info.url); if (s) e.info.site = s; else delete e.info.site; const n = this.hooks.loginCount?.(e.info.url) ?? 0; if (n) e.info.logins = n; else delete e.info.logins }
   /** Bu webContents gizli (incognito/tor) bir sekmeye mi ait */
   isPrivateWc(wc: Electron.WebContents): boolean { for (const e of this.tabs.values()) if (e.view.webContents === wc) return !!e.info.private; return false }
