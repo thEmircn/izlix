@@ -9,6 +9,7 @@ import { translateUrl } from '../shared/translate'
 import { MockServer } from './mockserver'
 import { engineById, searchUrl } from '../shared/search'
 import { Recorder } from './recorder'
+import { Replayer } from './replay'
 import { Speaker } from './speak'
 import { NoteStore } from './notes'
 import { UsageStore } from './usage'
@@ -178,6 +179,7 @@ async function applyNotes(wc: Electron.WebContents): Promise<void> {
   setTimeout(() => { if (!wc.isDestroyed()) void wc.executeJavaScript(applyNotesScript(list)).catch(() => {}) }, 1500)
 }
 const recorder = new Recorder((st) => send(Ch.recState, st))
+const replayer = new Replayer()
 /** Ambient isik betigini sayfaya koyar (yerel gelistirme sayfalari haric) ve acik/kapali durumunu esitler */
 async function injectAmbient(wc: Electron.WebContents): Promise<void> {
   const s = settings?.get(); if (!s || wc.isDestroyed()) return
@@ -361,6 +363,11 @@ function registerIpc(): void {
   // Recorder
   handle(Ch.recStart, null, async () => { const e = tabs.active(); return e ? recorder.start(e.view.webContents, e.info.id) : false })
   handle(Ch.recStop, null, async () => { const a = recorder.active(); const e = a && tabs.get(a.tabId); return e ? recorder.stop(e.view.webContents) : [] })
+  handle(Ch.recReplay, schemas.recReplay, async ({ steps, timeoutMs }) => {
+    const e = tabs.active(); if (!e) return { ok: 0, fail: 0, skipped: 0, error: 'no tab' }
+    return replayer.run(e.view.webContents, steps as never, (i, state, err) => send(Ch.recReplayState, { i, state, err }), timeoutMs ?? 5000)
+  })
+  handle(Ch.recReplayStop, null, () => replayer.cancel())
   handle(Ch.recSave, schemas.recSave, async ({ code, name }) => {
     const base = (name || 'recorded-flow').replace(/[^\w\-]+/g, '_').slice(0, 60) || 'recorded-flow'
     let file: string | undefined

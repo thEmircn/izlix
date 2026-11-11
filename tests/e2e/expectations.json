@@ -4522,5 +4522,47 @@
       "eq",
       true
     ]
+  ],
+  "replay": [
+    [
+      "ok",
+      "eq",
+      4
+    ],
+    [
+      "skipped",
+      "eq",
+      1
+    ],
+    [
+      "failCount",
+      "eq",
+      0
+    ],
+    [
+      "result",
+      "eq",
+      "Merhaba ali"
+    ],
+    [
+      "selected",
+      "eq",
+      "b"
+    ],
+    [
+      "failFail",
+      "eq",
+      1
+    ],
+    [
+      "failOk",
+      "eq",
+      0
+    ],
+    [
+      "failMsg",
+      "eq",
+      "element not found"
+    ]
   ]
 }

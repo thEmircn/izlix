@@ -115,3 +115,38 @@ export function toPlaywright(steps: Step[], title = 'recorded flow'): string {
   }
   return `import { test, expect } from '@playwright/test';\n\ntest(${q(title)}, async ({ page }) => {\n${lines.join('\n')}\n});\n`
 }
+
+// ---- Oynatma (replay): konumlandiriciyi sayfada bul ----
+function findInPage(sel: unknown): { x: number; y: number; w: number; h: number; tag: string; editable: boolean } | null {
+  const S = sel as { k: string; v?: string; role?: string; name?: string }
+  const norm = (x: string | null | undefined): string => (x || '').replace(/\s+/g, ' ').trim()
+  const visible = (el: Element): boolean => { const r = (el as HTMLElement).getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' }
+  const roleOf = (el: Element): string => {
+    const r = el.getAttribute('role'); if (r) return r
+    const t = el.tagName.toLowerCase(), ty = (el.getAttribute('type') || '').toLowerCase()
+    if (t === 'a' && el.hasAttribute('href')) return 'link'
+    if (t === 'button' || (t === 'input' && (ty === 'button' || ty === 'submit' || ty === 'reset'))) return 'button'
+    if (t === 'input' && ty === 'checkbox') return 'checkbox'
+    if (t === 'input' && ty === 'radio') return 'radio'
+    if (t === 'select') return 'combobox'
+    return ''
+  }
+  let cands: Element[] = []
+  try {
+    if (S.k === 'testid') cands = Array.from(document.querySelectorAll('[data-testid],[data-test-id]')).filter((e) => (e.getAttribute('data-testid') || e.getAttribute('data-test-id')) === S.v)
+    else if (S.k === 'placeholder') cands = Array.from(document.querySelectorAll('input,textarea')).filter((e) => norm(e.getAttribute('placeholder')) === S.v)
+    else if (S.k === 'label') cands = Array.from(document.querySelectorAll('input,textarea,select')).filter((e) => { const l = (e as HTMLInputElement).labels; return (l && l[0] && norm(l[0].innerText) === S.v) || norm(e.getAttribute('aria-label')) === S.v })
+    else if (S.k === 'role') cands = Array.from(document.querySelectorAll('*')).filter((e) => roleOf(e) === S.role && norm(e.getAttribute('aria-label') || (e as HTMLElement).innerText || (e as HTMLInputElement).value) === S.name)
+    else if (S.k === 'text') cands = Array.from(document.querySelectorAll('button,a,label,span,li,h1,h2,h3,p')).filter((e) => norm((e as HTMLElement).innerText) === S.v)
+    else cands = Array.from(document.querySelectorAll(S.v || '*'))
+  } catch (e) { return null }
+  const el = cands.find(visible) || null
+  if (!el) return null
+  el.scrollIntoView({ block: 'center', inline: 'center' })
+  const r = (el as HTMLElement).getBoundingClientRect(), tag = el.tagName.toLowerCase()
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height), tag, editable: tag === 'input' || tag === 'textarea' || (el as HTMLElement).isContentEditable }
+}
+/** Sayfada konumlandiriciyi bulup (gorunur, merkeze kaydirilmis) {x,y,...} ya da null doner */
+export const findScript = (sel: Sel): string => `(${findInPage.toString()})(${JSON.stringify(sel)})`
+/** Secili <select>'e deger yazar */
+export const selectScript = (sel: Sel, value: string): string => `(() => { const f = ${findInPage.toString()}; const r = f(${JSON.stringify(sel)}); if (!r) return false; const els = Array.from(document.querySelectorAll('select')); const el = document.elementFromPoint(r.x, r.y); const s = (el && el.closest('select')) || els.find((e) => { const b = e.getBoundingClientRect(); return Math.abs(b.left + b.width / 2 - r.x) < 2 && Math.abs(b.top + b.height / 2 - r.y) < 2 }); if (!s) return false; s.value = ${JSON.stringify(value)}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); return true })()`

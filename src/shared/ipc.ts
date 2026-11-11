@@ -3,6 +3,7 @@ import { z } from 'zod'
 // IPC izin listesi: shell <-> main. Her mesaj zod ile dogrulanir (plan bolum 4, guvenlik).
 export { Ch } from './channels'
 
+const selZ = z.union([z.object({ k: z.enum(['testid', 'placeholder', 'label', 'text', 'css']), v: z.string().max(300) }), z.object({ k: z.literal('role'), role: z.string().max(40), name: z.string().max(120) })])
 export const schemas = {
   faviconsGet: z.object({ origins: z.array(z.string().max(300)).max(200) }),
   defaultBrowser: z.object({ set: z.boolean() }),
@@ -46,6 +47,11 @@ export const schemas = {
   perfSave: z.object({ key: z.string().max(500), m: z.object({ lcp: z.number().optional(), cls: z.number().optional(), inp: z.number().optional(), tbt: z.number().optional(), load: z.number().optional(), requests: z.number(), transferKB: z.number(), ts: z.number() }) }),
   perfHistory: z.object({ key: z.string().max(500) }),
   exportSave: z.object({ name: z.string().min(1).max(80), content: z.string().max(20_000_000) }),
+  recReplay: z.object({ steps: z.array(z.union([
+    z.object({ t: z.literal('goto'), url: z.string().max(4096) }),
+    z.object({ t: z.literal('click'), sel: selZ }), z.object({ t: z.literal('fill'), sel: selZ, value: z.string().max(2000), secret: z.boolean().optional() }),
+    z.object({ t: z.literal('select'), sel: selZ, value: z.string().max(500) }), z.object({ t: z.literal('press'), sel: selZ, key: z.enum(['Enter', 'Escape', 'Tab']) })
+  ])).max(500), timeoutMs: z.number().int().min(200).max(30000).optional() }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

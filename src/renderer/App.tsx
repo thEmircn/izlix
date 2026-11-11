@@ -91,6 +91,7 @@ export function App() {
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
       api.onRec((r: any) => s.set({ rec: r })),
+      api.onReplay((m: { i: number; state: 'run' | 'ok' | 'fail' | 'skip' }) => useStore.setState((st) => ({ replay: { ...st.replay, states: { ...st.replay.states, [m.i]: m.state } } }))),
       api.onSpeak((on: boolean) => s.set({ speaking: on })),
       api.onNoteAsk((a: any) => s.set({ noteAsk: a, overlay: 'notePrompt' })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
@@ -293,6 +294,7 @@ export function App() {
             {!appWin && <BudgetChip />}
             {s.settings.focus?.on && <button type="button" className="chip focuschip nodrag" title={t('cmd.focusOff')} onClick={() => void api.setSettings({ focus: { ...s.settings.focus!, on: false } })}><i /><b>{t('focus.chip')}</b></button>}
             {s.speaking && <button type="button" className="chip speakchip nodrag" title={t('tts.stop')} onClick={() => void api.speak('stop')}><i /><b>{t('tts.speaking')}</b></button>}
+            {s.replay.running && <button type="button" className="chip recchip nodrag" title={t('rec.stopReplay')} onClick={() => void api.recReplayStop()}><i /><b>REPLAY</b><Roll text={Object.keys(s.replay.states).length} /></button>}
             {s.rec.recording && <button type="button" className="chip recchip nodrag" title={t('rec.stop')} onClick={() => void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' }))}><i /><b>REC</b><Roll text={s.rec.steps.length} /></button>}
             {insecure && <span className="chip insecure nodrag" title={t('sec.insecureTip')}>{t('sec.insecure')}</span>}
             {active.translatedFrom

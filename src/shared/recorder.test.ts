@@ -19,3 +19,12 @@ describe('recorder', () => {
   })
   it('sayfa betigi gecerli JavaScript', () => { expect(() => new Function(REC_SCRIPT)).not.toThrow() })
 })
+
+import { findScript, selectScript } from './recorder'
+describe('replay betikleri', () => {
+  it('sayfa betikleri gecerli JavaScript ve secici JSON olarak gomulur', () => {
+    const s = findScript({ k: 'role', role: 'button', name: "O'Reilly \"x\"" })
+    expect(() => new Function(`return ${s}`)).not.toThrow(); expect(s).toContain(JSON.stringify("O'Reilly \"x\""))
+    expect(() => new Function(`return ${selectScript({ k: 'css', v: 'select' }, 'a')}`)).not.toThrow()
+  })
+})
