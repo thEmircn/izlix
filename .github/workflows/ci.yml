@@ -1,14 +1,48 @@
-name: ci
-on: [push, pull_request]
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: macos-14
+    name: Unit tests and build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 24, cache: npm }
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run typecheck:ext
+      - run: npx vitest run
       - run: npm run build
-      # Uçtan uca testler gerçek Electron penceresi ve test uygulaması ister; yerelde: tests/e2e/run.sh
+      - run: npm run build:ext
+
+  extension-e2e:
+    name: Chrome extension end-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm run build:ext
+      - name: Install Chrome for Testing
+        id: cft
+        run: |
+          out=$(npx --yes @puppeteer/browsers install chrome@stable --path "$RUNNER_TEMP/cft" | tail -n 1)
+          echo "bin=${out#* }" >> "$GITHUB_OUTPUT"
+      - name: Run the extension test
+        run: xvfb-run -a env CHROME_BIN="${{ steps.cft.outputs.bin }}" CHROME_ARGS="--no-sandbox --disable-gpu" node packages/extension/tests/e2e.mjs

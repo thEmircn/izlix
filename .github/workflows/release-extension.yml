@@ -1,0 +1,23 @@
+name: Release the Chrome extension
+
+on:
+  push:
+    tags: ['ext-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm run zip:ext
+      - name: Checksum
+        run: cd packages/extension && sha256sum izlix-for-chrome.zip > izlix-for-chrome.zip.sha256
+      - name: Publish the GitHub release
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release create "${GITHUB_REF_NAME}" packages/extension/izlix-for-chrome.zip packages/extension/izlix-for-chrome.zip.sha256 --generate-notes --title "Izlix for Chrome ${GITHUB_REF_NAME#ext-v}"

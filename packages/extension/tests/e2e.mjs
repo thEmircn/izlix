@@ -24,7 +24,7 @@ const srv = createServer((q, r) => {
 await new Promise((r) => srv.listen(PORT, '127.0.0.1', r))
 
 const prof = mkdtempSync(join(tmpdir(), 'izlix-ext-e2e-'))
-const chrome = spawn(BIN, [`--user-data-dir=${prof}`, `--remote-debugging-port=${DBG}`, `--load-extension=${resolve(here, '../dist')}`, '--silent-debugger-extension-api', '--no-first-run', '--no-default-browser-check', '--window-position=-4000,-4000', '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
+const chrome = spawn(BIN, [`--user-data-dir=${prof}`, `--remote-debugging-port=${DBG}`, `--load-extension=${resolve(here, '../dist')}`, '--silent-debugger-extension-api', ...(process.env.CHROME_ARGS ? process.env.CHROME_ARGS.split(' ') : []), '--no-first-run', '--no-default-browser-check', '--window-position=-4000,-4000', '--window-size=1280,900', 'about:blank'], { stdio: 'ignore' })
 const fails = []; const check = (name, ok, info = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${info ? '  ' + info : ''}`); if (!ok) fails.push(name) }
 const finish = async (code) => { chrome.kill('SIGKILL'); await sleep(400); rmSync(prof, { recursive: true, force: true }); srv.close(); process.exit(code) }
 
