@@ -55,6 +55,7 @@ export const api = {
   updateGroup: (id: string, p: { name?: string; color?: string; collapsed?: boolean }) => call(Ch.groupUpdate, { id, ...p }),
   groupMenu: (id: string) => call(Ch.groupMenu, { id }),
   translateTab: (id: string, off?: boolean) => call(Ch.translate, { id, off }),
+  tabCard: (id: string | null, x = 0, y = 0, side: 'below' | 'right' = 'below') => call(Ch.tabCard, { id, x, y, side }),
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,

@@ -3558,5 +3558,64 @@
       "eq",
       true
     ]
+  ],
+  "pdfview": [
+    [
+      "url",
+      "contains",
+      "doc.pdf"
+    ],
+    [
+      "contentType",
+      "eq",
+      "application/pdf"
+    ],
+    [
+      "title",
+      "eq",
+      "doc.pdf"
+    ],
+    [
+      "failed",
+      "eq",
+      false
+    ]
+  ],
+  "tabcard": [
+    [
+      "shown",
+      "eq",
+      true
+    ],
+    [
+      "addedView",
+      "eq",
+      true
+    ],
+    [
+      "hasThumb",
+      "eq",
+      true
+    ],
+    [
+      "title",
+      "eq",
+      "Kart alfa"
+    ],
+    [
+      "below",
+      "eq",
+      true
+    ],
+    [
+      "hidden",
+      "eq",
+      true
+    ],
+    [
+      "privateNoThumb",
+      "eq",
+      true
+    ]
   ]
 }

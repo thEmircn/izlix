@@ -17,7 +17,7 @@ import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
-import { app, net, screen, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, net, screen, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
@@ -310,6 +310,8 @@ function registerIpc(): void {
     ]).popup({ window: curWin ?? win })
   })
   handle(Ch.translate, schemas.translate, ({ id, off }) => tabs.translate(id, settings.get().language, off))
+  // Sekme onizleme karti: sayfa gorunumlerinin USTUNDE duran kucuk bir WebContentsView (kabuk DOM'u native gorunumun altinda kalir)
+  handle(Ch.tabCard, schemas.tabCard, ({ id, x, y, side }) => showTabCard(id, x, y, side ?? 'below'))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -601,6 +603,33 @@ const permissionHandlers = {
   }
 }
 
+const cardViews = new Map<number, WebContentsView>()
+const cardState = { shown: false, hasImg: false, bounds: { x: 0, y: 0, width: 0, height: 0 }, title: '' }
+const escHtml = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+function showTabCard(id: string | null, x: number, y: number, side: 'below' | 'right'): void {
+  const w = curWin ?? win
+  let v = cardViews.get(w.id)
+  if (!id) { if (v && cardState.shown) { try { w.contentView.removeChildView(v) } catch { /* yok */ } } cardState.shown = false; return }
+  const e = tabs.get(id); if (!e) return
+  if (!v) { v = new WebContentsView({ webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } }); v.setBackgroundColor('#00000000'); cardViews.set(w.id, v) }
+  const info = e.info, priv = !!info.private
+  const thumb = priv || !info.url ? null : thumbs.get(info.url)
+  const host = (() => { try { return new URL(info.url).host } catch { return '' } })()
+  const title = priv ? tr('tab.private') : (!info.title || info.title === 'New Tab' ? tr('tab.untitled') : info.title)
+  const W = 300, H = thumb ? 232 : 84
+  const html = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:transparent;font:13px -apple-system,system-ui,sans-serif;color:#eee;-webkit-user-select:none}
+.c{position:absolute;inset:8px;border-radius:12px;background:rgba(26,26,30,.97);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 34px rgba(0,0,0,.5);overflow:hidden}
+.t{padding:10px 12px 2px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.h{padding:0 12px 10px;color:#999;font:11.5px ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+img{display:block;width:100%;border-top:1px solid rgba(255,255,255,.08)}</style><div class="c"><div class="t">${escHtml(title)}</div><div class="h">${escHtml(priv ? '' : host)}${info.sleeping ? ' · ' + escHtml(tr('tab.sleepingNote')) : ''}</div>${thumb ? `<img src="${thumb}">` : ''}</div>`
+  void v.webContents.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
+  const [cw] = w.getContentSize()
+  const bx = Math.max(0, Math.min(cw - W, side === 'right' ? x + 4 : x - 8)), by = side === 'right' ? y - 8 : y - 2
+  v.setBounds({ x: Math.round(bx), y: Math.round(by), width: W, height: H })
+  w.contentView.addChildView(v) // en uste
+  Object.assign(cardState, { shown: true, hasImg: !!thumb, bounds: v.getBounds(), title })
+}
+
 /** Yazdir / PDF olarak kaydet / sayfayi kaydet (HTML). Dosya yolunu doner (yazdirmada null). Testte DB_OUT_DIR ile pencere acilmaz. */
 async function pageOutput(wc: Electron.WebContents, mode: 'print' | 'pdf' | 'save'): Promise<string | null> {
   if (wc.isDestroyed() || !/^https?:/.test(wc.getURL())) return null
@@ -770,7 +799,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, shellWins, passwords,
+      newTab, openWindow, shellWins, passwords, cardState,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
       pageEval: (code: string): Promise<any> => tabs.active()!.view.webContents.executeJavaScript(code),

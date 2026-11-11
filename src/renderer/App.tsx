@@ -181,12 +181,18 @@ export function App() {
   }
   const nav = (fn: (id: string) => unknown) => (): void => { if (active) void fn(active.id) }
 
+  const cardTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const cardIn = (id: string, el: HTMLElement): void => {
+    clearTimeout(cardTimer.current)
+    cardTimer.current = setTimeout(() => { const r = el.getBoundingClientRect(); void api.tabCard(id, vertical ? r.right : r.left, vertical ? r.top : r.bottom, vertical ? 'right' : 'below') }, 450)
+  }
+  const cardOut = (): void => { clearTimeout(cardTimer.current); void api.tabCard(null) }
   const tabEl = (tb: (typeof s.tabs)[number]): React.ReactElement => (
           <div key={tb.id} draggable style={tb.group ? { ['--gc' as any]: GROUP_COLORS[s.groups.find((g) => g.id === tb.group)?.color ?? 'grey'] } : undefined} className={`tab nodrag ${tb.group ? 'grouped' : ''} ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
-            onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
+            onDragEnd={() => { setDragTab(null); setOverTab(null) }} onMouseEnter={(e) => cardIn(tb.id, e.currentTarget)} onMouseLeave={cardOut} onClick={() => { cardOut(); void api.activateTab(tb.id) }} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
             <span className="t">{!tb.private && s.favicons[originKey(tb.url) ?? ''] && <img className="tab-fav" alt="" src={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
             {(tb.audible || tb.muted) && <button className={`tab-audio ${tb.muted ? 'muted' : ''}`} aria-label={t(tb.muted ? 'ctx.unmute' : 'ctx.mute')} title={t(tb.muted ? 'ctx.unmute' : 'ctx.mute')} onClick={(e) => { e.stopPropagation(); void api.muteTab(tb.id, !tb.muted) }}>{tb.muted ? <IcMuted /> : <IcSpeaker />}</button>}
             {!tb.pinned && <button className="tab-hop" aria-label={t('tab.hopTip')} title={t(tb.winId !== undefined && tb.winId !== s.winId ? 'tab.hopBack' : 'tab.hopTip')} onClick={(e) => { e.stopPropagation(); void api.hopTab(tb.id) }}><IcHop /></button>}
