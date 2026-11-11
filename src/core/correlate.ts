@@ -1,6 +1,6 @@
 import type { BusEvent } from '../shared/events'
 import type { EventBus } from './bus'
-import type { SrcLoc } from './sources'
+import type { SrcLoc } from './types'
 
 /** Korelatorun ihtiyac duydugu kaynak cozumleme yuzeyi (testte taklit edilebilir) */
 export interface SourceLookup {

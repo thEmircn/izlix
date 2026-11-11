@@ -1,5 +1,5 @@
 import type { WebContents } from 'electron'
-import type { EventBus } from './bus'
+import type { EventBus } from '../core/bus'
 import { MockServer } from './mockserver'
 import { adPatterns, cdpType, decide, inSet, isLoopbackHost, YOUTUBE_DOC_SCRIPT, type BlockLevel } from '../shared/adblock'
 import { evaluate, hostAllowed, needsResponseStage, activeRules, type Decision, type RulesConfig } from '../shared/rules'

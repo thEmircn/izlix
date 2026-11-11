@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron'
 import type { SourceResolver } from './sources'
-import { formatEval, preview } from './evalformat'
+import { formatEval, preview } from '../core/evalformat'
 
 export interface DbgFrame { id: string; fn: string; url: string; line: number; col: number; orig?: { file: string; line: number }; scopes: { type: string; name?: string; objectId?: string }[] }
 export type DbgEvent =

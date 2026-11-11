@@ -1,9 +1,10 @@
 import type { WebContents } from 'electron'
 import { existsSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
+import type { SrcLoc } from '../core/types'
 import { TraceMap, FlattenMap, originalPositionFor, allGeneratedPositionsFor } from '@jridgewell/trace-mapping'
 
-export interface SrcLoc { file: string; line: number; column: number } // line 1-bazli, orijinal kaynak
+export type { SrcLoc }
 
 /** Duz harita (Vite/webpack) veya indeksli/bolumlu harita (Next.js Turbopack: `sections`) */
 export function parseSourceMap(text: string, url: string): TraceMap {

@@ -3,7 +3,8 @@ export interface Jwt { raw: string; header: Record<string, unknown>; payload: Re
 
 const b64url = (s: string): string => {
   const p = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)
-  return typeof atob === 'function' ? decodeURIComponent(Array.from(atob(p), (c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')) : Buffer.from(p, 'base64').toString('utf8')
+  // atob: tarayici, eklenti ve Node 16+ icin ortak (Buffer yedegi cekirdek sinirini bozuyordu)
+  return decodeURIComponent(Array.from(atob(p), (c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''))
 }
 
 export function decodeJwt(token: string): Jwt | null {

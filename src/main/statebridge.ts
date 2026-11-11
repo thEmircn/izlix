@@ -1,5 +1,5 @@
 import type { WebContents } from 'electron'
-import type { EventBus } from './bus'
+import type { EventBus } from '../core/bus'
 import { changedKeys, STATE_BINDING, STATE_SCRIPT } from '../shared/statebridge'
 
 const MAX_PAYLOAD = 200_000
