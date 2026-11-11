@@ -100,11 +100,13 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const panelSide = useStore((x) => x.panelSide), dockOn = useStore((x) => x.dock !== 'off')
   // sekmeler arasi gecis yonu: yeni sekme ilerideyse sagdan, gerideyse soldan kayar
   const gi = RAIL_GROUPS.findIndex((g) => g.tabs.includes(tab)); const prevGi = useRef(gi); const dir = gi === prevGi.current ? 0 : gi > prevGi.current ? 1 : -1; const lastDir = useRef(1); if (dir) lastDir.current = dir; prevGi.current = gi
+  // dock rozetleri: konsol hatalari ve basarisiz istekler (panele girmeden sorunu goster)
+  const badges = useMemo(() => { let con = 0, net = 0; for (const e of all) { if (e.kind === 'error' || (e.kind === 'console' && e.payload.level === 'error')) con++; else if (e.kind === 'response' && (e.payload.status ?? 0) >= 400) net++ } return { console: con, network: net } }, [all])
   const groupTitle = ({ timeline: t('tl.timeline'), network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server } as Record<string, string>)[groupOf(tab)?.label ?? 'timeline'] ?? labels[tab]
 
   return (
     <div className="pbody">
-      <Rail value={tab} onChange={setTab} labels={labels} groupLabels={{ timeline: labels.timeline, network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server }} />
+      <Rail value={tab} onChange={setTab} labels={labels} badges={badges} groupLabels={{ timeline: labels.timeline, network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server }} />
       <div className="pmain" ref={mainRef} data-dir={lastDir.current}>
       <div className="phead">
         <div className="ptitle"><h3 key={tab}>{groupTitle}</h3>{tab === 'timeline' || tab === 'raw' ? <span className="pcount">{t('tl.eventsCount', { n: all.length })}</span> : null}

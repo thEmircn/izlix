@@ -2371,5 +2371,27 @@
       "eq",
       "right"
     ]
+  ],
+  "badges": [
+    [
+      "before[0]",
+      "eq",
+      null
+    ],
+    [
+      "consoleBadge",
+      "eq",
+      "3"
+    ],
+    [
+      "networkBadge",
+      "eq",
+      "2"
+    ],
+    [
+      "labelsClean",
+      "eq",
+      true
+    ]
   ]
 }

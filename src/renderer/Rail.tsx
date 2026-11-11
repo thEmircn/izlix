@@ -21,7 +21,7 @@ export const RAIL_GROUPS: RailGroup[] = RAIL_SETS.flat()
 export const groupOf = (tab: PanelTab): RailGroup | undefined => RAIL_GROUPS.find((g) => g.tabs.includes(tab))
 
 /** Alt dock: panelin altinda yuzen cam hap; ikonlar, secili olan etiketiyle acilir. */
-export function Rail({ value, onChange, labels, groupLabels }: { value: PanelTab; onChange(k: PanelTab): void; labels: Record<PanelTab, string>; groupLabels: Record<RailGroup['label'], string> }) {
+export function Rail({ value, onChange, labels, groupLabels, badges = {} }: { value: PanelTab; onChange(k: PanelTab): void; labels: Record<PanelTab, string>; groupLabels: Record<RailGroup['label'], string>; badges?: Partial<Record<RailGroup['label'], number>> }) {
   const mem = useRef<Record<string, PanelTab>>({}) // grup basina son kullanilan sekme
   mem.current[groupOf(value)?.label ?? ''] = value
   return (
@@ -31,7 +31,7 @@ export function Rail({ value, onChange, labels, groupLabels }: { value: PanelTab
         ...set.map((g) => {
           const I = g.icon, on = g.tabs.includes(value), name = groupLabels[g.label]
           return (
-            <button key={g.label} role="tab" aria-selected={on} className={on ? 'on' : ''} onClick={() => onChange(mem.current[g.label] && g.tabs.includes(mem.current[g.label]) ? mem.current[g.label] : g.tabs[0])} title={name}>
+            <button key={g.label} role="tab" aria-selected={on} className={on ? 'on' : ''} data-badge={badges[g.label] ? (badges[g.label]! > 99 ? '99+' : String(badges[g.label])) : undefined} onClick={() => onChange(mem.current[g.label] && g.tabs.includes(mem.current[g.label]) ? mem.current[g.label] : g.tabs[0])} title={name}>
               <I /><span className="rl">{name}</span>
             </button>
           )

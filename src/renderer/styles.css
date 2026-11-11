@@ -768,3 +768,8 @@ body { background: radial-gradient(1100px 650px at 100% 100%, rgba(255,106,43,.0
 .panel.side-bottom .phead { display: flex; align-items: center; gap: 18px; padding: 12px 18px 6px; flex-wrap: wrap; }
 .panel.side-bottom .ptitle { margin: 0; flex: none; } .panel.side-bottom .ptitle h3 { font-size: 17px; } .panel.side-bottom .psub { flex: 1; min-width: 0; } .panel.side-bottom .pctl { order: 3; }
 .panel.side-bottom .pmain { padding-bottom: 66px; }
+
+/* dock rozetleri: hata/basarisiz sayisi (textContent'e girmez) */
+.rail.dock button[data-badge]::after { content: attr(data-badge); position: absolute; top: -3px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--bad); color: #fff; font: 600 9.5px/16px var(--mono); text-align: center; box-shadow: 0 0 0 2px rgba(24,24,30,.9), 0 0 12px rgba(255,92,92,.5); animation: badgepop .5s var(--spring) both; pointer-events: none; }
+@keyframes badgepop { from { transform: scale(0); } 60% { transform: scale(1.25); } }
+.rail.dock button { position: relative; }
