@@ -20,6 +20,8 @@ export interface BusEvent {
 
 export interface SessionInfo { id: string; name: string; ts: number; tabs: { url: string; title: string }[]; active: number; split: [number, number] | null }
 export interface TabInfo {
+  /** Bu site icin kayitli giris sayisi (sifre yoneticisi) */
+  logins?: number
   /** Bu sitenin kayitli ayarlari (zoom/karanlik) */
   site?: { zoom?: number; dark?: boolean }
   /** Sekme ses caliyor / sessize alinmis */

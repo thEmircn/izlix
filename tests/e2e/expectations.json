@@ -3197,5 +3197,57 @@
       "lt",
       20
     ]
+  ],
+  "passwords": [
+    [
+      "saved",
+      "eq",
+      "[{\"u\":\"ali\",\"p\":\"gizli123\"}]"
+    ],
+    [
+      "listHasNoPassword",
+      "eq",
+      true
+    ],
+    [
+      "loginsInfo",
+      "eq",
+      1
+    ],
+    [
+      "chip",
+      "gte",
+      1
+    ],
+    [
+      "filled",
+      "eq",
+      true
+    ],
+    [
+      "values",
+      "eq",
+      "ali|gizli123"
+    ],
+    [
+      "otherOriginFill",
+      "eq",
+      false
+    ],
+    [
+      "privateNotSaved",
+      "eq",
+      true
+    ],
+    [
+      "deleted",
+      "eq",
+      true
+    ],
+    [
+      "chipGone",
+      "eq",
+      true
+    ]
   ]
 }

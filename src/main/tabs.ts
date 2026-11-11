@@ -73,7 +73,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
@@ -167,6 +167,7 @@ export class TabManager {
       const u = wc.getURL()
       return this.rootFor(/^https?:/.test(u) ? u : entry.lastHttpUrl ?? u, opts.workspaceId)
     })
+    await this.hooks.onAttached?.(wc) // belge-basi betikler hedef sayfa yuklenmeden kurulur
     entry.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(opts.workspaceId), this.adHook(wc))
     await entry.interceptor.refresh()
     if (target !== 'about:blank') void wc.loadURL(target).catch(() => {})
@@ -531,6 +532,7 @@ export class TabManager {
       await wc.loadURL('about:blank')
       if (/^https?:/.test(target)) e.lastHttpUrl = target
       e.cdp = await attachCdp(wc, id, this.bus, () => { const u = wc.getURL(); return this.rootFor(/^https?:/.test(u) ? u : e.lastHttpUrl ?? u, e.info.workspaceId) })
+      await this.hooks.onAttached?.(wc) // belge-basi betikler hedef sayfa yuklenmeden kurulur
       e.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(e.info.workspaceId), this.adHook(wc))
       await e.interceptor.refresh()
       void wc.loadURL(target).catch(() => {})
@@ -570,7 +572,9 @@ export class TabManager {
     return null
   }
 
-  private refreshSite(e: Entry): void { const s = this.hooks.siteInfo?.(e.info.url); if (s) e.info.site = s; else delete e.info.site }
+  private refreshSite(e: Entry): void { const s = this.hooks.siteInfo?.(e.info.url); if (s) e.info.site = s; else delete e.info.site; const n = this.hooks.loginCount?.(e.info.url) ?? 0; if (n) e.info.logins = n; else delete e.info.logins }
+  /** Bu webContents gizli (incognito/tor) bir sekmeye mi ait */
+  isPrivateWc(wc: Electron.WebContents): boolean { for (const e of this.tabs.values()) if (e.view.webContents === wc) return !!e.info.private; return false }
   /** Site ayarlari degisince (zoom/karanlik) tum sekmelerin bilgisini yenile */
   refreshSites(): void { for (const e of this.tabs.values()) this.refreshSite(e); this.onChange() }
   setMuted(id: string, muted: boolean): void {

@@ -2,7 +2,7 @@ import { originKey } from '../shared/favicon'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
-import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune } from './icons'
+import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune, IcKey } from './icons'
 import { SiteSettings } from './SiteSettings'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
@@ -102,6 +102,7 @@ export function App() {
           }
           case 'tab.reopen': void api.reopenTab(); break
           case 'zoom.in': case 'zoom.out': case 'zoom.reset': if (act) void api.zoom(act.id, cmd.slice(5) as 'in' | 'out' | 'reset'); break
+          case 'pw.fill': if (act && act.logins) void api.pwFill(act.id); break
           case 'site.open': st.set({ overlay: 'site' }); break
           case 'win.new': void api.newWindow(); break
           case 'tab.hop': if (act) void api.hopTab(act.id); break
@@ -214,6 +215,7 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {!!active.logins && <button type="button" className="chip keybtn nodrag" title={t('pw.fill')} onClick={() => void api.pwFill(active.id)}><IcKey />{active.logins > 1 && <b>{active.logins}</b>}</button>}
             <button type="button" className={`chip sitebtn nodrag ${active.site?.dark ? 'on' : ''}`} title={t('site.title')} onClick={() => s.set({ overlay: 'site' })}><IcTune /></button>
           </>
         )}

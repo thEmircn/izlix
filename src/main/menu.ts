@@ -28,6 +28,7 @@ export function installMenu(run: (cmd: string) => void, lang: Language = 'tr'): 
         c(t('menu.dashboard'), 'Alt+CmdOrCtrl+D', 'dashboard.toggle'),
         { type: 'separator' },
         ...(['tl.timeline', 'tl.network', 'tl.console', 'tl.elements', 'tl.sources', 'tl.storage', 'tl.perf', 'tl.coverage', 'tl.a11y', 'tl.profiler', 'tl.seo', 'tl.server', 'tl.components', 'tl.renders'] as Key[]).map((k, i) => i < 9 ? c(t('menu.panel', { n: t(k) }), `Alt+CmdOrCtrl+${i + 1}`, `panel.${i}`) : { label: t('menu.panel', { n: t(k) }), click: () => run(`panel.${i}`) }),
+        c(t('menu.fillPw'), 'CmdOrCtrl+Shift+L', 'pw.fill'),
         c(t('menu.reader'), 'Alt+CmdOrCtrl+R', 'reader.toggle'),
         { type: 'separator' }, c(t('menu.zoomReset'), 'CmdOrCtrl+0', 'zoom.reset'), c(t('menu.zoomIn'), 'CmdOrCtrl+Plus', 'zoom.in'), c(t('menu.zoomOut'), 'CmdOrCtrl+-', 'zoom.out'),
         { type: 'separator' }, { role: 'togglefullscreen' }

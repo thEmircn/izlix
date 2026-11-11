@@ -18,6 +18,9 @@ export function Settings({ onClose }: { onClose(): void }) {
   const set = useStore((s) => s.set)
   const api = window.izlix
   const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
+  const [pw, setPw] = useState<{ logins: { origin: string; username: string; ts: number }[]; never: string[] }>({ logins: [], never: [] })
+  const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
+  useEffect(loadPw, [])
   const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
   useEffect(loadPerms, [])
   const Row = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (
@@ -51,6 +54,16 @@ export function Settings({ onClose }: { onClose(): void }) {
           </Row>
           <Row title={t('set.strip')} hint={t('set.stripHint')}><Switch on={settings.stripTracking !== false} label={t('set.strip')} onChange={(v) => void api.setSettings({ stripTracking: v })} /></Row>
           <Row title={t('set.consent')} hint={t('set.consentHint')}><Switch on={settings.cookieBanners !== false} label={t('set.consent')} onChange={(v) => void api.setSettings({ cookieBanners: v })} /></Row>
+          <div className="srow" style={{ display: 'block' }}>
+            <div className="stitle">{t('pw.title')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('pw.hint')}</div>
+            {pw.logins.length === 0 && <div className="shint">{t('pw.none')}</div>}
+            {pw.logins.map((l) => (
+              <div className="pwrow" key={l.origin + l.username}><div className="pwo"><b>{l.username || t('pw.noUser')}</b><small>{l.origin}</small></div>
+                <button className="btn" onClick={() => void api.pwCopy(l.origin, l.username).then(() => toast(t('pw.copied')))}>{t('pw.copy')}</button>
+                <button className="btn" onClick={() => void api.pwDelete(l.origin, l.username).then(loadPw)}>{t('pw.del')}</button></div>
+            ))}
+            {pw.never.map((o) => <div className="pwrow" key={o}><div className="pwo"><b>{o}</b><small>{t('pw.neverNote')}</small></div><button className="btn" onClick={() => void api.pwNeverRemove(o).then(loadPw)}>{t('pw.del')}</button></div>)}
+          </div>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.tabLayout')} hint={t('set.tabLayoutHint')}>

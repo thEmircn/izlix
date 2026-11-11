@@ -934,3 +934,6 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .vside.collapsed .tab .tab-fav, .vside.collapsed .tab .priv-dot { margin-right: 0; } .vside.collapsed .vside-foot { flex-direction: column; } .vside.collapsed .vnew { justify-content: center; flex: none; width: 100%; }
 .vside.collapsed .tab span.t::first-letter { font-size: 13px; }
 .toolbar.drag > * { -webkit-app-region: no-drag; }
+
+.chip.keybtn { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 8px; color: var(--warn, #f5b94a); } .chip.keybtn b { font: 600 11px ui-monospace, Menlo, monospace; color: var(--fg, #eee); }
+.pwrow { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); } .pwrow:last-child { border-bottom: 0; } .pwrow .pwo { flex: 1; min-width: 0; } .pwrow .pwo b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pwrow .pwo small { color: var(--dim, #999); }

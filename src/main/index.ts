@@ -1,3 +1,4 @@
+import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
 import { siteHost, stepZoom } from '../shared/sites'
 import { inSet, siteOf } from '../shared/adblock'
@@ -130,7 +131,7 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService
 /** Ambient isik betigini sayfaya koyar (yerel gelistirme sayfalari haric) ve acik/kapali durumunu esitler */
 async function injectAmbient(wc: Electron.WebContents): Promise<void> {
   const s = settings?.get(); if (!s || wc.isDestroyed()) return
@@ -244,6 +245,12 @@ function registerIpc(): void {
   handle(Ch.siteSet, schemas.siteSet, ({ id, ...p }) => { const s = siteOfTab(id); if (!s) return false; sites.set(s.host, { ...sites.get(s.host), ...p }); applyHost(s.host); pushTabs(); return true })
   handle(Ch.zoom, schemas.zoom, ({ id, dir }) => { const s = siteOfTab(id); if (!s) return 1; const z = stepZoom(sites.get(s.host).zoom ?? 1, dir); sites.set(s.host, { ...sites.get(s.host), zoom: z }); applyHost(s.host); return z })
   handle(Ch.siteClear, schemas.siteClear, async ({ id }) => { const s = siteOfTab(id); if (!s) return false; await s.wc.session.clearStorageData({ origin: new URL(s.wc.getURL()).origin }); s.wc.reload(); return true })
+  // Sifre yoneticisi (sifreler arayuze gonderilmez; panoya kopyalama yalnizca kabuktan istenir)
+  handle(Ch.pwList, null, () => ({ logins: passwords.list(), never: passwords.never() }))
+  handle(Ch.pwDelete, schemas.pwDelete, ({ origin, username }) => passwords.remove(origin, username))
+  handle(Ch.pwCopy, schemas.pwDelete, ({ origin, username }) => passwords.copy(origin, username))
+  handle(Ch.pwNeverRemove, schemas.pwNever, ({ origin }) => passwords.removeNever(origin))
+  handle(Ch.pwFill, schemas.pwFill, async ({ id }) => { const e = tabs.get(id); return e ? passwords.fill(e.view.webContents) : false })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -580,6 +587,21 @@ async function createWindow(): Promise<void> {
   rules = new RuleStore()
   library = new Library()
   sites = new SiteStore()
+  passwords = new PasswordService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, {
+    isPrivate: (wc) => tabs.isPrivateWc(wc),
+    changed: () => tabs?.refreshSites(),
+    ask: async (_wc, origin, username, update) => {
+      if (process.env.DB_SCRIPT) return (process.env.DB_PW_ANSWER as SaveAnswer) || 'save' // testlerde yerel pencere acilmaz
+      const parent = BrowserWindow.getFocusedWindow() ?? win
+      const r = await dialog.showMessageBox(parent, { type: 'question', buttons: [tr(update ? 'pw.update' : 'pw.save'), tr('pw.later'), tr('pw.never')], defaultId: 0, cancelId: 1, message: tr(update ? 'pw.askUpdate' : 'pw.ask', { u: username || origin }), detail: `${origin}\n${tr('pw.keychain')}` })
+      return r.response === 0 ? 'save' : r.response === 2 ? 'never' : 'later'
+    },
+    pick: (_wc, names) => new Promise<number>((resolve) => {
+      let done = false
+      const m = Menu.buildFromTemplate(names.map((n, i) => ({ label: n || tr('pw.noUser'), click: () => { done = true; resolve(i) } })))
+      m.popup({ window: BrowserWindow.getFocusedWindow() ?? win, callback: () => { if (!done) resolve(-1) } })
+    })
+  })
   favicons = new FaviconStore(app.getPath('userData'), (origin, url) => send(Ch.faviconNew, { origin, url })); thumbs = new ThumbStore(app.getPath('userData'))
   sessions = new SessionStore()
   perms = new PermissionStore()
@@ -595,7 +617,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -621,7 +643,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, shellWins,
+      newTab, openWindow, shellWins, passwords,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
       pageEval: (code: string): Promise<any> => tabs.active()!.view.webContents.executeJavaScript(code),
