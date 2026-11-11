@@ -1,3 +1,5 @@
+import { FaviconStore } from './favicons'
+import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
@@ -107,6 +109,7 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
+let favicons: FaviconStore, thumbs: ThumbStore
 const tor = new TorService(join(app.getPath('userData'), 'tor'))
 async function newTab(url?: string, priv?: 'incognito' | 'tor'): Promise<string> {
   if (priv === 'tor') {
@@ -176,6 +179,12 @@ function registerIpc(): void {
   handle(Ch.reportExport, null, () => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id))
   handle(Ch.labSet, schemas.labSet, ({ id, devices }) => tabs.setLab(id, devices))
   handle(Ch.libHistory, null, () => library.recent(300))
+  handle(Ch.faviconsGet, schemas.faviconsGet, async ({ origins }) => {
+    if (!origins.length) return favicons.all()
+    await Promise.all(origins.map((o) => favicons.ensureLoopback(o)))
+    return favicons.pick(origins)
+  })
+  handle(Ch.thumbGet, schemas.thumbGet, async ({ url }) => thumbs.get(url) ?? (await thumbs.captureHidden(url)))
   handle(Ch.bookmarkToggle, schemas.tabId, ({ id }) => {
     const e = tabs.get(id); if (!e) return false
     const on = library.toggleBookmark(e.info.workspaceId, e.view.webContents.getURL(), e.view.webContents.getTitle())
@@ -447,6 +456,7 @@ async function createWindow(): Promise<void> {
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
+  favicons = new FaviconStore(app.getPath('userData'), (origin, url) => send(Ch.faviconNew, { origin, url })); thumbs = new ThumbStore(app.getPath('userData'))
   sessions = new SessionStore()
   perms = new PermissionStore()
   settings = new SettingsStore()
@@ -461,7 +471,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -512,5 +522,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => { library?.flush(); servers?.stopAll(); tor.stop() })
+app.on('before-quit', () => { library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
 app.on('window-all-closed', () => app.quit())

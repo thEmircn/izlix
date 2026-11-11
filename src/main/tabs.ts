@@ -47,6 +47,7 @@ export class TabManager {
   /** Bolunmus gorunum: iki sekme yan yana (a solda, b sagda); aktif sekme ikisinden biridir. */
   private split: { a: string; b: string } | null = null
   private seq = 0
+  private overlayOpen = false
   private closed: { url: string; workspaceId: string }[] = []
   private layoutParams: LayoutParams = { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }
 
@@ -55,7 +56,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
   }
 
@@ -120,7 +121,8 @@ export class TabManager {
     })
     wc.on('did-navigate', () => { e.interceptor?.setPageUrl(null); void e.interceptor?.refresh() })
     for (const ev of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'] as const) wc.on(ev as any, sync)
-    wc.on('did-stop-loading', () => { this.persist(); if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
+    wc.on('did-stop-loading', () => { this.persist(); if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()); this.scheduleThumb(e) })
+    wc.on('page-favicon-updated', (_ev, urls) => { if (!e.info.private) this.hooks.onFavicons?.(wc.session, wc.getURL(), urls) })
     wc.on('page-title-updated', () => { if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
     wc.on('render-process-gone', (_ev, d) => { if (d.reason !== 'clean-exit') setTimeout(() => { if (!wc.isDestroyed()) wc.reload() }, 300) })
@@ -142,6 +144,17 @@ export class TabManager {
     wc.on('found-in-page', (_ev, r) => this.hooks.onFound?.(e.info.id, r.activeMatchOrdinal, r.matches))
     wc.on('will-navigate', guard)
     wc.on('will-redirect', guard)
+  }
+
+  /** Sayfa yuklenince (kullanici gorurken) kucuk bir onizleme goruntusu al; gizli sekme, hata sayfasi ve overlay acikken alinmaz */
+  private scheduleThumb(e: Entry): void {
+    if (e.info.private || !this.hooks.onThumb) return
+    const wc = e.view.webContents, url = wc.getURL()
+    if (!/^https?:/.test(url)) return
+    setTimeout(() => {
+      if (wc.isDestroyed() || this.activeId !== e.info.id || this.overlayOpen || e.failedUrl || wc.getURL() !== url || wc.isLoading()) return
+      this.hooks.onThumb?.(url, wc)
+    }, 1500)
   }
 
   activate(id: string): void {
@@ -322,6 +335,7 @@ export class TabManager {
   refreshRules(): void { for (const e of this.tabs.values()) void e.interceptor?.refresh() }
   /** Overlay (palet, kural editoru) acikken sayfa gorunumleri native katman oldugu icin shell'in ustune cikar; gizlenir. */
   setOverlay(open: boolean): void {
+    this.overlayOpen = open
     const cur = this.active()
     cur?.view.setVisible(!open); cur?.devtools?.setVisible(!open); cur?.lab?.setVisible(!open)
     if (this.split) for (const id of [this.split.a, this.split.b]) this.tabs.get(id)?.view.setVisible(!open)

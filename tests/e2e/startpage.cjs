@@ -25,5 +25,16 @@ module.exports = async ({ tabs, sleep, shellEval: se, pageEval }) => {
   out.userSelectUi = await shellEval(`getComputedStyle(document.querySelector('.tab')).userSelect`)
   out.userSelectInput = await shellEval(`getComputedStyle(document.querySelector('.hub-filter input')).userSelect`)
   out.overscroll = await shellEval(`getComputedStyle(document.body).overscrollBehaviorY`)
+  // gecmis satirinin ustune gelince onizleme kutusu acilir
+  await shellEval(`[...document.querySelectorAll('.hub-nav button')].find(b=>b.textContent.startsWith('History'))?.click()`); await sleep(500)
+  await shellEval(`(()=>{const r=document.querySelector('.hub-row'); if(r) r.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}))})()`); await sleep(900)
+  out.popShown = await shellEval(`!!document.querySelector('.hub-pop')`)
+  await shellEval(`(()=>{const r=document.querySelector('.hub-row'); if(r) r.dispatchEvent(new MouseEvent('mouseout',{bubbles:true}))})()`); await sleep(300)
+  out.popHidden = await shellEval(`!document.querySelector('.hub-pop')`)
+  // gizli / Tor dugmeleri
+  out.privButtons = await shellEval(`document.querySelectorAll('.hub-priv button').length`)
+  const before = tabs.list().tabs.length
+  await shellEval(`document.querySelector('.hub-priv button')?.click()`); await sleep(1200)
+  out.privTabOpened = tabs.list().tabs.length === before + 1 && tabs.list().tabs.some((t) => t.private === 'incognito')
   srv.close(); return out
 }

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, useT, wsName } from './store'
+import { originKey } from '../shared/favicon'
+import { Fav } from './ui'
 import { IcBookmark, IcClock, IcFolder, IcGear, IcHome, IcLayers, IcServer, Plus } from './icons'
 
 type Section = 'home' | 'servers' | 'bookmarks' | 'history' | 'sessions'
@@ -17,9 +19,26 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
   const [q, setQ] = useState('')
   const [hist, setHist] = useState<Hist[]>([])
   const filter = useRef<HTMLInputElement>(null)
+  const [pop, setPop] = useState<{ url: string; x: number; y: number; img: string | null | undefined } | null>(null)
+  const thumbs = useRef(new Map<string, string | null>())
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const hover = (url: string) => ({
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+      const r = e.currentTarget.getBoundingClientRect(); clearTimeout(hoverTimer.current)
+      hoverTimer.current = setTimeout(() => {
+        const known = thumbs.current.get(url)
+        setPop({ url, x: r.right, y: r.top + r.height / 2, img: known })
+        if (known === undefined) void api.thumb(url).then((d) => { thumbs.current.set(url, d); setPop((p) => (p && p.url === url ? { ...p, img: d } : p)) }).catch(() => {})
+      }, 350)
+    },
+    onMouseLeave: () => { clearTimeout(hoverTimer.current); setPop(null) }
+  })
+  useEffect(() => () => clearTimeout(hoverTimer.current), [])
   useEffect(() => { void api.history().then((l: Hist[]) => setHist(l ?? [])).catch(() => {}) }, [])
   useEffect(() => { const h = setTimeout(() => filter.current?.focus(), 80); return () => clearTimeout(h) }, [tabId, sec])
 
+  useEffect(() => { const o = s.detected.map((d) => `http://localhost:${d.port}`); if (o.length) void api.favicons(o).then((f) => useStore.setState((st) => ({ favicons: { ...st.favicons, ...f } }))).catch(() => {}) }, [s.detected.map((d) => d.port).join(',')])
+  const iconOf = (url: string): string | undefined => s.favicons[originKey(url) ?? '']
   const marks = s.bookmarks[s.activeWorkspaceId] ?? []
   const sess = s.sessions[s.activeWorkspaceId] ?? []
   const servers = s.detected
@@ -42,15 +61,15 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
   const title = nav.find((x) => x.id === sec)!.label
 
   const ServerRow = ({ d }: { d: (typeof servers)[number] }): React.ReactElement => (
-    <button className="hub-row" onClick={() => go(`localhost:${d.port}`)} title={d.cwd ?? ''}>
-      <span className="hub-av srv" style={{ ['--h' as any]: hue(String(d.port)) }}>{(d.cwd?.split('/').filter(Boolean).pop() ?? 'S').charAt(0).toUpperCase()}<i className="dot" /></span>
+    <button className="hub-row" onClick={() => go(`localhost:${d.port}`)} title={d.cwd ?? ''} {...hover(`http://localhost:${d.port}/`)}>
+      <span className={`hub-av srv ${iconOf(`http://localhost:${d.port}`) ? 'has-icon' : ''}`} style={{ ['--h' as any]: hue(String(d.port)) }}><Fav icon={iconOf(`http://localhost:${d.port}`)}>{(d.cwd?.split('/').filter(Boolean).pop() ?? 'S').charAt(0).toUpperCase()}</Fav><i className="dot" /></span>
       <span className="hub-main"><b>{d.cwd?.split('/').filter(Boolean).pop() ?? t('start.devServer')}</b><small>{d.cwd ?? `localhost:${d.port}`}</small></span>
       <code>:{d.port}</code>{d.framework && <em className="hub-tag">{d.framework}</em>}<span className="hub-go">{t('hub.open')}</span>
     </button>
   )
   const UrlRow = ({ url, title: ti, meta }: { url: string; title: string; meta?: string }): React.ReactElement => (
-    <button className="hub-row" onClick={() => go(url)} title={url}>
-      <span className="hub-av" style={{ ['--h' as any]: hue(hostOf(url)) }}>{(ti || hostOf(url)).trim().charAt(0).toUpperCase()}</span>
+    <button className="hub-row" onClick={() => go(url)} title={url} {...hover(url)}>
+      <span className={`hub-av ${iconOf(url) ? 'has-icon' : ''}`} style={{ ['--h' as any]: hue(hostOf(url)) }}><Fav icon={iconOf(url)}>{(ti || hostOf(url)).trim().charAt(0).toUpperCase()}</Fav></span>
       <span className="hub-main"><b>{ti || hostOf(url)}</b><small>{hostOf(url)}</small></span>{meta && <code>{meta}</code>}<span className="hub-go">{t('hub.open')}</span>
     </button>
   )
@@ -72,6 +91,10 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
       <aside className="hub-side">
         <div className="hub-brand"><span className="hub-logo" /><b>Izlix</b></div>
         <button className="hub-new" onClick={() => api.createTab()}><Plus />{t('tab.new')}<kbd className="kbd">⌘T</kbd></button>
+        <div className="hub-priv">
+          <button onClick={() => api.createTab(undefined, 'incognito')} title="⇧⌘N"><span className="priv-dot" />{t('hub.private')}</button>
+          <button className="tor" onClick={() => api.createTab(undefined, 'tor')} title="⌥⇧⌘N"><span className="priv-dot" />{t('hub.tor')}</button>
+        </div>
         <nav className="hub-nav">
           {nav.map((x) => <button key={x.id} className={x.id === sec ? 'on' : ''} onClick={() => { setSec(x.id); setQ('') }}>{x.icon}<span>{x.label}</span>{x.n > 0 && <em>{x.n}</em>}</button>)}
         </nav>
@@ -112,6 +135,12 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
           </>)}
         </div>
       </section>
+      {pop && (
+        <div className="hub-pop" style={{ left: Math.min(pop.x + 12, window.innerWidth - 392), top: Math.max(12, Math.min(pop.y - 110, window.innerHeight - 250)) }}>
+          {pop.img ? <img alt="" src={pop.img} /> : <div className={`hub-pop-empty ${pop.img === undefined ? 'load' : ''}`}>{pop.img === undefined ? '' : t('hub.noPreview')}</div>}
+          <div className="hub-pop-url">{hostOf(pop.url)}</div>
+        </div>
+      )}
     </div>
   )
 }

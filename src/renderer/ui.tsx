@@ -152,3 +152,8 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     </div>
   )
 }
+
+/** Site ikonu varsa gosterir, yoksa harf avatarini (children) */
+export function Fav({ icon, children }: { icon?: string; children: React.ReactNode }): React.ReactElement {
+  return icon ? <img className="fav-img" alt="" src={icon} draggable={false} /> : <>{children}</>
+}

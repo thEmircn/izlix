@@ -1,3 +1,4 @@
+import { originKey } from '../shared/favicon'
 import { useEffect, useState } from 'react'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -45,10 +46,12 @@ export function App() {
   useEffect(() => {
     const api = window.izlix
     const queue: any[] = []
+    void api.favicons([]).then((f) => useStore.setState((st) => ({ favicons: { ...f, ...st.favicons } }))).catch(() => {})
     const offs = [
       api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
+      api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
       api.onPermAsk((p: any) => useStore.setState((st) => ({ permPrompts: [...st.permPrompts, p] }))),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
       api.onSettings((st: any) => { s.set({ settings: st }); if (!st.onboarded && useStore.getState().overlay === null) s.set({ overlay: 'welcome' }) }),
@@ -140,7 +143,7 @@ export function App() {
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
-            <span className="t">{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
+            <span className="t">{!tb.private && s.favicons[originKey(tb.url) ?? ''] && <img className="tab-fav" alt="" src={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
             <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
           </div>
         ))}

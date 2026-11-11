@@ -24,6 +24,8 @@ export const api = {
   switchWorkspace: (id: string) => call(Ch.wsSwitch, { id }),
   setRules: (wsId: string, cfg: { rules: unknown[]; domains: string[] }) => call(Ch.rulesSet, { wsId, ...cfg }),
   history: () => call(Ch.libHistory),
+  favicons: (origins: string[]) => call(Ch.faviconsGet, { origins }) as Promise<Record<string, string>>,
+  thumb: (url: string) => call(Ch.thumbGet, { url }) as Promise<string | null>,
   toggleBookmark: (id: string) => call(Ch.bookmarkToggle, { id }),
   showDownload: (id: string) => call(Ch.downloadShow, { id }),
   onLibrary: sub(Ch.libState),
@@ -96,7 +98,7 @@ export const api = {
   exportReport: () => call(Ch.reportExport),
   setOverlay: (open: boolean) => call(Ch.overlay, { open }),
   onRules: sub(Ch.rulesState), onCommand: sub(Ch.cmd),
-  onEvent: sub(Ch.evNew), onUpdate: sub(Ch.evUpdate), onTabs: sub(Ch.tabsState), onWorkspaces: sub(Ch.wsState)
+  onEvent: sub(Ch.evNew), onUpdate: sub(Ch.evUpdate), onTabs: sub(Ch.tabsState), onFavicon: sub(Ch.faviconNew), onWorkspaces: sub(Ch.wsState)
 }
 contextBridge.exposeInMainWorld('izlix', api)
 export type Api = typeof api

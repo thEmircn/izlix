@@ -2464,6 +2464,26 @@
       "overscroll",
       "eq",
       "none"
+    ],
+    [
+      "popShown",
+      "eq",
+      true
+    ],
+    [
+      "popHidden",
+      "eq",
+      true
+    ],
+    [
+      "privButtons",
+      "eq",
+      2
+    ],
+    [
+      "privTabOpened",
+      "eq",
+      true
     ]
   ],
   "tlmenu": [
@@ -2545,6 +2565,38 @@
       "firstByte",
       "eq",
       5
+    ]
+  ],
+  "favthumb": [
+    [
+      "visitedIcon",
+      "eq",
+      true
+    ],
+    [
+      "privateNoIcon",
+      "eq",
+      true
+    ],
+    [
+      "onDemandIcon",
+      "eq",
+      "data:image/png;base64,"
+    ],
+    [
+      "thumbVisited",
+      "eq",
+      "data:image/jpeg;base64,"
+    ],
+    [
+      "thumbOnDemand",
+      "eq",
+      "data:image/jpeg;base64,"
+    ],
+    [
+      "thumbExternal",
+      "eq",
+      null
     ]
   ]
 }

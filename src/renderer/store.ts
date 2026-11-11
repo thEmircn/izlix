@@ -18,6 +18,8 @@ interface State {
   split: number
   rules: Record<string, RulesConfig>
   bookmarks: Record<string, { url: string; title: string }[]>
+  /** site ikonlari: kaynak anahtari -> data URL */
+  favicons: Record<string, string>
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
   panelTab: PanelTab
   /** Sag panel acik mi / tam ekran dashboard acik mi */
@@ -51,7 +53,7 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) && read('panelTab', 'timeline') !== 'overview' ? read('panelTab', 'timeline') : 'timeline') as PanelTab, panelOpen: read('panelOpen', '0') === '1', dashboard: false, panelSide: (['right', 'left', 'bottom'].includes(read('panelSide', 'right')) ? read('panelSide', 'right') : 'right') as PanelSide, flash: false, bps: [], evBps: [], xhrBps: [], sessions: {}, paused: null, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'tr', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, favicons: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) && read('panelTab', 'timeline') !== 'overview' ? read('panelTab', 'timeline') : 'timeline') as PanelTab, panelOpen: read('panelOpen', '0') === '1', dashboard: false, panelSide: (['right', 'left', 'bottom'].includes(read('panelSide', 'right')) ? read('panelSide', 'right') : 'right') as PanelSide, flash: false, bps: [], evBps: [], xhrBps: [], sessions: {}, paused: null, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'tr', installId: '', autoOpen: false },
   // bir panel secildiginde (ornegin Overview'dan bir olaya tiklayinca) panel acilir ve dashboard kapanir
   set: (p) => { if (p.panelTab) { writePref('panelTab', p.panelTab); p = { panelOpen: true, dashboard: false, ...p }; writePref('panelOpen', '1') } if (p.panelOpen !== undefined) writePref('panelOpen', p.panelOpen ? '1' : '0'); if (p.panelSide) writePref('panelSide', p.panelSide); set(p) },
   ingest: (batch) => set((s) => {
