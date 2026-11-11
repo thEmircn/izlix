@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ net: {}, protocol: {} }))
+import { join, resolve } from 'node:path'
 import { isInsideAny, isLoopbackHost, resolveAppPath } from './security'
 
 describe('resolveAppPath', () => {
-  const root = '/app/out/renderer'
+  const root = resolve('/app/out/renderer')
   it('kok ve alt dosyalar', () => {
-    expect(resolveAppPath(root, '/')).toBe('/app/out/renderer/index.html')
-    expect(resolveAppPath(root, '/assets/a.js')).toBe('/app/out/renderer/assets/a.js')
+    expect(resolveAppPath(root, '/')).toBe(join(root, 'index.html'))
+    expect(resolveAppPath(root, '/assets/a.js')).toBe(join(root, 'assets', 'a.js'))
   })
   it('yol gecisi (../, kodlanmis, null bayt) reddedilir', () => {
     expect(resolveAppPath(root, '/../../etc/passwd')).toBeNull()

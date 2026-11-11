@@ -19,7 +19,7 @@ describe('Safari ice aktarma', () => {
     expect(parseSafariBookmarks({ Children: [{ WebBookmarkType: 'WebBookmarkTypeLeaf', URLString: 'https://a.com', URIDictionary: { title: 'A' } }, { WebBookmarkType: 'WebBookmarkTypeLeaf', URLString: 'ftp://x' }] })).toEqual([{ url: 'https://a.com', title: 'A' }])
     expect(safariTimeToMs(0)).toBe(978_307_200_000)
   })
-  it('plist + History.db okur (plutil ile)', () => {
+  it.skipIf(process.platform !== 'darwin')('plist + History.db okur (plutil ile; yalniz macOS)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'saf-'))
     writeFileSync(join(dir, 'Bookmarks.plist'), PLIST)
     const db = new DatabaseSync(join(dir, 'History.db'))
