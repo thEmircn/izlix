@@ -3782,5 +3782,22 @@
       "eq",
       null
     ]
+  ],
+  "heap": [
+    [
+      "file",
+      "eq",
+      ".heapsnapshot"
+    ],
+    [
+      "mbPositive",
+      "eq",
+      true
+    ],
+    [
+      "looksLikeSnapshot",
+      "eq",
+      true
+    ]
   ]
 }

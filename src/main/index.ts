@@ -325,6 +325,24 @@ function registerIpc(): void {
     if (!file) return null
     writeFileSync(file, code); return file
   })
+  // Bellek (heap) anlik goruntusu: Chrome DevTools > Memory'de acilabilen .heapsnapshot dosyasi (Downloads'a)
+  handle(Ch.heapSnap, null, async () => {
+    const e = tabs.active(); if (!e) return null
+    const wc = e.view.webContents, chunks: string[] = []
+    const onMsg = (_e: unknown, m: string, p: { chunk?: string }): void => { if (m === 'HeapProfiler.addHeapSnapshotChunk' && typeof p.chunk === 'string') chunks.push(p.chunk) }
+    wc.debugger.on('message', onMsg)
+    try {
+      await wc.debugger.sendCommand('HeapProfiler.enable')
+      await wc.debugger.sendCommand('HeapProfiler.collectGarbage').catch(() => {})
+      await wc.debugger.sendCommand('HeapProfiler.takeHeapSnapshot', { reportProgress: false, treatGlobalObjectsAsRoots: true })
+    } catch { return null } finally { wc.debugger.removeListener('message', onMsg); void wc.debugger.sendCommand('HeapProfiler.disable').catch(() => {}) }
+    const data = chunks.join(''); if (!data.startsWith('{')) return null
+    const dir = process.env.DB_OUT_DIR || app.getPath('downloads'); mkdirSync(dir, { recursive: true })
+    const host = (() => { try { return new URL(wc.getURL()).hostname } catch { return 'page' } })()
+    const file = join(dir, `${host}-${Date.now()}.heapsnapshot`)
+    writeFileSync(file, data)
+    return { file, mb: Math.round((data.length / 1048576) * 10) / 10 }
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'

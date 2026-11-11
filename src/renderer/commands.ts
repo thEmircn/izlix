@@ -149,6 +149,7 @@ export function buildCommands(): Command[] {
     cmds.push({ id: 'page.print', title: t('menu.print'), hint: '⌘P', run: () => void api.printPage('print') }, { id: 'page.pdf', title: t('menu.savePdf'), hint: '⇧⌘P', run: () => void api.printPage('pdf').then((f: string | null) => { if (f) toast(t('print.saved')) }) }, { id: 'page.save', title: t('cmd.savePage'), run: () => void api.printPage('save').then((f: string | null) => { if (f) toast(t('print.saved')) }) })
     cmds.push({ id: 'zoom.in', title: t('cmd.zoomIn'), hint: '⌘+', run: () => void api.zoom(act.id, 'in') }, { id: 'zoom.out', title: t('cmd.zoomOut'), hint: '⌘-', run: () => void api.zoom(act.id, 'out') }, { id: 'zoom.reset', title: t('cmd.zoomReset'), hint: '⌘0', run: () => void api.zoom(act.id, 'reset') })
     cmds.push({ id: 'page.translate', title: t(act.translatedFrom ? 'tr.showOriginal' : 'tr.translate'), run: () => void api.translateTab(act.id, !!act.translatedFrom) })
+    cmds.push({ id: 'page.heap', title: t('cmd.heap'), run: () => { toast(t('heap.taking')); void api.heapSnapshot().then((r: { file: string; mb: number } | null) => toast(r ? t('heap.done', { mb: r.mb, f: r.file.split('/').pop() ?? '' }) : t('heap.fail'))) } })
     cmds.push({ id: 'page.qr', title: t('cm.qr'), run: () => s.set({ overlay: 'qr' }) })
     cmds.push({ id: 'site.dark', title: t(act.site?.dark ? 'cmd.darkOff' : 'cmd.darkOn'), run: () => void api.siteSet(act.id, { dark: !act.site?.dark }) }, { id: 'site.settings', title: t('cmd.siteSettings'), run: () => s.set({ overlay: 'site' }) })
   }
