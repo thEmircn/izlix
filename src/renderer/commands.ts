@@ -14,6 +14,7 @@ export function buildCommands(): Command[] {
   const closeOverlay = (): void => s.set({ overlay: null })
   const lang = s.settings.language
   const cmds: Command[] = [
+    { id: 'history.open', title: t('menu.history'), hint: '⌘Y', run: () => s.set({ overlay: 'history' }) },
     { id: 'win.new', title: t('cmd.newWindow'), hint: '⌘N', run: () => void api.newWindow() },
     { id: 'tab.newPrivate', title: t('cmd.newPrivate'), hint: '⇧⌘N', run: () => void api.createTab(undefined, 'incognito') },
     { id: 'tab.newTor', title: t('cmd.newTor'), run: () => void api.createTab(undefined, 'tor') },

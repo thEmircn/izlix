@@ -4,6 +4,7 @@ import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
 import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune, IcKey } from './icons'
 import { SiteSettings } from './SiteSettings'
+import { HistoryPage } from './HistoryPage'
 import { Roll } from './ui'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
@@ -106,6 +107,7 @@ export function App() {
           case 'tab.reopen': void api.reopenTab(); break
           case 'zoom.in': case 'zoom.out': case 'zoom.reset': if (act) void api.zoom(act.id, cmd.slice(5) as 'in' | 'out' | 'reset'); break
           case 'pw.fill': if (act && act.logins) void api.pwFill(act.id); break
+          case 'history.open': st.set({ overlay: 'history' }); break
           case 'site.open': st.set({ overlay: 'site' }); break
           case 'page.print': void api.printPage('print'); break
           case 'page.pdf': void api.printPage('pdf').then((f: string | null) => { if (f) toast(tNow('print.saved')) }); break
@@ -300,6 +302,7 @@ export function App() {
       {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'history' && <HistoryPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}

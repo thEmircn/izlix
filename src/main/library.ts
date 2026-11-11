@@ -58,6 +58,27 @@ export class Library {
     this.save()
     return { bookmarks: nb, history: nh }
   }
+  /** Gecmis sayfasi: her ziyaret ayri satir, en yeni once; `q` url/baslikta aranir */
+  visits(q = '', limit = 1500): Visit[] {
+    const needle = q.trim().toLowerCase(), out: Visit[] = []
+    for (let i = this.data.history.length - 1; i >= 0 && out.length < limit; i--) {
+      const v = this.data.history[i]
+      if (!needle || v.url.toLowerCase().includes(needle) || v.title.toLowerCase().includes(needle)) out.push(v)
+    }
+    return out
+  }
+  /** Bir adresin tum ziyaretlerini (ts verilirse yalniz o ziyareti) siler; silinen sayisini doner */
+  removeVisits(url: string, ts?: number): number {
+    const before = this.data.history.length
+    this.data.history = this.data.history.filter((v) => !(v.url === url && (ts === undefined || v.ts === ts)))
+    this.save(); return before - this.data.history.length
+  }
+  /** `since` (epoch ms) ve sonrasini siler; since=0: tum gecmis */
+  clearSince(since: number): number {
+    const before = this.data.history.length
+    this.data.history = since <= 0 ? [] : this.data.history.filter((v) => v.ts < since)
+    this.save(); return before - this.data.history.length
+  }
   clearHistory(): void { this.data.history = []; this.save() }
 
   bookmarks(wsId: string): Bookmark[] { return this.data.bookmarks[wsId] ?? [] }

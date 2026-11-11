@@ -42,7 +42,7 @@ interface State {
   preserveLog: boolean
   toasts: { id: number; text: string }[]
   find: { open: boolean; active: number; total: number }
-  overlay: 'session' | 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | 'shortcuts' | 'marker' | 'site' | null
+  overlay: 'session' | 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | 'shortcuts' | 'marker' | 'site' | 'history' | null
   settings: Settings
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void

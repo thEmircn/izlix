@@ -3350,5 +3350,47 @@
       "eq",
       null
     ]
+  ],
+  "history": [
+    [
+      "dialog",
+      "eq",
+      true
+    ],
+    [
+      "rows",
+      "gte",
+      3
+    ],
+    [
+      "dayHeader",
+      "eq",
+      "Today"
+    ],
+    [
+      "searchRows",
+      "contains",
+      "Sayfa armut"
+    ],
+    [
+      "deleted",
+      "eq",
+      true
+    ],
+    [
+      "clearPanel",
+      "eq",
+      true
+    ],
+    [
+      "historyEmpty",
+      "eq",
+      true
+    ],
+    [
+      "emptyShown",
+      "eq",
+      true
+    ]
   ]
 }

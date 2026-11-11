@@ -952,3 +952,13 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .roll-ch { display: inline-block; height: 1.18em; line-height: 1.18em; }
 .stat b { animation: none; }
 @media (prefers-reduced-motion: reduce) { .roll-strip { transition: none; } }
+
+/* v9: gecmis sayfasi */
+.dialog.hist { width: min(820px, 94vw); height: min(82vh, 760px); display: flex; flex-direction: column; }
+.hist-head { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); } .hist-head b { font-size: 14px; } .hist-head input { flex: 1; height: 32px; border-radius: 9px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--fg); padding: 0 12px; outline: none; }
+.hist-clear { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,.03); } .hist-clear .hrow { display: flex; gap: 10px; align-items: center; } .hist-clear label { display: flex; gap: 8px; align-items: center; }
+.hist-body { flex: 1; overflow: auto; padding: 4px 16px 16px; } .hist-body h4 { margin: 14px 0 6px; font: 600 12px var(--mono, ui-monospace); text-transform: uppercase; letter-spacing: .06em; color: var(--dim); position: sticky; top: 0; background: var(--panel, #16171a); padding: 4px 0; }
+.hist-row { display: flex; gap: 10px; align-items: center; height: 36px; padding: 0 6px; border-radius: 8px; cursor: default; } .hist-row:hover { background: var(--hover, rgba(255,255,255,.07)); }
+.hist-row code { color: var(--dim); font-size: 11.5px; width: 44px; flex: none; } .hist-ic { width: 18px; height: 18px; flex: none; display: grid; place-items: center; } .hist-ic img { width: 16px; height: 16px; border-radius: 4px; } .hist-ic i { width: 12px; height: 12px; border-radius: 50%; background: var(--line2, #444); }
+.hist-t { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; } .hist-t b { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .hist-t small { color: var(--dim); white-space: nowrap; }
+.hist-x { opacity: 0; border: 0; background: transparent; color: var(--dim); font-size: 16px; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; } .hist-row:hover .hist-x { opacity: 1; } .hist-x:hover { background: var(--hover); color: var(--fg); }
