@@ -3,8 +3,9 @@ import { loadDoc, saveDoc } from './docdb'
 import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Settings } from '../shared/events'
+import { DEFAULT_HUB } from '../shared/services'
 
-const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr', searchEngine: 'duckduckgo', searchSuggest: true, adblock: 'ads', extensions: [], adblockAllow: [], adblockDev: false, ambient: true, stripTracking: true, ai: { provider: 'ollama', model: 'llama3.1' }, budgets: {}, widgets: {}, focus: { on: false, sites: [], limits: {} }, apps: [], shortcuts: [], editor: 'vscode', httpsOnly: true, spellcheck: true, cookieBanners: true, stripTrackingDev: false, sleepMinutes: 30, ambientDev: false, installId: '', autoOpen: false }
+const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr', searchEngine: 'duckduckgo', searchSuggest: true, adblock: 'ads', extensions: [], hub: DEFAULT_HUB, adblockAllow: [], adblockDev: false, ambient: true, stripTracking: true, ai: { provider: 'ollama', model: 'llama3.1' }, budgets: {}, widgets: {}, focus: { on: false, sites: [], limits: {} }, apps: [], shortcuts: [], editor: 'vscode', httpsOnly: true, spellcheck: true, cookieBanners: true, stripTrackingDev: false, sleepMinutes: 30, ambientDev: false, installId: '', autoOpen: false }
 
 export class SettingsStore {
   private data: Settings
@@ -19,6 +20,6 @@ export class SettingsStore {
     if (!this.data.installId) { this.data.installId = Math.random().toString(36).slice(2) + Date.now().toString(36); this.save() }
   }
   get(): Settings { return { ...this.data } }
-  set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen' | 'searchEngine' | 'searchSuggest' | 'adblock' | 'adblockAllow' | 'adblockDev' | 'ambient' | 'stripTracking' | 'ai' | 'budgets' | 'widgets' | 'focus' | 'apps' | 'shortcuts' | 'editor' | 'httpsOnly' | 'spellcheck' | 'cookieBanners' | 'stripTrackingDev' | 'sleepMinutes' | 'ambientDev' | 'extensions'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
+  set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen' | 'searchEngine' | 'searchSuggest' | 'adblock' | 'adblockAllow' | 'adblockDev' | 'ambient' | 'stripTracking' | 'ai' | 'budgets' | 'widgets' | 'focus' | 'apps' | 'shortcuts' | 'editor' | 'httpsOnly' | 'spellcheck' | 'cookieBanners' | 'stripTrackingDev' | 'sleepMinutes' | 'ambientDev' | 'extensions' | 'hub'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
   private save(): void { saveDoc(this.dir, 'settings', this.data) }
 }

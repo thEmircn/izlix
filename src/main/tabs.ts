@@ -13,6 +13,7 @@ import { GROUP_COLOR_NAMES, normalizeOrder, type TabGroup } from '../shared/grou
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
+import { parseUnread, servicePartition } from '../shared/services'
 import { Interceptor } from './interceptor'
 import { Lab } from './lab'
 import { errorPageHtml, shouldRetry } from './errorpage'
@@ -153,10 +154,10 @@ export class TabManager {
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 
-  async create(opts: { url?: string; workspaceId: string; winId?: number; activate?: boolean; pinned?: boolean; private?: 'incognito' | 'tor' }): Promise<string> {
+  async create(opts: { url?: string; workspaceId: string; winId?: number; activate?: boolean; pinned?: boolean; private?: 'incognito' | 'tor'; service?: string }): Promise<string> {
     const id = `tab-${++this.seq}`
     // gizli sekmeler tek ortak, bellek ici (persist: yok) oturumu paylasir; son gizli sekme kapaninca temizlenir
-    const ses = session.fromPartition(opts.private === 'tor' ? TOR_PARTITION : opts.private ? INCOGNITO_PARTITION : partitionFor(opts.workspaceId))
+    const ses = session.fromPartition(opts.private === 'tor' ? TOR_PARTITION : opts.private ? INCOGNITO_PARTITION : opts.service ? servicePartition(opts.service) : partitionFor(opts.workspaceId))
     if (opts.private === 'tor') {
       // tum trafik yerel Tor SOCKS'una gider (socks5: ad cozumleme de Tor tarafinda); WebRTC sizintisi kapali
       const port = await this.hooks.torPort?.()
@@ -169,7 +170,7 @@ export class TabManager {
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
     const winId = opts.winId !== undefined && this.ctxs.has(opts.winId) ? opts.winId : this.cur.id
-    const entry: Entry = { winId, lastActive: Date.now(), view, info: { id, winId, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}), ...(this.ctxs.get(winId)?.app ? { app: true as const } : {}) } }
+    const entry: Entry = { winId, lastActive: Date.now(), view, info: { id, winId, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned || opts.service ? { pinned: true } : {}), ...(opts.service ? { service: opts.service } : {}), ...(this.ctxs.get(winId)?.app ? { app: true as const } : {}) } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
     // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
@@ -207,6 +208,7 @@ export class TabManager {
         const onTr = /(^|\.)(translate\.google\.com|translate\.goog)$/.test(new URL(wc.getURL() || 'about:blank', 'http://x').hostname)
         if (onTr) e.sawTranslate = true; else if (e.sawTranslate) { delete e.info.translatedFrom; e.sawTranslate = false }
       }
+      if (e.info.service) { const n = parseUnread(e.info.title); if (n) e.info.unread = n; else delete e.info.unread }
       this.refreshSite(e)
       this.onChange()
     }
@@ -460,7 +462,7 @@ export class TabManager {
       e.view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); this.layout()
     } else {
       if (!e.lab) {
-        e.lab = new Lab(this.ctxs.get(e.winId)?.win ?? this.win, e.view, session.fromPartition(partitionFor(e.info.workspaceId)))
+        e.lab = new Lab(this.ctxs.get(e.winId)?.win ?? this.win, e.view, session.fromPartition(this.partOf(e.info)))
         if (e.info.media) e.lab.media = [...(e.info.media.colorScheme ? [{ name: 'prefers-color-scheme', value: e.info.media.colorScheme }] : []), ...(e.info.media.reducedMotion ? [{ name: 'prefers-reduced-motion', value: 'reduce' }] : [])]
       }
       await e.lab.setDevices(devices)
@@ -516,9 +518,13 @@ export class TabManager {
   }
 
   // ---- sekme uyutma: sayfa sureci kapanir (bellek), sekme seritte kalir; secilince ayni adresle yeniden yuklenir ----
+  /** sekmenin oturum bolumu (servis > workspace) */
+  private partOf(info: TabInfo): string { return info.service ? servicePartition(info.service) : partitionFor(info.workspaceId) }
+  /** bu WebContents bir Hub servisine mi ait */
+  serviceOfWc(wc: Electron.WebContents | null): string | undefined { if (!wc) return undefined; for (const e of this.tabs.values()) if (e.view.webContents === wc) return e.info.service; return undefined }
   private canSleep(e: Entry, manual: boolean): boolean {
     const id = e.info.id
-    if (e.info.sleeping || e.info.private || e.lab) return false
+    if (e.info.sleeping || e.info.private || e.lab || e.info.service) return false
     for (const c of this.ctxs.values()) if (c.activeId === id || (c.split && (id === c.split.a || id === c.split.b))) return false
     if (!manual && e.info.pinned) return false
     const wc = e.view.webContents; if (wc.isDestroyed()) return false
@@ -553,7 +559,7 @@ export class TabManager {
     if (!e.info.sleeping) return
     const target = url ?? e.info.url, id = e.info.id
     delete e.info.sleeping
-    const ses = session.fromPartition(partitionFor(e.info.workspaceId))
+    const ses = session.fromPartition(this.partOf(e.info))
     const placeholder = e.view
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
     e.view = view
@@ -692,14 +698,14 @@ export class TabManager {
     try {
       const primary = [...this.ctxs.keys()][0]
       const keep = this.order.filter((i) => { const t = this.tabs.get(i)!.info; return t.url && !t.private && !t.app })
-      const tabs = keep.map((i) => { const t = this.tabs.get(i)!.info; return { url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}), ...(t.group ? { group: t.group } : {}), ...(t.winId !== primary ? { second: true } : {}) } })
+      const tabs = keep.map((i) => { const t = this.tabs.get(i)!.info; return { url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}), ...(t.service ? { service: t.service } : {}), ...(t.group ? { group: t.group } : {}), ...(t.winId !== primary ? { second: true } : {}) } })
       const actives = [...this.ctxs.values()].map((c) => keep.indexOf(c.activeId ?? ''))
       saveDoc(app.getPath('userData'), 'session', { tabs, groups: [...this.groups.values()], active: Math.max(0, actives[0] ?? 0), activeSecond: actives[1] ?? -1 })
     } catch { /* disk hatasi oturumu durdurmaz */ }
   }
 
   async restore(): Promise<boolean> {
-    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean; second?: boolean; group?: string }[]; groups?: TabGroup[]; active: number; activeSecond?: number }
+    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean; service?: string; second?: boolean; group?: string }[]; groups?: TabGroup[]; active: number; activeSecond?: number }
     const doc = loadDoc<typeof saved>(app.getPath('userData'), 'session'); if (!doc) return false
     saved = doc
     const valid = saved.tabs.filter((t) => this.workspaces.get(t.workspaceId))

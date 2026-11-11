@@ -4756,5 +4756,72 @@
       "eq",
       "granted"
     ]
+  ],
+  "hub": [
+    [
+      "noUrl",
+      "eq",
+      "no-url"
+    ],
+    [
+      "open",
+      "eq",
+      "ok"
+    ],
+    [
+      "hasTab",
+      "eq",
+      true
+    ],
+    [
+      "unread",
+      "eq",
+      4
+    ],
+    [
+      "pinned",
+      "eq",
+      true
+    ],
+    [
+      "ownSession",
+      "eq",
+      true
+    ],
+    [
+      "notif",
+      "eq",
+      "granted"
+    ],
+    [
+      "stillAwake",
+      "eq",
+      true
+    ],
+    [
+      "count",
+      "eq",
+      1
+    ],
+    [
+      "cardOn",
+      "eq",
+      true
+    ],
+    [
+      "cardCount",
+      "eq",
+      "4"
+    ],
+    [
+      "waOff",
+      "eq",
+      true
+    ],
+    [
+      "next",
+      "eq",
+      "youtrack"
+    ]
   ]
 }

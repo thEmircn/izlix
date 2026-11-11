@@ -1,4 +1,5 @@
 import { ENGINES } from '../shared/search'
+import { SERVICES } from '../shared/services'
 import { generatePassword } from '../shared/pwgen'
 import { PANEL_TABS, wsName, useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
@@ -23,6 +24,9 @@ export function buildCommands(): Command[] {
     { id: 'tabsearch.open', title: t('menu.findAllTabs'), hint: '⇧⌘F', run: () => s.set({ overlay: 'tabsearch' }) },
     { id: 'focus.toggle', title: t(s.settings.focus?.on ? 'cmd.focusOff' : 'cmd.focusOn'), run: () => void api.setSettings({ focus: { ...(s.settings.focus ?? { sites: [], limits: {} }), on: !s.settings.focus?.on } }) },
     { id: 'ai.explain', title: t('ai.cmd'), run: () => s.set({ overlay: 'ai', aiFocus: undefined }) },
+    { id: 'svch.open', title: t('svch.title'), run: () => s.set({ overlay: 'hub' }) },
+    { id: 'svch.next', title: t('svch.next'), run: () => void api.hubNext() },
+    ...SERVICES.map((v) => ({ id: `svch.svc.${v.id}`, title: t('svch.openSvc', { n: v.name }), run: () => void api.hubOpen(v.id) })),
     { id: 'usage.open', title: t('usage.open'), run: () => s.set({ overlay: 'usage' }) },
     { id: 'notes.open', title: t('notes.title'), run: () => s.set({ overlay: 'notes' }) },
     { id: 'downloads.open', title: t('menu.downloads'), hint: '⇧⌘J', run: () => s.set({ overlay: 'downloads' }) },

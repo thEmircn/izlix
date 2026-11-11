@@ -24,6 +24,7 @@ import { blockReason, lastDays } from '../shared/usage'
 import { siteOf as siteOfUsage } from '../shared/adblock'
 import { CAPTURE_SELECTION, applyNotesScript, pageKey, removeNoteScript } from '../shared/notes'
 import { screenAtPoint } from '../shared/screenpick'
+import { DEFAULT_HUB, SERVICES, nextUnread, serviceById, serviceUrl, type HubSettings } from '../shared/services'
 import { SyncService, deviceName } from './sync'
 import { mergeBookmarks, mergeNotes, mergeSites, pickSettings, type SyncPayload } from '../shared/sync'
 import { loadDoc as loadDocS, saveDoc as saveDocS } from './docdb'
@@ -147,6 +148,27 @@ function runSync(): { ok: boolean; error?: string; pulled?: boolean } {
   const r = syncSvc.run()
   syncSt.error = r.ok ? '' : r.error ?? 'error'; if (r.ok) syncSt.last = r.ts ?? Date.now(); saveSyncSt()
   return r
+}
+// --- Hub: gunluk uygulamalar (her biri ayri kalici oturumda) ---
+const hubCfg = (): HubSettings => ({ ...DEFAULT_HUB, ...(settings.get().hub ?? {}) })
+/** Servisi acar/one getirir; background: sekme olusturur ama etkinlestirmez. */
+async function hubOpen(id: string, background = false): Promise<'ok' | 'no-url' | 'unknown'> {
+  const svc = serviceById(id); if (!svc) return 'unknown'
+  const url = serviceUrl(svc, hubCfg()); if (!url) return 'no-url'
+  const ex = tabs.list().tabs.find((t) => t.service === id)
+  if (ex) { if (!background) { if (ex.workspaceId !== activeWorkspaceId) { activeWorkspaceId = ex.workspaceId; pushWorkspaces(); pushRules() } tabs.activate(ex.id); pushTabs() } return 'ok' }
+  await tabs.create({ url, workspaceId: activeWorkspaceId, service: id, activate: !background })
+  return 'ok'
+}
+async function hubAutostart(): Promise<void> {
+  const h = hubCfg(); if (!h.autostart) return
+  for (const id of h.enabled) await hubOpen(id, true).catch(() => {})
+}
+let lastBadge = -1
+function updateBadge(): void {
+  const n = tabs.list().tabs.reduce((a, t) => a + (t.service ? t.unread ?? 0 : 0), 0)
+  if (n === lastBadge) return; lastBadge = n
+  if (process.platform === 'darwin' && !process.env.DB_SCRIPT) app.dock?.setBadge(n ? (n > 99 ? '99+' : String(n)) : '')
 }
 const loadedParts = new Set<string>()
 /** kayitli eklentileri bir oturuma yukler (gizli/Tor oturumlari haric); hatali olan sessizce atlanir */
@@ -477,6 +499,12 @@ function registerIpc(): void {
   handle(Ch.syncState, null, () => ({ enabled: syncSt.enabled, hasPass: !!syncSt.pass, last: syncSt.last, error: syncSt.error, dir: syncSvc.dir(), icloud: syncSvc.available() }))
   handle(Ch.syncSetup, schemas.syncSetup, (p) => { if (p.clear) syncSt = { enabled: false, last: 0, error: '', pass: '' }; if (p.pass) syncSt.pass = syncCipher().encrypt(p.pass); if (p.enabled !== undefined) syncSt.enabled = p.enabled; saveSyncSt(); return true })
   handle(Ch.syncNow, null, () => runSync())
+  handle(Ch.hubOpen, schemas.hubOpen, ({ id, background }) => hubOpen(id, !!background))
+  handle(Ch.hubNext, null, async () => {
+    const cur = tabs.active()?.info.service
+    const items = tabs.list().tabs.filter((t) => t.service).map((t) => ({ id: t.service!, unread: t.unread ?? 0 }))
+    const id = nextUnread(items, cur); if (id) await hubOpen(id); return id
+  })
   handle(Ch.extList, null, () => { const out: { id: string; name: string; version: string; path: string }[] = []; for (const part of new Set(['persist:ws-default', ...workspaces.list().map((w) => partitionFor(w.id))])) for (const e of session.fromPartition(part).getAllExtensions()) if (!out.some((o) => o.id === e.id)) out.push({ id: e.id, name: e.name, version: e.version, path: e.path }); return out })
   handle(Ch.extAdd, null, async () => {
     const dir = process.env.DB_EXT_DIR ?? (await dialog.showOpenDialog(curWin ?? win, { properties: ['openDirectory'], title: tr('set.extPick') })).filePaths[0]
@@ -788,6 +816,7 @@ async function ensureSystemMedia(kinds: ('camera' | 'microphone')[]): Promise<bo
 }
 const permissionHandlers = {
   check: (wc: Electron.WebContents | null, permission: string, origin: string, details: any): boolean => {
+    if (permission === 'notifications' && tabs.serviceOfWc(wc)) return true // Hub servisleri: bildirim sormadan acik
     if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
     const key = permissionKey(permission, details)
     if (key === 'auto') return true
@@ -798,6 +827,7 @@ const permissionHandlers = {
     return perms.get(o, key) === 'allow'
   },
   request: async (wc: Electron.WebContents | null, permission: string, details: any): Promise<boolean> => {
+    if (permission === 'notifications' && tabs.serviceOfWc(wc)) return true
     if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
     const key = permissionKey(permission, details)
     if (key === 'auto') return true
@@ -1197,7 +1227,9 @@ async function createWindow(): Promise<void> {
   else { serveApp(join(__dirname, '../renderer')); await win.loadURL('app://shell/index.html') }
 
   const restored = process.env.DB_SCRIPT && !process.env.DB_RESTORE ? false : await tabs.restore()
+  setInterval(updateBadge, 1500).unref()
   if (!restored) await newTab(process.env.DB_URL)
+  if (!process.env.DB_SCRIPT) void hubAutostart()
   void pollServers(); setInterval(pollServers, 1500)
   // kullanim takibi (1 sn): odaktaki pencerenin aktif sekmesi, bosta degil, gizli degil; engelli hale gelirse sayfa engel sayfasina doner
   setInterval(() => {
