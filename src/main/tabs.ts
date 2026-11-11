@@ -7,6 +7,7 @@ import { computeLayout, padRect, CARD_RADIUS, GAP, type LayoutParams, type Rect 
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { cleanTrackingParams } from '../shared/tracking'
 import { translateUrl } from '../shared/translate'
+import { siteOf as siteOfHost } from '../shared/adblock'
 import { upgradeToHttps } from '../shared/https'
 import { GROUP_COLOR_NAMES, normalizeOrder, type TabGroup } from '../shared/groups'
 import { attachCdp, type Tab } from './cdp'
@@ -30,7 +31,7 @@ async function wipeIncognito(part: string): Promise<void> {
 }
 
 /** Bir pencerenin gorunum durumu */
-export interface WinCtx { id: number; win: BrowserWindow; activeId: string | null; split: { a: string; b: string } | null; layoutParams: LayoutParams; overlayOpen: boolean }
+export interface WinCtx { /** uygulama penceresi: sekmesiz sade pencere (tek site) */ app?: boolean; id: number; win: BrowserWindow; activeId: string | null; split: { a: string; b: string } | null; layoutParams: LayoutParams; overlayOpen: boolean }
 
 interface Entry {
   /** sekmenin gosterildigi pencere (WinCtx.id) */
@@ -86,14 +87,14 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; shortcuts?: () => import('../shared/shortcuts').Shortcut[]; onDivert?: (tabId: string, url: string, mode: 'tab' | 'window') => void; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; shortcuts?: () => import('../shared/shortcuts').Shortcut[]; onDivert?: (tabId: string, url: string, mode: 'tab' | 'window' | 'normal') => void; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
 
   // ---- coklu pencere: tek sekme havuzu, her sekme tam bir pencerede gosterilir ----
-  addWindow(win: BrowserWindow): number {
-    const ctx: WinCtx = { id: win.id, win, activeId: null, split: null, layoutParams: { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }, overlayOpen: false }
+  addWindow(win: BrowserWindow, app = false): number {
+    const ctx: WinCtx = { ...(app ? { app: true } : {}), id: win.id, win, activeId: null, split: null, layoutParams: { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }, overlayOpen: false }
     this.ctxs.set(ctx.id, ctx)
     if (!this.cur) this.cur = ctx
     win.on('resize', () => this.inWin(ctx.id, () => this.layout()))
@@ -102,7 +103,7 @@ export class TabManager {
   /** Pencere kapaninca sekmeleri `fallbackId` penceresine tasir */
   removeWindow(id: number, fallbackId: number): void {
     const ctx = this.ctxs.get(id); if (!ctx || id === fallbackId || !this.ctxs.has(fallbackId)) return
-    for (const tid of [...this.order]) if (this.tabs.get(tid)?.winId === id) this.moveToWindow(tid, fallbackId, false)
+    for (const tid of [...this.order]) if (this.tabs.get(tid)?.winId === id) { if (ctx.app) this.close(tid); else this.moveToWindow(tid, fallbackId, false) }
     this.ctxs.delete(id)
     if (this.cur.id === id) this.cur = this.ctxs.get(fallbackId)!
     this.syncSplitInfo(); this.onChange(); this.persist()
@@ -110,6 +111,9 @@ export class TabManager {
   setCurrent(winId: number): void { const c = this.ctxs.get(winId); if (c) this.cur = c }
   get currentWinId(): number { return this.cur.id }
   windowIds(): number[] { return [...this.ctxs.keys()] }
+  /** Uygulama pencereleri haric (sekme tasima/yeni pencere hedefleri) */
+  normalWindowIds(): number[] { return [...this.ctxs.values()].filter((c) => !c.app).map((c) => c.id) }
+  isAppWindow(id: number): boolean { return !!this.ctxs.get(id)?.app }
   /** Pencere baglaminda senkron calistir, sonra eskisine don */
   inWin<T>(winId: number, fn: () => T): T {
     const prev = this.cur, c = this.ctxs.get(winId)
@@ -119,9 +123,9 @@ export class TabManager {
   /** `winId` penceresindeki sekmeler (genel sirada) */
   private peers(winId: number): string[] { return this.order.filter((i) => this.tabs.get(i)?.winId === winId) }
   /** Bir pencerenin sekme/gorunum durumu (arayuze gonderilir): tum sekmeler + o pencerenin aktif sekmesi */
-  list(winId?: number): { tabs: TabInfo[]; activeId: string | null; win: number; wins: number; dock: DevToolsDock; groups: TabGroup[] } {
+  list(winId?: number): { tabs: TabInfo[]; activeId: string | null; win: number; wins: number; dock: DevToolsDock; groups: TabGroup[]; app: boolean } {
     const c = (winId !== undefined && this.ctxs.get(winId)) || this.cur
-    return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: c.activeId, win: c.id, wins: this.ctxs.size, dock: c.layoutParams.dock, groups: [...this.groups.values()] }
+    return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: c.activeId, win: c.id, wins: this.ctxs.size, dock: c.layoutParams.dock, groups: [...this.groups.values()], app: !!c.app }
   }
   /** Sekmeyi baska bir pencereye tasir; hedef pencerede aktif olur, kaynak pencerede komsu sekme aktif olur */
   moveToWindow(id: string, target: number, focus = true): boolean {
@@ -136,7 +140,7 @@ export class TabManager {
       try { this.win.contentView.removeChildView(e.view) } catch { /* zaten cocuk degil */ }
       if (wasActive) this.activeId = null
     })
-    e.winId = target; e.info.winId = target
+    e.winId = target; e.info.winId = target; if (dst.app) e.info.app = true; else delete e.info.app
     this.inWin(src, () => { if (!this.activeId) { const next = this.peers(src)[0]; if (next) this.activateIn(next); else this.layout() } })
     this.inWin(target, () => this.activateIn(id))
     if (focus) this.hooks.onFocusWindow?.(dst.win)
@@ -163,7 +167,7 @@ export class TabManager {
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
     const winId = opts.winId !== undefined && this.ctxs.has(opts.winId) ? opts.winId : this.cur.id
-    const entry: Entry = { winId, lastActive: Date.now(), view, info: { id, winId, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}) } }
+    const entry: Entry = { winId, lastActive: Date.now(), view, info: { id, winId, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}), ...(this.ctxs.get(winId)?.app ? { app: true as const } : {}) } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
     // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
@@ -220,7 +224,7 @@ export class TabManager {
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
     wc.on('render-process-gone', (_ev, d) => { if (d.reason !== 'clean-exit') setTimeout(() => { if (!wc.isDestroyed()) wc.reload() }, 300) })
     // target=_blank ve window.open: yeni sekmede ac (ayni Workspace)
-    wc.setWindowOpenHandler(({ url }) => { const dv = this.takeDivert(e); if (dv && isAllowedPageNavigation(url)) { this.hooks.onDivert?.(e.info.id, url, dv.mode); return { action: 'deny' } }; if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId, private: e.info.private }); return { action: 'deny' } })
+    wc.setWindowOpenHandler(({ url }) => { if (this.ctxs.get(e.winId)?.app && isAllowedPageNavigation(url)) { const same = (() => { try { return siteOfHost(new URL(url).hostname) === siteOfHost(new URL(wc.getURL()).hostname) } catch { return false } })(); if (same) { void wc.loadURL(url).catch(() => {}) } else this.hooks.onDivert?.(e.info.id, url, 'normal'); return { action: 'deny' } }; const dv = this.takeDivert(e); if (dv && isAllowedPageNavigation(url)) { this.hooks.onDivert?.(e.info.id, url, dv.mode); return { action: 'deny' } }; if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId, private: e.info.private }); return { action: 'deny' } })
     // sayfa kaynakli gezinmeler de http(s) ile sinirli (file://, izlix://, vscode:// vb. engellenir)
     const guard = (event: Electron.Event, url: string): void => { if (!isAllowedPageNavigation(url)) event.preventDefault() }
     // Yukleme hatasi: aciklayici sayfa; loopback adreslerinde sunucu acilana kadar otomatik yeniden dene
@@ -679,7 +683,7 @@ export class TabManager {
   private persist(): void {
     try {
       const primary = [...this.ctxs.keys()][0]
-      const keep = this.order.filter((i) => { const t = this.tabs.get(i)!.info; return t.url && !t.private })
+      const keep = this.order.filter((i) => { const t = this.tabs.get(i)!.info; return t.url && !t.private && !t.app })
       const tabs = keep.map((i) => { const t = this.tabs.get(i)!.info; return { url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}), ...(t.group ? { group: t.group } : {}), ...(t.winId !== primary ? { second: true } : {}) } })
       const actives = [...this.ctxs.values()].map((c) => keep.indexOf(c.activeId ?? ''))
       saveDoc(app.getPath('userData'), 'session', { tabs, groups: [...this.groups.values()], active: Math.max(0, actives[0] ?? 0), activeSecond: actives[1] ?? -1 })

@@ -163,6 +163,13 @@ export function buildCommands(): Command[] {
   if (act?.logins) cmds.push({ id: 'pw.fill', title: t('pw.fill'), hint: '⌘⇧L', run: () => void api.pwFill(act.id) })
   if (act && !act.pinned) cmds.push({ id: 'tab.group', title: t(act.group ? 'grp.remove' : 'grp.new'), run: () => void api.setTabGroup(act.id, act.group ? null : 'new') })
   if (act) cmds.push({ id: 'tab.mute', title: t(act.muted ? 'ctx.unmute' : 'ctx.mute'), run: () => void api.muteTab(act.id, !act.muted) })
+  if (act && /^https?:/.test(act.url)) {
+    const sameOrigin = (u: string): boolean => { try { return new URL(u).origin === new URL(act.url).origin } catch { return false } }
+    cmds.push({ id: 'app.open', title: t('app.openHere'), run: () => void api.appOpen() })
+    if ((s.settings.apps ?? []).some((a) => sameOrigin(a.url))) cmds.push({ id: 'app.remove', title: t('app.remove'), run: () => void api.setSettings({ apps: (s.settings.apps ?? []).filter((a) => !sameOrigin(a.url)) }) })
+    else cmds.push({ id: 'app.install', title: t('app.install'), run: () => { const u = new URL(act.url); void api.setSettings({ apps: [...(s.settings.apps ?? []), { url: u.origin + '/', name: (act.title && act.title !== 'New Tab' ? act.title : u.hostname).slice(0, 40) }] }) } })
+  }
+  for (const a of s.settings.apps ?? []) cmds.push({ id: `app:${a.url}`, title: t('app.launch', { n: a.name }), run: () => void api.appOpen(a.url) })
   if (act) cmds.push({ id: 'tab.hop', title: t('cmd.hopTab'), hint: '⌥⌘M', run: () => void api.hopTab(act.id) })
   if (act) cmds.push({ id: 'tab.pin', title: t(act.pinned ? 'cmd.unpin' : 'cmd.pin'), run: () => void api.pinTab(act.id, !act.pinned) })
   if (act && !act.lab) {

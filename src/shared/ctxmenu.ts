@@ -12,7 +12,7 @@ export type CtxAct =
   | 'back' | 'forward' | 'reload' | 'savePage' | 'print' | 'savePdf' | 'viewSource' | 'inspect' | 'translate' | 'qr'
   | 'linkNewTab' | 'linkNewPrivate' | 'linkCopy' | 'imgNewTab' | 'imgCopy' | 'imgCopyUrl' | 'imgSave' | 'mediaCopyUrl' | 'mediaSave' | 'mediaPip'
   | 'cut' | 'copy' | 'paste' | 'selectAll' | 'search' | 'suggest' | 'addWord'
-  | 'highlight' | 'addNote' | 'editNote' | 'removeNote' | 'speakSel' | 'speakPage' | 'newTab' | 'newWindow' | 'btnNewTab' | 'btnNewWindow' | 'linkNewWindow' | 'linkSplit' | 'linkOtherWin' | 'component' | 'inspectEl' | 'copySel' | 'openRoot' | 'lab' | 'openChrome' | 'openSafari' | 'shotView' | 'shotFull'
+  | 'openApp' | 'highlight' | 'addNote' | 'editNote' | 'removeNote' | 'speakSel' | 'speakPage' | 'newTab' | 'newWindow' | 'btnNewTab' | 'btnNewWindow' | 'linkNewWindow' | 'linkSplit' | 'linkOtherWin' | 'component' | 'inspectEl' | 'copySel' | 'openRoot' | 'lab' | 'openChrome' | 'openSafari' | 'shotView' | 'shotFull'
 export interface CtxItem { act?: CtxAct; label?: string; arg?: string; sep?: true; enabled?: boolean; submenu?: CtxItem[]; /** etiketteki {name}/{editor} yer tutuculari */ vars?: Record<string, string> }
 const isHttp = (u?: string): boolean => !!u && /^https?:/i.test(u)
 
@@ -65,7 +65,7 @@ export function buildCtxMenu(p: CtxParams): CtxItem[] {
     dev.push({ act: 'inspectEl' }, { act: 'copySel', enabled: !!x.hasSelector })
     if (x.hasRoot) dev.push({ act: 'openRoot', vars: { editor: x.editorLabel ?? 'VS Code' } })
     dev.push({ sep: true }, { act: 'lab' }, { act: 'shotView' }, { act: 'shotFull' })
-    dev.push({ sep: true })
+    dev.push({ act: 'openApp' }, { sep: true })
     if (x.chrome) dev.push({ act: 'openChrome' })
     dev.push({ act: 'openSafari' })
     sep(); push({ label: 'cm.dev', submenu: dev })

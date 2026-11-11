@@ -4261,5 +4261,72 @@
       "eq",
       true
     ]
+  ],
+  "appwin": [
+    [
+      "opened",
+      "eq",
+      true
+    ],
+    [
+      "appTab",
+      "eq",
+      true
+    ],
+    [
+      "windows",
+      "eq",
+      2
+    ],
+    [
+      "appbar",
+      "eq",
+      true
+    ],
+    [
+      "noStrip",
+      "eq",
+      true
+    ],
+    [
+      "title",
+      "eq",
+      "Uygulama /"
+    ],
+    [
+      "hiddenInMain",
+      "eq",
+      true
+    ],
+    [
+      "noDuplicate",
+      "eq",
+      true
+    ],
+    [
+      "sameSiteNav",
+      "eq",
+      true
+    ],
+    [
+      "externalInMain",
+      "eq",
+      true
+    ],
+    [
+      "appStaysPut",
+      "eq",
+      true
+    ],
+    [
+      "appClosed",
+      "eq",
+      true
+    ],
+    [
+      "mainTabsKept",
+      "eq",
+      true
+    ]
   ]
 }

@@ -40,6 +40,8 @@ import { emuActive, geoPreset, networkPreset, uaPreset } from '../shared/emulati
 const CHROME_H = 84 // sekme seridi 38 + arac cubugu 46
 const CHROME_H_SIDE = 46 // dikey sekme duzeninde yalnizca arac cubugu
 const SIDE_W = 232, SIDE_W_COLLAPSED = 56
+const appWinTab = (t: { winId?: number }, st: { winId: number }): boolean => t.winId === st.winId
+const APPBAR_H = 38 // uygulama penceresinde yalnizca ince baslik cubugu
 const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
 
 export function App() {
@@ -61,7 +63,7 @@ export function App() {
   const pendingSel = useRef<[number, number] | null>(null)
   useLayoutEffect(() => { if (pendingSel.current && addrRef.current) { addrRef.current.setSelectionRange(...pendingSel.current); pendingSel.current = null } })
   const active = s.tabs.find((t) => t.id === s.activeTabId)
-  const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId)
+  const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId && (!t.app || appWinTab(t, s)))
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
   const insecure = /^http:/.test(active?.url ?? '') && !isLoopbackHost(((): string => { try { return new URL(active?.url ?? '').hostname } catch { return '' } })()) && !/\.onion$/.test(active?.url ?? '')
   const pageHost = (() => { try { return new URL(active?.url ?? '').hostname.toLowerCase() } catch { return '' } })()
@@ -72,9 +74,10 @@ export function App() {
   const pickSug = (x: Sug): void => { setTyped(null); if (x.kind === 'tab' && x.tabId) void api.activateTab(x.tabId); else if (active) void api.go(active.id, x.url); else void api.createTab(x.url); addrRef.current?.blur() }
   const bookmarked = !!active && (s.bookmarks[s.activeWorkspaceId] ?? []).some((b) => b.url === active.url)
   const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
-  const vertical = s.tabLayout === 'side'
+  const appWin = s.appWin
+  const vertical = s.tabLayout === 'side' && !appWin
   const sideW = vertical ? (s.sideCollapsed ? SIDE_W_COLLAPSED : SIDE_W) : 0
-  const chromeH = (vertical ? CHROME_H_SIDE : CHROME_H) + (active?.lab ? LAB_BAR_H : 0) + (s.bmBar ? BM_H : 0)
+  const chromeH = appWin ? APPBAR_H : (vertical ? CHROME_H_SIDE : CHROME_H) + (active?.lab ? LAB_BAR_H : 0) + (s.bmBar ? BM_H : 0)
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 
   useEffect(() => {
@@ -82,7 +85,7 @@ export function App() {
     const queue: any[] = []
     void api.favicons([]).then((f) => useStore.setState((st) => ({ favicons: { ...f, ...st.favicons } }))).catch(() => {})
     const offs = [
-      api.onTabs((p: any) => s.set({ tabs: p.tabs, activeTabId: p.activeId, winId: p.win ?? 0, wins: p.wins ?? 1, groups: p.groups ?? [] })),
+      api.onTabs((p: any) => s.set({ tabs: p.tabs, activeTabId: p.activeId, winId: p.win ?? 0, wins: p.wins ?? 1, groups: p.groups ?? [], appWin: !!p.app })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
       api.onRec((r: any) => s.set({ rec: r })),
@@ -96,6 +99,7 @@ export function App() {
       api.onSessions((x: any) => s.set({ sessions: x })),
       api.onCommand((cmd: string) => {
         const st = useStore.getState(); const act = st.tabs.find((t) => t.id === st.activeTabId)
+        if (st.appWin && (cmd.startsWith('panel.') || cmd.startsWith('dashboard.') || cmd === 'inspect.elements' || cmd === 'devtools.toggle')) return // uygulama penceresinde panel yok
         switch (cmd) {
           case 'palette.open': void api.track('palette.open'); st.set({ overlay: st.overlay === 'palette' ? null : 'palette' }); break
           case 'rules.open': st.set({ overlay: 'rules' }); break
@@ -154,6 +158,7 @@ export function App() {
   }, [])
 
   useEffect(() => { void window.izlix.setSettings({ editor: s.editor }) }, [s.editor])
+  useEffect(() => { if (s.appWin) s.set({ panelOpen: false, dashboard: false }) }, [s.appWin])
   useEffect(() => { void window.izlix.getSettings().then((st: any) => { useStore.getState().set({ settings: st, ...(st.onboarded ? {} : { overlay: 'welcome' as const }) }) }) }, [])
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])
@@ -231,6 +236,17 @@ export function App() {
   }
   return (
     <>
+      {appWin ? (
+        <div className="appbar drag">
+          <button className="nodrag" aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}><Back /></button>
+          <button className="nodrag" aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}><Forward /></button>
+          <button className="nodrag" aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}><Reload /></button>
+          <span className="appbar-title">{active?.title && active.title !== 'New Tab' ? active.title : pageHost}</span>
+          <span className="appbar-host">{pageHost}</span>
+          {active && <button className="nodrag" aria-label={t('app.toBrowser')} title={t('app.toBrowser')} onClick={() => void api.hopTab(active.id)}><IcHop /></button>}
+        </div>
+      ) : (
+      <>
       {vertical ? (
         <div className={`vside drag ${s.sideCollapsed ? 'collapsed' : ''}`} style={{ width: sideW }}>
           <div className="vside-list">{renderTabs()}</div>
@@ -320,6 +336,8 @@ export function App() {
         <button className={`tb-btn panel-toggle ${s.panelOpen && !s.dashboard ? 'on' : ''}`} aria-pressed={s.panelOpen && !s.dashboard} title={`${t('panel.toggle')}  ⌥⌘B`} aria-label={t('panel.toggle')} onClick={() => s.set({ panelOpen: !s.panelOpen, dashboard: false })}>{side === 'left' ? <IcDockL /> : side === 'bottom' ? <IcDockB /> : <IcPanel />}</button>
       </div>
       {s.bmBar && <BookmarkBar left={sideW} />}
+      </>
+      )}
 
       {active?.loading && <div className="load-bar" aria-hidden><i /></div>}
       {active?.lab && (

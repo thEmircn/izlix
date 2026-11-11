@@ -1008,3 +1008,8 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 /* v9: notlar */
 .note-quote { margin: 0; padding: 8px 12px; border-radius: 8px; font-size: 12.5px; color: var(--fg); } .note-page { cursor: pointer; margin: 12px 0 4px; font: 600 11.5px ui-monospace, Menlo, monospace; color: var(--dim); } .note-page:hover { color: var(--fg); }
 .note-row { display: flex; gap: 10px; align-items: flex-start; padding: 6px 4px; font-size: 12.5px; } .note-row p { margin: 4px 0 0; color: var(--dim); line-height: 1.45; white-space: pre-wrap; }
+
+/* v9: uygulama penceresi (sekmesiz sade pencere) */
+.appbar { height: 38px; display: flex; align-items: center; gap: 4px; padding: 0 12px 0 78px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.appbar button { width: 28px; height: 28px; display: grid; place-items: center; border: 0; background: transparent; color: var(--fg); border-radius: 7px; cursor: pointer; } .appbar button:hover:not(:disabled) { background: var(--hover); } .appbar button:disabled { opacity: .3; }
+.appbar-title { flex: 1; text-align: center; font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 12px; } .appbar-host { color: var(--dim); font: 11px ui-monospace, Menlo, monospace; }

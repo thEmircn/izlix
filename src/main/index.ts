@@ -259,7 +259,7 @@ function registerIpc(): void {
   handle(Ch.tabHop, schemas.tabHop, async ({ id }) => {
     const e = tabs.get(id); if (!e) return false
     const here = tabs.currentWinId
-    const target = e.winId !== here ? here : (tabs.windowIds().find((x) => x !== here) ?? await openWindow())
+    const target = e.winId !== here ? here : (tabs.normalWindowIds().find((x) => x !== here) ?? await openWindow())
     return tabs.moveToWindow(id, target)
   })
   handle(Ch.tabMute, schemas.tabMute, ({ id, muted }) => tabs.setMuted(id, muted))
@@ -401,6 +401,7 @@ function registerIpc(): void {
     const n = notes.remove(id); if (!n) return false
     tabs.each((wc) => { if (pageKey(wc.getURL()) === n.url) void wc.executeJavaScript(removeNoteScript(id)).catch(() => {}) }); return true
   })
+  handle(Ch.appOpen, schemas.appOpen, ({ url }) => openAppWindow(url ?? tabs.active()?.info.url ?? ''))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -741,7 +742,7 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
   const root = e.cdp?.resolver.rootProvider?.() ?? workspaces.get(e.info.workspaceId)?.rootDir ?? null
   const editorLabel = EDITOR_LABEL[settings.get().editor ?? 'vscode'] ?? 'VS Code'
   const items = buildCtxMenu({ ...p, pageURL: url0, canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), editFlags: p.editFlags,
-    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.windowIds().length, hasSelector: !!probe?.sel, clickable: probe?.clickable, href: probe?.href, noteId: probe?.noteId } })
+    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.normalWindowIds().length, hasSelector: !!probe?.sel, clickable: probe?.clickable, href: probe?.href, noteId: probe?.noteId } })
   const open = (url: string, priv?: 'incognito' | 'tor'): void => { void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...((priv ?? e.info.private) ? { private: priv ?? e.info.private } : {}) }) }
   const run = async (it: CtxItem): Promise<void> => {
     const a = it.arg ?? ''
@@ -767,6 +768,7 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
       case 'copySel': if (probe?.sel) clipboard.writeText(probe.sel); break
       case 'lab': void tabs.setLab(tabId, ['iphone-se', 'iphone-15', 'ipad-mini']); break
       case 'shotView': case 'shotFull': { const png = await captureShot(wc, it.act === 'shotFull' ? 'full' : 'viewport'); if (png) { mkdirSync(app.getPath('downloads'), { recursive: true }); const f = uniquePath(app.getPath('downloads'), shotName(url0)); writeFileSync(f, png); if (!process.env.DB_SCRIPT) shell.showItemInFolder(f); lastShot = f } break }
+      case 'openApp': void openAppWindow(url0); break
       case 'openChrome': execFile('open', ['-a', 'Google Chrome', url0]); break
       case 'openSafari': execFile('open', ['-a', 'Safari', url0]); break
       case 'back': wc.navigationHistory.goBack(); break
@@ -875,9 +877,19 @@ async function speakFrom(wc: Electron.WebContents | null, mode: 'auto' | 'select
   return !!(await speaker.speak(text, lang))
 }
 
+/** Siteyi uygulama olarak ac: sekmesiz sade pencere. Ayni site zaten aciksa o pencere one gelir. */
+async function openAppWindow(url: string): Promise<boolean> {
+  let site = ''; try { const u = new URL(url); if (!/^https?:$/.test(u.protocol)) return false; site = siteOf(u.hostname) } catch { return false }
+  const open = tabs.list().tabs.find((t) => t.app && (() => { try { return siteOf(new URL(t.url).hostname) === site } catch { return false } })())
+  if (open) { tabs.activate(open.id); return true }
+  const id = await openWindow({ app: true })
+  await tabs.create({ url, workspaceId: activeWorkspaceId, winId: id })
+  return true
+}
+
 /** URL'yi baska bir pencerede ac (yalniz bir pencere varsa ikincisini acar) */
 async function openInNewWindow(url: string, workspaceId: string, fromWin: number, priv?: 'incognito' | 'tor'): Promise<void> {
-  const other = tabs.windowIds().find((w) => w !== fromWin) ?? await openWindow()
+  const other = tabs.normalWindowIds().find((w) => w !== fromWin) ?? await openWindow()
   void tabs.create({ url, workspaceId, winId: other, ...(priv ? { private: priv } : {}) })
 }
 /** Editoru YENI pencerede ac (CLI + -n): acik editor pencerelerine/oturumlarina dokunmaz; CLI yoksa URL semasina duser */
@@ -930,8 +942,11 @@ async function probeAt(wc: Electron.WebContents, x: number, y: number): Promise<
 
 /** Kabuk penceresi kapaniyorsa sekmeleri kalan pencereye tasir (uygulama kapanirken oturum bozulmasin diye atlanir) */
 function onShellClose(w: BrowserWindow): void {
+  const isApp = tabs?.isAppWindow(w.id)
+  // son normal pencere kapaniyorsa uygulama pencereleri de kapanir (uygulama sonlanir)
+  if (!isApp && tabs && tabs.normalWindowIds().filter((x) => x !== w.id).length === 0 && shellWins.size > 1) { quitting = true; for (const x of [...shellWins.values()]) if (x !== w && !x.isDestroyed()) x.destroy() }
   if (quitting || shellWins.size <= 1) { shellWins.delete(w.id); return }
-  const fallback = [...shellWins.values()].find((x) => x.id !== w.id && !x.isDestroyed())
+  const fallback = isApp ? [...shellWins.values()].find((x) => !tabs.isAppWindow(x.id) && !x.isDestroyed()) ?? [...shellWins.values()].find((x) => x.id !== w.id && !x.isDestroyed()) : [...shellWins.values()].find((x) => x.id !== w.id && !x.isDestroyed() && !tabs.isAppWindow(x.id))
   if (fallback) tabs.removeWindow(w.id, fallback.id)
   shellWins.delete(w.id)
   if (win === w && fallback) win = fallback
@@ -939,21 +954,23 @@ function onShellClose(w: BrowserWindow): void {
 }
 
 /** Ikinci (ve sonraki) kabuk penceresi: sekme havuzu ortak; tercihen diger monitorde acilir. */
-async function openWindow(): Promise<number> {
+async function openWindow(opts: { app?: boolean } = {}): Promise<number> {
   const quiet = !!process.env.DB_SCRIPT && !process.env.DB_VISIBLE
-  const here = screen.getDisplayMatching(win.getBounds()), other = screen.getAllDisplays().find((d) => d.id !== here.id)
+  const here = screen.getDisplayMatching((curWin ?? win).getBounds()), other = opts.app ? undefined : screen.getAllDisplays().find((d) => d.id !== here.id)
   const wa = (other ?? here).workArea
   const def = other ? { x: wa.x + 40, y: wa.y + 40, width: Math.max(900, wa.width - 80), height: Math.max(600, wa.height - 80) } : { x: wa.x + Math.floor(wa.width / 2), y: wa.y + 40, width: Math.max(900, Math.floor(wa.width / 2) - 20), height: Math.max(600, wa.height - 80) }
-  const { maximized, ...b } = restoreWindowState(def, 'window2')
-  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#00000000', vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  // uygulama penceresi: kucuk, ekranin ortasinda, konumu hatirlanmaz
+  const appDef = { width: Math.min(1100, wa.width - 80), height: Math.min(760, wa.height - 80), x: wa.x + Math.floor((wa.width - Math.min(1100, wa.width - 80)) / 2) + (shellWins.size % 5) * 24, y: wa.y + 50 + (shellWins.size % 5) * 24 }
+  const { maximized, ...b } = opts.app ? { ...appDef, maximized: false } : restoreWindowState(def, 'window2')
+  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: opts.app ? 480 : 900, minHeight: opts.app ? 360 : 600, titleBarStyle: 'hiddenInset', backgroundColor: '#00000000', vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
   w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {})
   if (maximized && !quiet) w.maximize()
   if (quiet) { w.setOpacity(0); w.setIgnoreMouseEvents(true); w.showInactive() }
-  trackWindowState(w, 'window2')
+  if (!opts.app) trackWindowState(w, 'window2')
   shellWins.set(w.id, w); w.on('close', () => onShellClose(w))
-  const id = tabs.addWindow(w)
+  const id = tabs.addWindow(w, !!opts.app)
   lockShell(w, [process.env.ELECTRON_RENDERER_URL ?? 'app://shell/'])
-  await w.loadURL(process.env.ELECTRON_RENDERER_URL ?? 'app://shell/index.html')
+  await w.loadURL((process.env.ELECTRON_RENDERER_URL ?? 'app://shell/index.html') + (opts.app ? '?app=1' : ''))
   pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSessions(); pushSettings()
   return id
 }
@@ -1009,7 +1026,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'normal') { const nw = tabs.normalWindowIds()[0]; if (nw !== undefined) void tabs.create({ url, workspaceId: e.info.workspaceId, winId: nw }).then((nid) => tabs.activate(nid)); return } if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -1035,7 +1052,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
+      newTab, openWindow, openAppWindow, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
       ctxPrepare: (id: string, params: Partial<Electron.ContextMenuParams>) => showCtx(id, { x: 20, y: 20, ...params } as Electron.ContextMenuParams, true), editorOpens: () => lastEditorOpen, lastShot: () => lastShot, resetCtx: () => { lastEditorOpen = null; lastShot = null },
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },

@@ -132,6 +132,16 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
           {sec === 'home' && (
             <>
               {servers.length === 0 && marks.length === 0 && hist.length === 0 && sess.length === 0 && <div className="hub-empty">{t('start.empty')}</div>}
+              {(s.settings.apps ?? []).length > 0 && (
+                <section className="hub-block"><header><h4>{t('hub.apps')}</h4></header>
+                  {(s.settings.apps ?? []).map((a) => (
+                    <button key={a.url} className="hub-row" onClick={() => void api.appOpen(a.url)} title={a.url}>
+                      <span className={`hub-av ${iconOf(a.url) ? 'has-icon' : ''}`} style={{ ['--h' as any]: hue(hostOf(a.url)) }}><Fav icon={iconOf(a.url)}>{a.name.trim().charAt(0).toUpperCase()}</Fav></span>
+                      <span className="hub-main"><b>{a.name}</b><small>{hostOf(a.url)}</small></span><span className="hub-go">{t('hub.open')}</span>
+                    </button>
+                  ))}
+                </section>
+              )}
               {block('servers', t('hub.servers'), fServers.length, <>{fServers.slice(0, 4).map((d) => serverRow(d))}</>)}
               {block('sessions', t('hub.continue'), fSess.length, <>{fSess.slice(0, 3).map((x) => sessRow(x))}</>)}
               {block('bookmarks', t('hub.bookmarks'), fMarks.length, <>{fMarks.slice(0, 4).map((b) => urlRow(b.url, b.title))}</>)}

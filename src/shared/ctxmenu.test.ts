@@ -34,7 +34,7 @@ describe('buildCtxMenu', () => {
   it('gelistirici alt menusu: proje klasoru ve Chrome yalniz varsa; secici kopyalama etkinligi', () => {
     const dev = (x: any) => buildCtxMenu({ pageURL: 'http://localhost:5173/', extra: x }).find((i) => i.label === 'cm.dev')!.submenu!
     const a = dev({ hasRoot: true, chrome: true, hasSelector: true }).map((i) => i.act ?? '-')
-    expect(a).toEqual(['inspectEl', 'copySel', 'openRoot', '-', 'lab', 'shotView', 'shotFull', '-', 'openChrome', 'openSafari'])
+    expect(a).toEqual(['inspectEl', 'copySel', 'openRoot', '-', 'lab', 'shotView', 'shotFull', 'openApp', '-', 'openChrome', 'openSafari'])
     const b = dev({}).map((i) => i.act ?? '-'); expect(b).not.toContain('openRoot'); expect(b).not.toContain('openChrome')
     expect(dev({}).find((i) => i.act === 'copySel')!.enabled).toBe(false)
   })
