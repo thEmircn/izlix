@@ -17,3 +17,16 @@ export function editorCommand(editor: Editor, target: { file?: string; line?: nu
   if (loc) args.push('-g', loc)
   return { bins, args }
 }
+
+/** Editor URL semasi (vscode://file/yol:satir:sutun, webstorm://open?...): tarayici eklentisi ve CLI bulunamazsa yedek */
+export function editorUrl(editor: Editor, file: string, line: number, col: number): string {
+  if (editor === 'webstorm') return `webstorm://open?file=${encodeURIComponent(file)}&line=${line}&column=${col}`
+  return `${editor}://file${encodeURI(file)}:${line}:${col}`
+}
+
+/** Sayfa kontrollu (guvenilmez) bir yolun editorde acilmaya uygun olup olmadigi: mutlak, `..` icermeyen, NUL icermeyen */
+export function isSafeSourcePath(file: string): boolean {
+  if (!file || file.includes('\0') || file.length > 1024) return false
+  const abs = file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file)
+  return abs && !file.split(/[\\/]/).includes('..')
+}

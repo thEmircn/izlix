@@ -68,6 +68,21 @@ check('olaylar toplandi', evCount >= 10, `(${evCount} olay)`)
 await panel.ev(`[...document.querySelectorAll('svg circle')].filter(c=>c.getAttribute('fill')==='#ffb454').pop()?.dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(500)
 const chainText = await panel.ev('document.body.innerText')
 check('nedensellik zinciri: girdi -> istek -> yanit -> render', /Cause chain|Neden zinciri/i.test(chainText) && /click button#load/.test(chainText) && /GET \/api\/items/.test(chainText) && /200 \/api\/items/.test(chainText) && /render #\d+ commit/.test(chainText))
+// 3b) click-to-source: bilesen konumu source map'ten cozulur, kaynak baglantisi editor URL'si uretir
+await sleep(1500) // kaynak cozumleme sayfa bosken toplu yapilir
+const chainText2 = await panel.ev('document.body.innerText')
+check('bilesen kaynagi cozuldu (dosya:satir)', /App\.tsx:\d+/.test(chainText2), (chainText2.match(/[\w./-]*App\.tsx:\d+/) || [''])[0])
+await sw.ev('__izlix.setTestMode(true)')
+const srcFile = await sw.ev(`(() => { for (const tid of __izlix.attached()) { const f = [...__izlix.knownFiles(tid)].find((x) => /App\\.tsx$/.test(x)); if (f) return f } return null })()`)
+check('bilinen kaynak dosya yolu mutlak', typeof srcFile === 'string' && srcFile.startsWith('/'), String(srcFile).slice(-40))
+if (srcFile) {
+  const okOpen = await panel.ev(`window.izlix.openSource({ file: ${JSON.stringify(srcFile)}, line: 18, column: 3, editor: 'vscode' })`)
+  check('editorde ac: bilinen dosya kabul edildi', okOpen === true, await sw.ev('__izlix.lastEditorUrl()'))
+  check('editor URL: vscode://file/...:18:3', /^vscode:\/\/file\/.*App\.tsx:18:3$/.test((await sw.ev('__izlix.lastEditorUrl()')) || ''))
+  check('editorde ac: bilinmeyen/hassas dosya REDDEDILDI', (await panel.ev(`window.izlix.openSource({ file: '/etc/passwd', line: 1 })`)) === false)
+  check('editorde ac: .. iceren yol REDDEDILDI', (await panel.ev(`window.izlix.openSource({ file: ${JSON.stringify(srcFile + '/../../../../etc/hosts')}, line: 1 })`)) === false)
+}
+
 // 4) Request Rules: paneldeki API ile mock kurali ekle, sayfayi yenile, tikla -> mock uygulanir ve istek rozetlenir
 const rule = { rules: [{ id: 'r1', name: 'mock items', enabled: true, urlPattern: '/api/items', action: { type: 'mock', status: 200, contentType: 'application/json', body: '[{"id":1,"name":"MOCKED-BY-IZLIX"}]' } }], domains: ['127.0.0.1', 'localhost'] }
 await panel.ev(`window.izlix.setRules('default', ${JSON.stringify(rule)})`); await sleep(400)

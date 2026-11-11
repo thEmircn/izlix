@@ -8,3 +8,10 @@ export function utf8ToBase64(s: string): string {
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
   return btoa(bin)
 }
+
+/** base64 -> UTF-8 metin (Node'un Buffer'i yerine) */
+export function base64ToUtf8(b64: string): string {
+  const bin = atob(b64), bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new TextDecoder().decode(bytes)
+}

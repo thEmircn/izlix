@@ -30,7 +30,8 @@ const real: Record<string, (...a: any[]) => any> = {
   getSettings: () => Promise.resolve({ language: lang, onboarded: true, telemetry: 'denied' }),
   track: () => Promise.resolve(),
   setRules: (wsId: string, cfg: unknown) => rpc('setRules', wsId, cfg),
-  responseBody: (id: string, requestId: string) => rpc('responseBody', id, requestId)
+  responseBody: (id: string, requestId: string) => rpc('responseBody', id, requestId),
+  openSource: (t: { file: string; line: number; column?: number; editor?: string }) => rpc('openSource', t)
 }
 ;(window as any).izlix = new Proxy(real, { get: (t, p: string) => t[p] ?? ((...a: any[]) => (p.startsWith('on') ? () => {} : Promise.resolve(null))) })
 

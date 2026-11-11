@@ -2,7 +2,7 @@ import type { WebContents } from 'electron'
 import type { EventBus } from '../core/bus'
 import { Interceptor as CoreInterceptor, type AdHook } from '../core/interceptor'
 import type { RulesConfig } from '../shared/rules'
-import { electronCdp } from './cdp'
+import { electronCdp } from './electron-cdp'
 import { MockServer } from './mockserver'
 
 export type { AdHook }

@@ -4,18 +4,22 @@ import { attachCollector, type Collector } from '../../../src/core/collector'
 import { Interceptor } from '../../../src/core/interceptor'
 import { DEFAULT_DOMAINS, type RulesConfig } from '../../../src/shared/rules'
 import { chromeCdp, isAttached } from './chrome-cdp'
-import { emptyResolver } from './stub-resolver'
+import { createResolver } from './stub-resolver'
+import { editorUrl, isSafeSourcePath } from '../../../src/shared/editor'
+import type { SourceResolver } from '../../../src/core/sources'
 import type { CdpClient } from '../../../src/core/cdp-client'
 
 const bus = new EventBus()
 const tabKey = (tabId: number): string => `tab-${tabId}`
-interface Attached { collector: Collector; client: CdpClient; interceptor: Interceptor }
+interface Attached { collector: Collector<SourceResolver>; client: CdpClient; interceptor: Interceptor }
 const attached = new Map<number, Attached>()
 const tabUrls = new Map<number, string>()
 const ports = new Set<chrome.runtime.Port>()
 
 // --- Request Rules: kurallar kalici (chrome.storage), her izlenen sekmede ayni cekirdek Interceptor calisir ---
 let rulesCfg: RulesConfig = { rules: [], domains: DEFAULT_DOMAINS }
+let projectRoot: string | null = null
+void chrome.storage.local.get('izlix.root').then((r) => { projectRoot = (r['izlix.root'] as string) ?? null })
 const rulesReady = chrome.storage.local.get('izlix.rules').then((r) => { if (r['izlix.rules']) rulesCfg = r['izlix.rules'] as RulesConfig })
 async function setRules(cfg: RulesConfig): Promise<void> {
   rulesCfg = { rules: cfg.rules ?? [], domains: cfg.domains?.length ? cfg.domains : DEFAULT_DOMAINS }
@@ -29,7 +33,8 @@ export async function ensureAttached(tabId: number, reload = true): Promise<void
   if (attached.has(tabId)) return
   await rulesReady
   const client = await chromeCdp(tabId)
-  const collector = await attachCollector(client, tabKey(tabId), bus, { resolver: emptyResolver() })
+  const resolver = createResolver(client, () => attached.has(tabId), () => projectRoot)
+  const collector = await attachCollector(client, tabKey(tabId), bus, { resolver })
   tabUrls.set(tabId, (await chrome.tabs.get(tabId)).url ?? '')
   const interceptor = new Interceptor({ client, url: () => tabUrls.get(tabId) ?? '', alive: () => attached.has(tabId) }, tabKey(tabId), bus, () => rulesCfg)
   attached.set(tabId, { collector, client, interceptor })
@@ -68,6 +73,17 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
         return !text.includes('\uFFFD') && !/[\u0000-\u0008\u000E-\u001F]/.test(text) ? text : null
       } catch { return null }
     }
+    case 'openSource': {
+      // sayfa kontrollu veri: yalniz mutlak/guvenli yol VE bu sekmenin source map'lerinden gelen (bilinen) dosya VE sekme yerel gelistirme adresinde
+      const { file, line, column, editor } = args[0] as { file: string; line: number; column?: number; editor?: 'vscode' | 'cursor' | 'webstorm' }
+      if (!isSafeSourcePath(file)) return false
+      const ok = [...attached.entries()].some(([tid, a]) => a.collector.resolver.knownFiles.has(file) && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(tabUrls.get(tid) ?? ''))
+      if (!ok) return false
+      const url = editorUrl(editor ?? 'vscode', file, Math.max(1, line | 0), Math.max(1, (column ?? 1) | 0))
+      ;(globalThis as any).__izlixLastEditorUrl = url
+      if (!(globalThis as any).__izlixTestMode) { const t = await chrome.tabs.create({ url, active: false }); setTimeout(() => { if (t.id != null) void chrome.tabs.remove(t.id).catch(() => {}) }, 1500) }
+      return true
+    }
     default: return null
   }
 }
@@ -87,4 +103,4 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 
 // Test/gelistirme girisi (service worker kapsami sayfalardan erisilemez)
-;(globalThis as any).__izlix = { ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }
+;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }

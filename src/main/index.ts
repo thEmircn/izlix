@@ -2,7 +2,7 @@ import { networkInterfaces } from 'node:os'
 import { lanUrl, pickLanIp } from '../shared/lan'
 import { mergeShortcuts } from '../shared/shortcuts'
 import { matchesTitle, rankTabs, searchText, type TabHit } from '../shared/tabsearch'
-import { editorCommand } from '../shared/editor'
+import { editorCommand, editorUrl } from '../shared/editor'
 import { GROUP_COLOR_NAMES } from '../shared/groups'
 import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
 import { translateUrl } from '../shared/translate'
@@ -117,11 +117,6 @@ let polledOnce = false
 let downloads: Downloads
 let activeWorkspaceId = 'default'
 let detected: DetectedServer[] = []
-
-function editorUrl(editor: Editor, file: string, line: number, col: number): string {
-  if (editor === 'webstorm') return `webstorm://open?file=${encodeURIComponent(file)}&line=${line}&column=${col}`
-  return `${editor}://file${encodeURI(file)}:${line}:${col}`
-}
 
 const send = (channel: string, payload: unknown): void => { for (const w of shellWins.values()) if (!w.isDestroyed()) w.webContents.send(channel, payload) }
 /** her pencereye kendi aktif sekmesi/yerlesimiyle sekme durumu */
