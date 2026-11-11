@@ -5,3 +5,4 @@ dist
 dist/
 .DS_Store
 packages/extension/dist
+packages/extension/*.zip

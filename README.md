@@ -80,6 +80,18 @@ python3 tests/e2e/suite.py [name ...]   # end-to-end suite on a real Electron (q
 
 Open a project from the terminal with `izlix open .` (see `bin/izlix.js`). An optional Chrome helper extension in `extension/` opens the current page in Izlix.
 
+## Izlix for Chrome (alpha)
+
+The same core also runs as a **Chrome extension**: the timeline with cause arrows, request rules and click-to-source in a side panel, inside the browser you already use (and where Google sign-in works).
+
+```bash
+npm install
+npm run build:ext
+# chrome://extensions -> turn on Developer mode -> Load unpacked -> packages/extension/dist
+```
+
+Open your React app on `localhost`, click the Izlix toolbar button; the page reloads with tracing on. Chrome shows its standard "started debugging this browser" bar while the extension is attached. Early alpha: the timeline, network, console, render tracker, request rules (mock, delay, redirect, status, headers) and click-to-source are available; the other panels of the desktop app are not ported yet.
+
 ## How it works
 
 ```mermaid

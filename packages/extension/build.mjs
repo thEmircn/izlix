@@ -1,6 +1,6 @@
 // Izlix for Chrome derleme betigi: node packages/extension/build.mjs  ->  packages/extension/dist
 import { build } from 'esbuild'
-import { cpSync, mkdirSync, rmSync } from 'node:fs'
+import { cpSync, mkdirSync, rmSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -15,4 +15,5 @@ await build({
 })
 cpSync(resolve(here, 'manifest.json'), resolve(out, 'manifest.json'))
 cpSync(resolve(here, 'src/panel.html'), resolve(out, 'panel.html'))
+if (existsSync(resolve(here, 'icons'))) cpSync(resolve(here, 'icons'), resolve(out, 'icons'), { recursive: true })
 console.log('Izlix for Chrome built ->', out)

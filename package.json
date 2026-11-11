@@ -16,7 +16,8 @@
     "update-electron": "npm install electron@latest --save-exact=false && npm run build && npx vitest run",
     "build:ext": "node packages/extension/build.mjs",
     "test:ext": "node packages/extension/build.mjs && node packages/extension/tests/e2e.mjs",
-    "typecheck:ext": "tsc --noEmit -p packages/extension"
+    "typecheck:ext": "tsc --noEmit -p packages/extension",
+    "zip:ext": "npm run build:ext && cd packages/extension/dist && rm -f ../izlix-for-chrome.zip && zip -qr ../izlix-for-chrome.zip . && echo packages/extension/izlix-for-chrome.zip"
   },
   "dependencies": {
     "react": "^19.3.1",
