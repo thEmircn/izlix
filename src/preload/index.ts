@@ -10,7 +10,7 @@ const sub = (channel: string) => (cb: (payload: any) => void) => {
 const call = (channel: string, arg?: unknown) => ipcRenderer.invoke(channel, arg)
 
 export const api = {
-  createTab: (url?: string, priv?: boolean) => call(Ch.tabsCreate, { url, private: priv }),
+  createTab: (url?: string, priv?: 'incognito' | 'tor') => call(Ch.tabsCreate, { url, private: priv }),
   closeTab: (id: string) => call(Ch.tabsClose, { id }),
   activateTab: (id: string) => call(Ch.tabsActivate, { id }),
   go: (id: string, input: string) => call(Ch.navGo, { id, input }),

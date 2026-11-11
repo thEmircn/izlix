@@ -2529,5 +2529,22 @@
       "eq",
       null
     ]
+  ],
+  "tor": [
+    [
+      "isTor",
+      "eq",
+      true
+    ],
+    [
+      "socksHits",
+      "gte",
+      1
+    ],
+    [
+      "firstByte",
+      "eq",
+      5
+    ]
   ]
 }

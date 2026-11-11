@@ -17,10 +17,11 @@ import type { RulesConfig } from '../shared/rules'
 import { emulationCommands, geoPreset, mediaFeatures, uaPreset, VISION, type Contrast, type Emu } from '../shared/emulation'
 
 export const INCOGNITO_PARTITION = 'incog-main'
+export const TOR_PARTITION = 'tor-main'
 
 /** son gizli sekme kapaninca cerez, depolama ve onbellek silinir */
-async function wipeIncognito(): Promise<void> {
-  const ses = session.fromPartition(INCOGNITO_PARTITION)
+async function wipeIncognito(part: string): Promise<void> {
+  const ses = session.fromPartition(part)
   await ses.clearStorageData().catch(() => {}); await ses.clearCache().catch(() => {}); await ses.clearAuthCache().catch(() => {})
 }
 
@@ -54,7 +55,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
   }
 
@@ -64,10 +65,16 @@ export class TabManager {
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 
-  async create(opts: { url?: string; workspaceId: string; activate?: boolean; private?: 'incognito' }): Promise<string> {
+  async create(opts: { url?: string; workspaceId: string; activate?: boolean; private?: 'incognito' | 'tor' }): Promise<string> {
     const id = `tab-${++this.seq}`
     // gizli sekmeler tek ortak, bellek ici (persist: yok) oturumu paylasir; son gizli sekme kapaninca temizlenir
-    const ses = session.fromPartition(opts.private ? INCOGNITO_PARTITION : partitionFor(opts.workspaceId))
+    const ses = session.fromPartition(opts.private === 'tor' ? TOR_PARTITION : opts.private ? INCOGNITO_PARTITION : partitionFor(opts.workspaceId))
+    if (opts.private === 'tor') {
+      // tum trafik yerel Tor SOCKS'una gider (socks5: ad cozumleme de Tor tarafinda); WebRTC sizintisi kapali
+      const port = await this.hooks.torPort?.()
+      if (!port) throw new Error('tor-unavailable')
+      await ses.setProxy({ proxyRules: `socks5://127.0.0.1:${port}` })
+    }
     this.hooks.onSession?.(ses)
     // Varsayilan UA'dan "Electron/.." ve uygulama adi cikarilir: bircok site bunlari ayri/engelli davranisa sokar (gercek tarayici gibi gorunsun)
     { const ua = ses.getUserAgent(), clean = ua.replace(/\s+Electron\/[\d.]+/, '').replace(/\s+izlix\/[\w.\-]+/i, ''); if (clean !== ua) ses.setUserAgent(clean) }
@@ -81,6 +88,7 @@ export class TabManager {
     if (opts.activate !== false) this.activate(id)
 
     const wc = view.webContents
+    if (opts.private === 'tor') wc.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')
     // CDP: ilk sayfa yuklenmeden komutlar yanit vermez -> about:blank, kurulum, asil sayfa
     await wc.loadURL('about:blank')
     const target = resolveInput(opts.url ?? '', this.hooks.searchEngine?.())
@@ -231,7 +239,7 @@ export class TabManager {
     this.bus.dropTab(id)
     e.view.webContents.close()
     this.tabs.delete(id); this.order.splice(idx, 1)
-    if (e.info.private && ![...this.tabs.values()].some((t) => t.info.private)) void wipeIncognito()
+    if (e.info.private && ![...this.tabs.values()].some((t) => t.info.private === e.info.private)) void wipeIncognito(e.info.private === 'tor' ? TOR_PARTITION : INCOGNITO_PARTITION)
     if (this.activeId === id) {
       this.activeId = null
       const next = this.order[Math.min(idx, this.order.length - 1)]

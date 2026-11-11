@@ -1,3 +1,4 @@
+import { TorService } from './tor'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -106,7 +107,17 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-async function newTab(url?: string, priv?: boolean): Promise<string> { return tabs.create({ url, workspaceId: activeWorkspaceId, ...(priv ? { private: 'incognito' as const } : {}) }) }
+const tor = new TorService(join(app.getPath('userData'), 'tor'))
+async function newTab(url?: string, priv?: 'incognito' | 'tor'): Promise<string> {
+  if (priv === 'tor') {
+    const r = await tor.ensure()
+    if (!r.ok) {
+      void dialog.showMessageBox(win, { type: 'info', buttons: [tr('dlg.ok')], message: tr(r.reason === 'missing' ? 'dlg.torMissing' : 'dlg.torFailed'), detail: tr('dlg.torDetail') })
+      return ''
+    }
+  }
+  return tabs.create({ url, workspaceId: activeWorkspaceId, ...(priv ? { private: priv } : {}) })
+}
 
 function registerIpc(): void {
   handle(Ch.tabsCreate, schemas.tabsCreate, ({ url, private: priv }) => newTab(url, priv))
@@ -450,7 +461,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -501,5 +512,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => { library?.flush(); servers?.stopAll() })
+app.on('before-quit', () => { library?.flush(); servers?.stopAll(); tor.stop() })
 app.on('window-all-closed', () => app.quit())

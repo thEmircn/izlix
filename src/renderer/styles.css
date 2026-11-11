@@ -863,3 +863,4 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .tab.private .t { font-style: italic; }
 .priv-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: transparent; border: 1.5px solid var(--dim, #9a9a9a); vertical-align: 0; }
 .tab.private.active .priv-dot { border-color: var(--fg, #fff); background: var(--fg, #fff); }
+.tab.tor .priv-dot { border-radius: 2px; transform: rotate(45deg); }
