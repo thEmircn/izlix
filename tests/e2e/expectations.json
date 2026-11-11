@@ -3068,5 +3068,72 @@
       "eq",
       true
     ]
+  ],
+  "sites": [
+    [
+      "zoomIn",
+      "eq",
+      1.1
+    ],
+    [
+      "zoomFactor",
+      "eq",
+      1.1
+    ],
+    [
+      "chipInfo",
+      "eq",
+      1.1
+    ],
+    [
+      "zoomAfterReload",
+      "eq",
+      1.1
+    ],
+    [
+      "darkFilter",
+      "contains",
+      "invert"
+    ],
+    [
+      "userCss",
+      "eq",
+      "rgb(1, 2, 3)"
+    ],
+    [
+      "darkInfo",
+      "eq",
+      true
+    ],
+    [
+      "otherHostClean",
+      "eq",
+      true
+    ],
+    [
+      "otherZoom",
+      "eq",
+      1
+    ],
+    [
+      "darkOff",
+      "eq",
+      "none"
+    ],
+    [
+      "dialog",
+      "eq",
+      "localhost"
+    ],
+    [
+      "cookieBefore",
+      "contains",
+      "k=v"
+    ],
+    [
+      "zoomReset",
+      "eq",
+      1
+    ]
   ]
 }

@@ -51,3 +51,4 @@ export const IcShield = ic('M8 2 3 4v4c0 3 2.200 5 5 6 2.800-1 5-3 5-6V4zM5.800 
 export const IcHop = ic('M2.500 5h9M9 2.500 11.500 5 9 7.500M13.500 11h-9M7 8.500 4.500 11 7 13.500')
 export const IcSpeaker = ic('M3 6.500h2.500L9 3.500v9L5.500 9.500H3zM11 6c.9.600 1.400 1.200 1.400 2s-.5 1.400-1.400 2')
 export const IcMuted = ic('M3 6.500h2.500L9 3.500v9L5.500 9.500H3zM11 6.500l3 3M14 6.500l-3 3')
+export const IcTune = ic('M3 5h6M11.500 5H13M3 11h1.500M7 11h6M9 3.500v3M6 9.500v3')

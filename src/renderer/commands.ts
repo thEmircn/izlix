@@ -140,6 +140,10 @@ export function buildCommands(): Command[] {
   }
   // Bolunmus gorunum (Split View)
   const act = s.tabs.find((x) => x.id === s.activeTabId)
+  if (act && /^https?:/.test(act.url)) {
+    cmds.push({ id: 'zoom.in', title: t('cmd.zoomIn'), hint: '⌘+', run: () => void api.zoom(act.id, 'in') }, { id: 'zoom.out', title: t('cmd.zoomOut'), hint: '⌘-', run: () => void api.zoom(act.id, 'out') }, { id: 'zoom.reset', title: t('cmd.zoomReset'), hint: '⌘0', run: () => void api.zoom(act.id, 'reset') })
+    cmds.push({ id: 'site.dark', title: t(act.site?.dark ? 'cmd.darkOff' : 'cmd.darkOn'), run: () => void api.siteSet(act.id, { dark: !act.site?.dark }) }, { id: 'site.settings', title: t('cmd.siteSettings'), run: () => s.set({ overlay: 'site' }) })
+  }
   if (act) cmds.push({ id: 'tab.mute', title: t(act.muted ? 'ctx.unmute' : 'ctx.mute'), run: () => void api.muteTab(act.id, !act.muted) })
   if (act) cmds.push({ id: 'tab.hop', title: t('cmd.hopTab'), hint: '⌥⌘M', run: () => void api.hopTab(act.id) })
   if (act) cmds.push({ id: 'tab.pin', title: t(act.pinned ? 'cmd.unpin' : 'cmd.pin'), run: () => void api.pinTab(act.id, !act.pinned) })

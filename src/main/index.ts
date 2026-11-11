@@ -1,3 +1,5 @@
+import { SiteStore } from './sites'
+import { siteHost, stepZoom } from '../shared/sites'
 import { inSet, siteOf } from '../shared/adblock'
 import { readerScript } from '../shared/reader'
 import { readSafariProfile } from './importer-safari'
@@ -128,7 +130,7 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore
 /** Ambient isik betigini sayfaya koyar (yerel gelistirme sayfalari haric) ve acik/kapali durumunu esitler */
 async function injectAmbient(wc: Electron.WebContents): Promise<void> {
   const s = settings?.get(); if (!s || wc.isDestroyed()) return
@@ -235,6 +237,13 @@ function registerIpc(): void {
     return tabs.moveToWindow(id, target)
   })
   handle(Ch.tabMute, schemas.tabMute, ({ id, muted }) => tabs.setMuted(id, muted))
+  // Site ayarlari (yakinlastirma, zorla karanlik, kullanici CSS'i)
+  const siteOfTab = (id: string): { host: string; wc: Electron.WebContents } | null => { const e = tabs.get(id); const h = e && siteHost(e.view.webContents.getURL()); return e && h ? { host: h, wc: e.view.webContents } : null }
+  const applyHost = (host: string): void => { tabs.each((wc) => { if (siteHost(wc.getURL()) === host) void sites.apply(wc) }); tabs.refreshSites() }
+  handle(Ch.siteGet, schemas.siteGet, ({ id }) => { const s = siteOfTab(id); return s ? { host: s.host, ...sites.get(s.host) } : null })
+  handle(Ch.siteSet, schemas.siteSet, ({ id, ...p }) => { const s = siteOfTab(id); if (!s) return false; sites.set(s.host, { ...sites.get(s.host), ...p }); applyHost(s.host); pushTabs(); return true })
+  handle(Ch.zoom, schemas.zoom, ({ id, dir }) => { const s = siteOfTab(id); if (!s) return 1; const z = stepZoom(sites.get(s.host).zoom ?? 1, dir); sites.set(s.host, { ...sites.get(s.host), zoom: z }); applyHost(s.host); return z })
+  handle(Ch.siteClear, schemas.siteClear, async ({ id }) => { const s = siteOfTab(id); if (!s) return false; await s.wc.session.clearStorageData({ origin: new URL(s.wc.getURL()).origin }); s.wc.reload(); return true })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -570,6 +579,7 @@ async function createWindow(): Promise<void> {
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
+  sites = new SiteStore()
   favicons = new FaviconStore(app.getPath('userData'), (origin, url) => send(Ch.faviconNew, { origin, url })); thumbs = new ThumbStore(app.getPath('userData'))
   sessions = new SessionStore()
   perms = new PermissionStore()
@@ -585,7 +595,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })

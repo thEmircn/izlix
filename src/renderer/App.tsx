@@ -2,7 +2,8 @@ import { originKey } from '../shared/favicon'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
-import { IcShield, IcHop, IcSpeaker, IcMuted } from './icons'
+import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune } from './icons'
+import { SiteSettings } from './SiteSettings'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -96,6 +97,8 @@ export function App() {
             void api.activateTab(mine[idx].id); break
           }
           case 'tab.reopen': void api.reopenTab(); break
+          case 'zoom.in': case 'zoom.out': case 'zoom.reset': if (act) void api.zoom(act.id, cmd.slice(5) as 'in' | 'out' | 'reset'); break
+          case 'site.open': st.set({ overlay: 'site' }); break
           case 'win.new': void api.newWindow(); break
           case 'tab.hop': if (act) void api.hopTab(act.id); break
           case 'tab.new': void api.createTab(); break
@@ -193,6 +196,12 @@ export function App() {
             <button type="button" className="rule-badge nodrag" title={t('rules.badge.title')} onClick={() => s.set({ overlay: 'rules' })}>{t('rules.badge', { n: nActive })}</button>
           )}
         </form>
+        {/^https?:/.test(active?.url ?? '') && active && (
+          <>
+            {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            <button type="button" className={`chip sitebtn nodrag ${active.site?.dark ? 'on' : ''}`} title={t('site.title')} onClick={() => s.set({ overlay: 'site' })}><IcTune /></button>
+          </>
+        )}
         {shieldShown && active && (
           <button type="button" className={`chip shield nodrag ${adOff ? 'off' : ''}`} title={t(adOff ? 'ad.tipOff' : 'ad.tipOn', { n: active.blocked ?? 0 })} onClick={() => void api.adMenu(pageHost)}><IcShield />{!adOff && (active.blocked ?? 0) > 0 && <b>{active.blocked}</b>}</button>
         )}
@@ -259,6 +268,7 @@ export function App() {
       {s.overlay === 'session' && <SessionPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'rename' && <RenameWorkspace onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'welcome' && <Welcome onClose={() => s.set({ overlay: null })} />}

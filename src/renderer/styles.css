@@ -916,3 +916,7 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 /* v9: sekme ses gostergesi */
 .tab-audio { width: 18px; height: 18px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ok, #6ee7a8); border-radius: 5px; cursor: pointer; }
 .tab-audio.muted { color: var(--dim, #888); } .tab-audio:hover { background: var(--hover, rgba(255,255,255,.1)); } .tab-audio svg { width: 12px; height: 12px; }
+
+/* v9: site ayarlari dugmesi */
+.chip.sitebtn { display: inline-flex; align-items: center; height: 28px; padding: 0 8px; color: var(--dim, #999); } .chip.sitebtn.on { color: var(--fg, #eee); background: rgba(255,255,255,.1); }
+.chip.zoomchip { height: 28px; padding: 0 8px; font: 600 11px ui-monospace, Menlo, monospace; }

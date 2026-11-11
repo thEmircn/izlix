@@ -73,7 +73,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
@@ -183,6 +183,7 @@ export class TabManager {
         title: wc.getURL() === 'about:blank' ? 'New Tab' : wc.getTitle() || e.info.title, url: wc.getURL() === 'about:blank' ? '' : wc.getURL(), loading: wc.isLoading(),
         canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward()
       })
+      this.refreshSite(e)
       this.onChange()
     }
     wc.on('audio-state-changed', () => { if (wc.isDestroyed() || e.view.webContents !== wc) return; const a = wc.isCurrentlyAudible(); if (a !== !!e.info.audible) { if (a) e.info.audible = true; else delete e.info.audible; this.onChange() } })
@@ -569,6 +570,9 @@ export class TabManager {
     return null
   }
 
+  private refreshSite(e: Entry): void { const s = this.hooks.siteInfo?.(e.info.url); if (s) e.info.site = s; else delete e.info.site }
+  /** Site ayarlari degisince (zoom/karanlik) tum sekmelerin bilgisini yenile */
+  refreshSites(): void { for (const e of this.tabs.values()) this.refreshSite(e); this.onChange() }
   setMuted(id: string, muted: boolean): void {
     const e = this.tabs.get(id); if (!e) return
     if (!e.view.webContents.isDestroyed()) e.view.webContents.setAudioMuted(muted)
