@@ -1,7 +1,6 @@
 name: Full end-to-end suite
 
 on:
-  push: { branches: [main] }
   workflow_dispatch:
   schedule:
     - cron: '17 3 * * *'
