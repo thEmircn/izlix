@@ -48,4 +48,14 @@ describe('computeLayout', () => {
     }
     const dt = computeLayout(W, H, { dock: 'right', panelRatio, chromeHeight, side: 'left' }); expect(dt.timeline.x).toBeGreaterThan(0)
   })
+
+  it('dikey sekme kenar cubugu: tum bolgeler sagina kayar, pencereden tasmaz, kenar cubuguyla cakismaz', () => {
+    for (const dock of ['right', 'bottom', 'off'] as const) {
+      const l = computeLayout(W, H, { dock, panelRatio, chromeHeight: 46, sideW: 232 })
+      for (const r of [l.page, l.timeline, ...(l.devtools ? [l.devtools] : [])]) { expect(r.x).toBeGreaterThanOrEqual(232); expect(r.x + r.width).toBeLessThanOrEqual(W) }
+      const base = computeLayout(W - 232, H, { dock, panelRatio, chromeHeight: 46 })
+      expect(l.page.width).toBe(base.page.width)
+    }
+    expect(computeLayout(W, H, { dock: 'off', panelRatio, chromeHeight: 46, sideW: 0 })).toEqual(computeLayout(W, H, { dock: 'off', panelRatio, chromeHeight: 46 }))
+  })
 })

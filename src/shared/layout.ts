@@ -7,7 +7,7 @@ export const CARD_RADIUS = 12
 export const padRect = (r: Rect, g = GAP): Rect => ({ x: r.x + g, y: r.y + g, width: Math.max(0, r.width - 2 * g), height: Math.max(0, r.height - 2 * g) })
 
 export type PanelSide = 'right' | 'left' | 'bottom'
-export interface LayoutParams { dock: DevToolsDock; panelRatio: number; chromeHeight: number; /** yan panel konumu (yalnizca Chrome DevTools kapaliyken; 'bottom'ta oran yukseklige uygulanir) */ side?: PanelSide; /** sagda Timeline'in yuksekligi (govdeye oran); varsayilan 0.52 */ split?: number }
+export interface LayoutParams { dock: DevToolsDock; panelRatio: number; chromeHeight: number; /** yan panel konumu (yalnizca Chrome DevTools kapaliyken; 'bottom'ta oran yukseklige uygulanir) */ side?: PanelSide; /** sagda Timeline'in yuksekligi (govdeye oran); varsayilan 0.52 */ split?: number; /** soldaki dikey sekme kenar cubugunun genisligi (0 = yok); sayfa/paneller bunun sagina yerlesir */ sideW?: number }
 export interface Layout { page: Rect; timeline: Rect; devtools: Rect | null }
 
 /**
@@ -17,7 +17,15 @@ export interface Layout { page: Rect; timeline: Rect; devtools: Rect | null }
  *  - bottom: sayfa solda, Timeline sagda; DevTools altta tam genislikte
  *  - off   : sayfa solda, Timeline sagda tam yukseklikte; DevTools kapali
  */
-export function computeLayout(width: number, height: number, { dock, panelRatio, chromeHeight, split = 0.52, side = 'right' }: LayoutParams): Layout {
+export function computeLayout(width: number, height: number, p: LayoutParams): Layout {
+  const sw = Math.max(0, Math.round(p.sideW ?? 0))
+  if (!sw) return computeBase(width, height, p)
+  const l = computeBase(Math.max(0, width - sw), height, p)
+  const sh = (r: Rect): Rect => ({ ...r, x: r.x + sw })
+  return { page: sh(l.page), timeline: sh(l.timeline), devtools: l.devtools ? sh(l.devtools) : null }
+}
+
+function computeBase(width: number, height: number, { dock, panelRatio, chromeHeight, split = 0.52, side = 'right' }: LayoutParams): Layout {
   const bodyH = Math.max(0, height - chromeHeight)
   if (dock === 'off' && side === 'left') {
     const w = Math.round(width * panelRatio)

@@ -920,3 +920,17 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 /* v9: site ayarlari dugmesi */
 .chip.sitebtn { display: inline-flex; align-items: center; height: 28px; padding: 0 8px; color: var(--dim, #999); } .chip.sitebtn.on { color: var(--fg, #eee); background: rgba(255,255,255,.1); }
 .chip.zoomchip { height: 28px; padding: 0 8px; font: 600 11px ui-monospace, Menlo, monospace; }
+
+/* v9: dikey sekme kenar cubugu */
+.vside { position: fixed; left: 0; top: 0; bottom: 0; z-index: 5; display: flex; flex-direction: column; padding: 38px 8px 8px; background: var(--bg); border-right: 1px solid var(--line); transition: width .22s var(--spring, ease); overflow: hidden; }
+.vside-list { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; }
+.vside .tab { height: 34px; min-width: 0; max-width: none; width: 100%; flex: none; padding: 0 6px 0 10px; }
+.vside .tab.pinned { max-width: none; min-width: 0; padding: 0 6px 0 10px; }
+.vside .tab.pinned span.t { font-size: 13px; }
+.vside-foot { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--line); padding-top: 8px; }
+.vside-foot button { height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--fg, #eee); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; }
+.vside-foot button:hover { background: var(--hover, rgba(255,255,255,.1)); } .vside-foot .vnew { flex: 1; justify-content: flex-start; }
+.vside.collapsed .tab { padding: 0; justify-content: center; } .vside.collapsed .tab span.t { font-size: 0; flex: 0; } .vside.collapsed .tab > button { display: none; }
+.vside.collapsed .tab .tab-fav, .vside.collapsed .tab .priv-dot { margin-right: 0; } .vside.collapsed .vside-foot { flex-direction: column; } .vside.collapsed .vnew { justify-content: center; flex: none; width: 100%; }
+.vside.collapsed .tab span.t::first-letter { font-size: 13px; }
+.toolbar.drag > * { -webkit-app-region: no-drag; }

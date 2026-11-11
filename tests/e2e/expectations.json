@@ -3135,5 +3135,67 @@
       "eq",
       1
     ]
+  ],
+  "vtabs": [
+    [
+      "topX",
+      "lt",
+      20
+    ],
+    [
+      "stripTop",
+      "eq",
+      true
+    ],
+    [
+      "sideShown",
+      "eq",
+      true
+    ],
+    [
+      "sideWidth",
+      "eq",
+      232
+    ],
+    [
+      "sideTabs",
+      "gte",
+      2
+    ],
+    [
+      "pageShifted",
+      "eq",
+      true
+    ],
+    [
+      "pageInside",
+      "eq",
+      true
+    ],
+    [
+      "clickActivates",
+      "eq",
+      true
+    ],
+    [
+      "collapsedWidth",
+      "eq",
+      56
+    ],
+    [
+      "collapsedShift",
+      "eq",
+      true
+    ],
+    [
+      "backTop",
+      "eq",
+      true
+    ],
+    [
+      "backX",
+      "lt",
+      20
+    ]
   ]
 }

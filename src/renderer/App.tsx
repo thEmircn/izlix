@@ -28,6 +28,8 @@ import { deviceById } from '../shared/lab'
 import { emuActive, geoPreset, networkPreset, uaPreset } from '../shared/emulation'
 
 const CHROME_H = 84 // sekme seridi 38 + arac cubugu 46
+const CHROME_H_SIDE = 46 // dikey sekme duzeninde yalnizca arac cubugu
+const SIDE_W = 232, SIDE_W_COLLAPSED = 56
 const LAB_BAR_H = 26 // Responsive Lab acikken viewport seridi
 
 export function App() {
@@ -57,7 +59,9 @@ export function App() {
   const pickSug = (x: Sug): void => { setTyped(null); if (x.kind === 'tab' && x.tabId) void api.activateTab(x.tabId); else if (active) void api.go(active.id, x.url); else void api.createTab(x.url); addrRef.current?.blur() }
   const bookmarked = !!active && (s.bookmarks[s.activeWorkspaceId] ?? []).some((b) => b.url === active.url)
   const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
-  const chromeH = CHROME_H + (active?.lab ? LAB_BAR_H : 0)
+  const vertical = s.tabLayout === 'side'
+  const sideW = vertical ? (s.sideCollapsed ? SIDE_W_COLLAPSED : SIDE_W) : 0
+  const chromeH = (vertical ? CHROME_H_SIDE : CHROME_H) + (active?.lab ? LAB_BAR_H : 0)
   const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId)
 
   useEffect(() => {
@@ -133,9 +137,9 @@ export function App() {
   const targetRatio = s.panelOpen && !s.dashboard ? s.panelRatio : 0 // panel kapaliyken sayfa tam genislik
   const ratio = useTween(targetRatio, 240) // yumusak acilip kapanma
   const panelVisible = (s.panelOpen && !s.dashboard) || ratio > 0.005
-  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side }) }, [s.dock, ratio, s.split, chromeH, side])
+  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side, sideW }) }, [s.dock, ratio, s.split, chromeH, side, sideW])
 
-  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side })
+  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side, sideW })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }
   const api = window.izlix
   // Panel boyutlandirma: surukleme sirasinda native gorunumler gizlenir (aksi halde fare olaylarini yutarlar)
@@ -156,10 +160,7 @@ export function App() {
   }
   const nav = (fn: (id: string) => unknown) => (): void => { if (active) void fn(active.id) }
 
-  return (
-    <>
-      <div className="tabstrip drag">
-        {myTabs.map((tb) => (
+  const tabEl = (tb: (typeof s.tabs)[number]): React.ReactElement => (
           <div key={tb.id} draggable className={`tab nodrag ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
@@ -170,11 +171,25 @@ export function App() {
             {!tb.pinned && <button className="tab-hop" aria-label={t('tab.hopTip')} title={t(tb.winId !== undefined && tb.winId !== s.winId ? 'tab.hopBack' : 'tab.hopTip')} onClick={(e) => { e.stopPropagation(); void api.hopTab(tb.id) }}><IcHop /></button>}
             {!tb.pinned && <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>}
           </div>
-        ))}
-        <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus /></button>
-      </div>
+  )
+  return (
+    <>
+      {vertical ? (
+        <div className={`vside drag ${s.sideCollapsed ? 'collapsed' : ''}`} style={{ width: sideW }}>
+          <div className="vside-list">{myTabs.map(tabEl)}</div>
+          <div className="vside-foot nodrag">
+            <button className="vnew" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus />{!s.sideCollapsed && <span>{t('tab.new')}</span>}</button>
+            <button className="vcollapse" aria-label={t('side.collapse')} title={t('side.collapse')} onClick={() => { writePref('sideCollapsed', s.sideCollapsed ? '0' : '1'); s.set({ sideCollapsed: !s.sideCollapsed }) }}><Back style={{ transform: s.sideCollapsed ? 'rotate(180deg)' : undefined }} /></button>
+          </div>
+        </div>
+      ) : (
+        <div className="tabstrip drag">
+          {myTabs.map(tabEl)}
+          <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus /></button>
+        </div>
+      )}
 
-      <div className="toolbar">
+      <div className={`toolbar ${vertical ? 'drag' : ''}`} style={vertical ? { marginLeft: sideW } : undefined}>
         <button aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}><Back /></button>
         <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}><Forward /></button>
         <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}><Reload /></button>
@@ -262,7 +277,7 @@ export function App() {
       {s.panelOpen && !s.dashboard && side !== 'bottom' && <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: side === 'left' ? layout.timeline.x + layout.timeline.width - 3 : layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />}
       {s.panelOpen && !s.dashboard && side === 'bottom' && <div className="resizer-h nodrag" onPointerDown={startDrag('b')} style={{ left: 0, width: size.w, top: layout.timeline.y - 3 }} />}
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
-      {s.dashboard && <DashboardView top={chromeH} />}
+      {s.dashboard && <DashboardView top={chromeH} left={sideW} />}
       <Toasts />
       <PermissionPrompt />
       {s.overlay === 'session' && <SessionPrompt onClose={() => s.set({ overlay: null })} />}

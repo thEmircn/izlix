@@ -14,6 +14,7 @@ export function Settings({ onClose }: { onClose(): void }) {
   const settings = useStore((s) => s.settings)
   const editor = useStore((s) => s.editor)
   const dock = useStore((s) => s.dock)
+  const tabLayout = useStore((s) => s.tabLayout)
   const set = useStore((s) => s.set)
   const api = window.izlix
   const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
@@ -52,6 +53,9 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.consent')} hint={t('set.consentHint')}><Switch on={settings.cookieBanners !== false} label={t('set.consent')} onChange={(v) => void api.setSettings({ cookieBanners: v })} /></Row>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
+          <Row title={t('set.tabLayout')} hint={t('set.tabLayoutHint')}>
+            <select value={tabLayout} onChange={(e) => { writePref('tabLayout', e.target.value); set({ tabLayout: e.target.value as 'top' | 'side' }) }}><option value="top">{t('tabl.top')}</option><option value="side">{t('tabl.side')}</option></select>
+          </Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>
             <select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></select>
           </Row>

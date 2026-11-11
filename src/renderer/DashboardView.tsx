@@ -4,7 +4,7 @@ import { useStore, useT, useThrottled } from './store'
 import { Close } from './icons'
 
 /** Tam ekran dashboard: sayfanin sagligi, canli trafik, vitals vb. tek duz sayfada. Sag panelden bagimsizdir; Esc veya düğmeyle kapanir. */
-export function DashboardView({ top }: { top: number }) {
+export function DashboardView({ top, left = 0 }: { top: number; left?: number }) {
   const t = useT()
   const tabId = useStore((s) => s.activeTabId)
   const raw = useStore((s) => s.events)
@@ -16,7 +16,7 @@ export function DashboardView({ top }: { top: number }) {
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
   }, [set])
   return (
-    <div className="dashboard" style={{ top: top + 6 }}>
+    <div className="dashboard" style={{ top: top + 6, ...(left ? { left: left + 6 } : {}) }}>
       <div className="dash-bar">
         <span className="mlabel">{t('dash.title')}</span>
         <button className="icon-btn" aria-label={t('rr.close')} title="Esc" onClick={() => set({ dashboard: false })}><Close /></button>

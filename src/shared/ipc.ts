@@ -30,7 +30,8 @@ export const schemas = {
     panelRatio: z.number().min(0).max(0.8), // 0 = yan panel kapali (sayfa tam genislik)
     side: z.enum(['right', 'left', 'bottom']).optional(),
     chromeHeight: z.number().int().min(40).max(200),
-    split: z.number().min(0.2).max(0.8).optional()
+    split: z.number().min(0.2).max(0.8).optional(),
+    sideW: z.number().int().min(0).max(400).optional()
   }),
   wsCreate: z.object({ name: z.string().min(1).max(64), rootDir: z.string().max(4096).nullable() }),
   wsSwitch: z.object({ id: z.string().max(64) }),
