@@ -432,6 +432,13 @@ function registerIpc(): void {
   handle(Ch.remDelete, schemas.remDelete, ({ id }) => widgets.remove(id))
   handle(Ch.perfSave, schemas.perfSave, ({ key, m }) => perfHist.add(key, m))
   handle(Ch.perfHistory, schemas.perfHistory, ({ key }) => perfHist.list(key))
+  // Disa aktarilan metin dosyalari (MSW/Postman/OpenAPI): Downloads'a, ad temizlenir
+  handle(Ch.exportSave, schemas.exportSave, ({ name, content }) => {
+    const dir = process.env.DB_OUT_DIR || app.getPath('downloads'); mkdirSync(dir, { recursive: true })
+    const file = uniquePath(dir, name.replace(/[\\/:*?"<>|\0]+/g, '_'))
+    writeFileSync(file, content); if (!process.env.DB_SCRIPT) shell.showItemInFolder(file)
+    return file
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'

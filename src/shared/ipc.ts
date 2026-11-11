@@ -45,6 +45,7 @@ export const schemas = {
   remDelete: z.object({ id: z.string().max(64) }),
   perfSave: z.object({ key: z.string().max(500), m: z.object({ lcp: z.number().optional(), cls: z.number().optional(), inp: z.number().optional(), tbt: z.number().optional(), load: z.number().optional(), requests: z.number(), transferKB: z.number(), ts: z.number() }) }),
   perfHistory: z.object({ key: z.string().max(500) }),
+  exportSave: z.object({ name: z.string().min(1).max(80), content: z.string().max(20_000_000) }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

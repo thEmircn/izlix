@@ -12,6 +12,7 @@ import { JwtList } from './Jwt'
 import { findJwts } from '../shared/jwt'
 import { toast, useStore, useT, writePref, tNow } from './store'
 import { NETWORK_PRESETS } from '../shared/emulation'
+import { toMsw, toOpenApi, toPostman, type ExportItem } from '../shared/exporters'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
 
@@ -42,6 +43,26 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
     const needle = q.trim().toLowerCase()
     return sortRows(all, sort.key, sort.dir).filter((r) => (filter === 'all' || r.type === filter) && (!needle || r.url.toLowerCase().includes(needle) || String(r.status ?? '').includes(needle) || r.method.toLowerCase() === needle))
   }, [all, filter, q, sort])
+  // MSW / Postman / OpenAPI: gorunen XHR/fetch istekleri (en fazla 60), yanit govdeleri CDP'den
+  const doExport = async (kind: 'msw' | 'postman' | 'openapi'): Promise<void> => {
+    if (!tabId) return
+    const src = rows.filter((r) => r.type === 'xhr' && r.status != null && !r.failed).slice(-60)
+    if (!src.length) { toast(t('net.exportNone')); return }
+    const items: ExportItem[] = []
+    for (let i = 0; i < src.length; i += 6) {
+      await Promise.all(src.slice(i, i + 6).map(async (r) => {
+        const ev = byId.get(r.id)?.payload, hdr = (ev?.headers ?? {}) as Record<string, string>
+        const ct = Object.entries(hdr).find(([k]) => k.toLowerCase() === 'content-type')?.[1]
+        const body = await window.izlix.responseBody(tabId, r.requestId).catch(() => null) as string | null
+        items.push({ method: r.method, url: r.url, status: r.status ?? 200, reqContentType: ct, reqBody: typeof ev?.postData === 'string' ? ev.postData : undefined, resMime: r.mime, resBody: body ?? undefined })
+      }))
+    }
+    items.sort((a, b) => src.findIndex((r) => r.url === a.url && r.method === a.method) - src.findIndex((r) => r.url === b.url && r.method === b.method))
+    const host = (() => { try { return new URL(src[0].url).hostname } catch { return 'export' } })()
+    const [name, content] = kind === 'msw' ? [`${host}-handlers.js`, toMsw(items)] : kind === 'postman' ? [`${host}.postman_collection.json`, toPostman(items, host)] : [`${host}.openapi.json`, toOpenApi(items, host)]
+    const f = await window.izlix.exportSave(name, content)
+    if (f) toast(t('net.exported', { n: items.length, f: f.split('/').pop() ?? '' }))
+  }
   const pending = rows.some((r) => r.end == null && !r.failed)
   useEffect(() => { if (!pending) return; const h = setInterval(() => setNow(Date.now()), 120); return () => clearInterval(h) }, [pending])
 
@@ -63,6 +84,9 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         </div>
         <input className="search" placeholder={t('net.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
+        <select className="net-throttle net-export" aria-label={t('net.export')} title={t('net.export')} value="" onChange={(e) => { const v = e.target.value as 'msw' | 'postman' | 'openapi'; e.target.value = ''; if (v) void doExport(v) }}>
+          <option value="">{t('net.export')}</option><option value="msw">MSW handlers</option><option value="postman">Postman</option><option value="openapi">OpenAPI</option>
+        </select>
         <select className="net-throttle" aria-label={t('net.throttle')} title={t('net.throttle')} value={netThrottle} onChange={(e) => tabId && void window.izlix.setEmulation(tabId, { network: e.target.value || null })}>
           <option value="">{t('net.noThrottle')}</option>{NETWORK_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>

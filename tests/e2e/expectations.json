@@ -4484,5 +4484,43 @@
       "eq",
       true
     ]
+  ],
+  "netexport": [
+    [
+      "files",
+      "len",
+      3
+    ],
+    [
+      "mswHas",
+      "eq",
+      true
+    ],
+    [
+      "postman",
+      "eq",
+      [
+        "GET /api/items/:id",
+        "POST /api/items"
+      ]
+    ],
+    [
+      "openapiPaths",
+      "eq",
+      [
+        "/api/items",
+        "/api/items/{id}"
+      ]
+    ],
+    [
+      "openapiSchema",
+      "eq",
+      "number"
+    ],
+    [
+      "noSecrets",
+      "eq",
+      true
+    ]
   ]
 }

@@ -80,6 +80,7 @@ export const api = {
   remDelete: (id: string) => call(Ch.remDelete, { id }),
   perfSave: (key: string, m: import('../shared/budgets').Metrics) => call(Ch.perfSave, { key, m }),
   perfHistory: (key: string) => call(Ch.perfHistory, { key }) as Promise<import('../shared/budgets').Metrics[]>,
+  exportSave: (name: string, content: string) => call(Ch.exportSave, { name, content }) as Promise<string | null>,
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,
