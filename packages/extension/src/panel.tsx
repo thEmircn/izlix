@@ -12,9 +12,13 @@ const port = chrome.runtime.connect({ name: 'izlix-panel' })
 const evSubs = new Set<(e: BusEvent) => void>()
 let snapshotResolve: ((l: BusEvent[]) => void) | null = null
 let snapshotCache: BusEvent[] | null = null
+const pending = new Map<number, (v: unknown) => void>(); let rpcSeq = 0
+const rpc = (name: string, ...args: unknown[]): Promise<any> => new Promise((res) => { const id = ++rpcSeq; pending.set(id, res); port.postMessage({ t: 'rpc', id, name, args }) })
 port.onMessage.addListener((m: any) => {
   if (m.t === 'events') { snapshotCache = m.events; snapshotResolve?.(m.events); snapshotResolve = null }
   else if (m.t === 'ev') evSubs.forEach((fn) => fn(m.e))
+  else if (m.t === 'rules') useStore.setState((s) => ({ rules: { ...s.rules, default: m.cfg } }))
+  else if (m.t === 'rpc') { pending.get(m.id)?.(m.value); pending.delete(m.id) }
 })
 port.postMessage({ t: 'hello', tabId })
 
@@ -24,7 +28,9 @@ const real: Record<string, (...a: any[]) => any> = {
   onEvent: (cb: (e: BusEvent) => void) => { evSubs.add(cb); return () => evSubs.delete(cb) },
   onUpdate: () => () => {}, // guncellemeler de 'ev' mesajiyla gelir (onEvent ayni dinleyiciye gider)
   getSettings: () => Promise.resolve({ language: lang, onboarded: true, telemetry: 'denied' }),
-  track: () => Promise.resolve()
+  track: () => Promise.resolve(),
+  setRules: (wsId: string, cfg: unknown) => rpc('setRules', wsId, cfg),
+  responseBody: (id: string, requestId: string) => rpc('responseBody', id, requestId)
 }
 ;(window as any).izlix = new Proxy(real, { get: (t, p: string) => t[p] ?? ((...a: any[]) => (p.startsWith('on') ? () => {} : Promise.resolve(null))) })
 
@@ -34,6 +40,8 @@ useStore.setState({
   settings: { ...useStore.getState().settings, language: lang, onboarded: true } as any,
   tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any]
 })
+
+void rpc('getRules').then((cfg) => useStore.setState((s) => ({ rules: { ...s.rules, default: cfg } })))
 
 function PanelApp() {
   const [size, setSize] = useState({ w: innerWidth, h: innerHeight })

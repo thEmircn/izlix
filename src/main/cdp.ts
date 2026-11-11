@@ -8,13 +8,13 @@ export { ClockSync, handleBridge } from '../core/collector'
 export type Tab = Collector<SourceResolver>
 
 /** Electron'un webContents.debugger'ini ortak CdpClient arayuzune uyarlar (attach dahil) */
-export function electronCdp(wc: WebContents): CdpClient {
+export function electronCdp(wc: WebContents, attach = true): CdpClient {
   const dbg = wc.debugger
-  dbg.attach('1.3')
+  if (attach) dbg.attach('1.3')
   return {
     send: (method, params) => dbg.sendCommand(method, params ?? {}),
     onEvent: (fn) => { const l = (_e: unknown, method: string, p: any): void => fn(method, p); dbg.on('message', l); return () => { dbg.removeListener('message', l) } },
-    detach: () => dbg.detach()
+    detach: () => { if (attach) dbg.detach() }
   }
 }
 
