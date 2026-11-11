@@ -1,5 +1,6 @@
 import { ENGINES } from '../shared/search'
 import { generatePassword } from '../shared/pwgen'
+import { parseLimits, siteList } from '../shared/usage'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
 import { useStore, useT, writePref, toast } from './store'
@@ -25,6 +26,10 @@ export function Settings({ onClose }: { onClose(): void }) {
   const [gen, setGen] = useState(() => generatePassword({ length: 20 }))
   const [genLen, setGenLen] = useState(20)
   const [audit, setAudit] = useState<{ origin: string; username: string; weak: boolean; reused: number; pwned: number | null }[] | null>(null)
+  const focus = settings.focus ?? { on: false, sites: [], limits: {} }
+  const [fSites, setFSites] = useState(focus.sites.join('\n'))
+  const [fLimits, setFLimits] = useState(Object.entries(focus.limits).map(([k, v]) => `${k} ${v}`).join('\n'))
+  const saveFocus = (on = focus.on): void => { void api.setSettings({ focus: { ...focus, on, sites: siteList(fSites), limits: parseLimits(fLimits) } }) }
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
   const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
@@ -89,6 +94,14 @@ export function Settings({ onClose }: { onClose(): void }) {
           <div className="srow" style={{ display: 'block' }}>
             <div className="stitle">{t('set.shortcuts')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.shortcutsHint')}</div>
             <textarea value={scText} spellCheck={false} rows={4} placeholder="docs https://docs.example.com/search?q=%s" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setScText(e.target.value)} onBlur={saveShortcuts} />
+          </div>
+          <div className="srow" style={{ display: 'block' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}><div style={{ flex: 1 }}><div className="stitle">{t('set.focus')}</div><div className="shint">{t('set.focusHint')}</div></div><Switch on={focus.on} label={t('set.focus')} onChange={(v) => saveFocus(v)} /></div>
+            <div className="shint" style={{ margin: '8px 0 4px' }}>{t('set.focusSites')}</div>
+            <textarea value={fSites} spellCheck={false} rows={3} placeholder="youtube.com&#10;twitter.com" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setFSites(e.target.value)} onBlur={() => saveFocus()} />
+            <div className="shint" style={{ margin: '8px 0 4px' }}>{t('set.focusLimits')}</div>
+            <textarea value={fLimits} spellCheck={false} rows={2} placeholder="reddit.com 30" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setFLimits(e.target.value)} onBlur={() => saveFocus()} />
+            <div style={{ marginTop: 8 }}><button className="btn" onClick={() => set({ overlay: 'usage' })}>{t('usage.open')}</button></div>
           </div>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>

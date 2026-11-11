@@ -9,6 +9,7 @@ import { QrDialog } from './QrDialog'
 import { TabSearch } from './TabSearch'
 import { DownloadsPage } from './DownloadsPage'
 import { NotePrompt, NotesPage } from './Notes'
+import { UsagePage } from './UsagePage'
 import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
@@ -130,6 +131,7 @@ export function App() {
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'inspect.elements': st.set({ panelTab: 'elements', panelOpen: true, dashboard: false }); break
           case 'speak.toggle': if (st.speaking) void api.speak('stop'); else void api.speak('auto'); break
+          case 'usage.open': st.set({ overlay: 'usage' }); break
           case 'notes.open': st.set({ overlay: 'notes' }); break
           case 'tabsearch.open': st.set({ overlay: 'tabsearch' }); break
           case 'downloads.open': st.set({ overlay: 'downloads' }); break
@@ -287,6 +289,7 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {s.settings.focus?.on && <button type="button" className="chip focuschip nodrag" title={t('cmd.focusOff')} onClick={() => void api.setSettings({ focus: { ...s.settings.focus!, on: false } })}><i /><b>{t('focus.chip')}</b></button>}
             {s.speaking && <button type="button" className="chip speakchip nodrag" title={t('tts.stop')} onClick={() => void api.speak('stop')}><i /><b>{t('tts.speaking')}</b></button>}
             {s.rec.recording && <button type="button" className="chip recchip nodrag" title={t('rec.stop')} onClick={() => void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' }))}><i /><b>REC</b><Roll text={s.rec.steps.length} /></button>}
             {insecure && <span className="chip insecure nodrag" title={t('sec.insecureTip')}>{t('sec.insecure')}</span>}
@@ -370,6 +373,7 @@ export function App() {
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'recorder' && <RecorderDialog onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'qr' && active && <QrDialog tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'usage' && <UsagePage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'notePrompt' && s.noteAsk && <NotePrompt onClose={() => s.set({ overlay: null, noteAsk: null })} />}
       {s.overlay === 'notes' && <NotesPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'downloads' && <DownloadsPage onClose={() => s.set({ overlay: null })} />}

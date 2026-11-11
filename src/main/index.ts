@@ -11,6 +11,10 @@ import { engineById, searchUrl } from '../shared/search'
 import { Recorder } from './recorder'
 import { Speaker } from './speak'
 import { NoteStore } from './notes'
+import { UsageStore } from './usage'
+import { FocusServer } from './focus'
+import { blockReason, lastDays } from '../shared/usage'
+import { siteOf as siteOfUsage } from '../shared/adblock'
 import { CAPTURE_SELECTION, applyNotesScript, pageKey, removeNoteScript } from '../shared/notes'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
@@ -26,7 +30,7 @@ import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
-import { app, net, screen, desktopCapturer, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, net, screen, desktopCapturer, powerMonitor, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { execFile } from 'node:child_process'
@@ -146,7 +150,20 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore
+const focusServer = new FocusServer((a) => {
+  const f = settings.get().focus ?? { on: false, sites: [], limits: {} }
+  if (a.kind === 'off') settings.set({ focus: { ...f, on: false } })
+  else settings.set({ focus: { ...f, snooze: { ...(f.snooze ?? {}), [a.site]: Date.now() + a.minutes * 60_000 } } })
+  pushSettings()
+})
+/** engelli adres icin engel sayfasi adresi; engelli degilse null */
+function focusBlock(url: string): string | null {
+  const b = blockReason(url, settings?.get().focus, (s) => usage?.usedToday(s) ?? 0)
+  if (!b || !focusServer.ready) return null
+  const lim = settings.get().focus?.limits[b.site]
+  return focusServer.urlFor({ site: b.site, reason: b.reason, limitMin: lim, target: url, s: { title: tr('focus.title'), focusMsg: tr('focus.msg'), limitMsg: tr('focus.limitMsg'), allow5: tr('focus.allow5'), allow30: tr('focus.allow30'), off: tr('focus.off'), back: tr('focus.back') } })
+}
 const pendingNotes = new Map<string, { tabId: string; cap?: { text: string; prefix: string; suffix: string }; noteId?: string }>()
 let noteSeq = 0
 /** Kayitli vurgulari sayfaya uygula (gizli sekmede yok; dinamik icerik icin ikinci deneme) */
@@ -402,6 +419,7 @@ function registerIpc(): void {
     tabs.each((wc) => { if (pageKey(wc.getURL()) === n.url) void wc.executeJavaScript(removeNoteScript(id)).catch(() => {}) }); return true
   })
   handle(Ch.appOpen, schemas.appOpen, ({ url }) => openAppWindow(url ?? tabs.active()?.info.url ?? ''))
+  handle(Ch.usageGet, schemas.usageGet, ({ days }) => { const ds = lastDays(days); return { days: ds, usage: Object.fromEntries(ds.map((d) => [d, usage.all()[d] ?? {}])) } })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -996,6 +1014,8 @@ async function createWindow(): Promise<void> {
   library = new Library()
   sites = new SiteStore()
   notes = new NoteStore(app.getPath('userData'))
+  usage = new UsageStore(app.getPath('userData'))
+  await focusServer.start()
   passwords = new PasswordService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, {
     isPrivate: (wc) => tabs.isPrivateWc(wc),
     changed: () => tabs?.refreshSites(),
@@ -1026,7 +1046,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'normal') { const nw = tabs.normalWindowIds()[0]; if (nw !== undefined) void tabs.create({ url, workspaceId: e.info.workspaceId, winId: nw }).then((nid) => tabs.activate(nid)); return } if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, focusBlock, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'normal') { const nw = tabs.normalWindowIds()[0]; if (nw !== undefined) void tabs.create({ url, workspaceId: e.info.workspaceId, winId: nw }).then((nid) => tabs.activate(nid)); return } if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -1042,6 +1062,17 @@ async function createWindow(): Promise<void> {
   const restored = process.env.DB_SCRIPT && !process.env.DB_RESTORE ? false : await tabs.restore()
   if (!restored) await newTab(process.env.DB_URL)
   void pollServers(); setInterval(pollServers, 1500)
+  // kullanim takibi (1 sn): odaktaki pencerenin aktif sekmesi, bosta degil, gizli degil; engelli hale gelirse sayfa engel sayfasina doner
+  setInterval(() => {
+    const idle = powerMonitor.getSystemIdleTime() < 60
+    for (const v of tabs.visibleTabs()) {
+      if (v.private || v.overlay || !/^https?:/.test(v.url)) continue
+      let host = ''; try { host = new URL(v.url).hostname.toLowerCase() } catch { continue }
+      if (host === 'localhost' || host === '127.0.0.1' || !host.includes('.')) continue
+      if ((v.focused && idle) || process.env.DB_TRACK_ALWAYS) usage.add(siteOfUsage(host))
+      if (focusBlock(v.url)) tabs.go(v.tabId, v.url) // odak acildi / limit doldu: engel sayfasi
+    }
+  }, 1000).unref()
   pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSessions(); pushSettings()
   telemetry.track('app.start')
 
@@ -1052,7 +1083,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, openAppWindow, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
+      newTab, openWindow, openAppWindow, usage: () => usage, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
       ctxPrepare: (id: string, params: Partial<Electron.ContextMenuParams>) => showCtx(id, { x: 20, y: 20, ...params } as Electron.ContextMenuParams, true), editorOpens: () => lastEditorOpen, lastShot: () => lastShot, resetCtx: () => { lastEditorOpen = null; lastShot = null },
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
@@ -1078,5 +1109,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => { quitting = true; speaker.stop(); notes?.flush(); library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
+app.on('before-quit', () => { quitting = true; speaker.stop(); notes?.flush(); usage?.flush(); library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
 app.on('window-all-closed', () => app.quit())

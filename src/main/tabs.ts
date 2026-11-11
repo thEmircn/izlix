@@ -87,7 +87,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; shortcuts?: () => import('../shared/shortcuts').Shortcut[]; onDivert?: (tabId: string, url: string, mode: 'tab' | 'window' | 'normal') => void; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; focusBlock?: (url: string) => string | null; shortcuts?: () => import('../shared/shortcuts').Shortcut[]; onDivert?: (tabId: string, url: string, mode: 'tab' | 'window' | 'normal') => void; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
@@ -178,7 +178,7 @@ export class TabManager {
     if (opts.private === 'tor') wc.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')
     // CDP: ilk sayfa yuklenmeden komutlar yanit vermez -> about:blank, kurulum, asil sayfa
     await wc.loadURL('about:blank')
-    const target = this.upgrade(entry, this.tidy(resolveInput(opts.url ?? '', this.hooks.searchEngine?.(), this.hooks.shortcuts?.())))
+    const target = this.focusGuard(this.upgrade(entry, this.tidy(resolveInput(opts.url ?? '', this.hooks.searchEngine?.(), this.hooks.shortcuts?.()))))
     if (/^https?:/.test(target)) entry.lastHttpUrl = target
     entry.cdp = await attachCdp(wc, id, this.bus, () => {
       const u = wc.getURL()
@@ -247,7 +247,7 @@ export class TabManager {
     // izleme parametrelerini (utm_, fbclid...) temizleyip ayni adrese temiz haliyle gec (ana belge gezinmeleri)
     const clean = (event: Electron.Event, url: string): void => {
       const st = this.hooks.stripTracking?.()
-      const c = this.upgrade(e, st?.on ? cleanTrackingParams(url, st.dev) : url)
+      const c = this.focusGuard(this.upgrade(e, st?.on ? cleanTrackingParams(url, st.dev) : url))
       if (c !== url) { event.preventDefault(); void wc.loadURL(c).catch(() => {}) }
     }
     // yonlendirilen gezinme: bu sekmede yapilmaz, yeni sekmeye/pencereye gider
@@ -666,6 +666,12 @@ export class TabManager {
     if (muted) e.info.muted = true; else delete e.info.muted
     this.onChange()
   }
+  /** Odak modu / gunluk limit: engelli adres yerine engel sayfasi */
+  private focusGuard(url: string): string { return this.hooks.focusBlock?.(url) ?? url }
+  /** Her pencerenin aktif sekmesi (kullanim takibi): adres, gizli mi, pencere odakta mi, ust katman acik mi */
+  visibleTabs(): { tabId: string; url: string; private: boolean; focused: boolean; overlay: boolean }[] {
+    return [...this.ctxs.values()].flatMap((c) => { const e = c.activeId ? this.tabs.get(c.activeId) : undefined; return e && !e.view.webContents.isDestroyed() ? [{ tabId: e.info.id, url: e.view.webContents.getURL(), private: !!e.info.private, focused: c.win.isFocused(), overlay: c.overlayOpen }] : [] })
+  }
   private tidy(url: string): string { const st = this.hooks.stripTracking?.(); return st?.on ? cleanTrackingParams(url, st.dev) : url }
   /** HTTPS-only: http adresi yukseltilebiliyorsa yukseltilir (Tor sekmesi ve bu sekmede hata verip dusurulen alan adlari haric) */
   private upgrade(e: Entry | undefined, url: string): string {
@@ -674,7 +680,7 @@ export class TabManager {
     if (e) { const h = new URL(url).hostname; if (e.noUpgrade?.has(h)) return url; e.upgradedFrom = url; e.upgradedTo = u }
     return u
   }
-  go(id: string, input: string): void { const t = this.tabs.get(id); const url = this.upgrade(t, this.tidy(resolveInput(input, this.hooks.searchEngine?.(), this.hooks.shortcuts?.()))); if (t?.info.sleeping) this.wake(t, url); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {}) }
+  go(id: string, input: string): void { const t = this.tabs.get(id); const url = this.focusGuard(this.upgrade(t, this.tidy(resolveInput(input, this.hooks.searchEngine?.(), this.hooks.shortcuts?.())))); if (t?.info.sleeping) this.wake(t, url); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }
   forward(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goForward() }
   reload(id: string): void { const t = this.tabs.get(id); if (t?.info.sleeping) { this.wake(t); return } t?.view.webContents.reload() }

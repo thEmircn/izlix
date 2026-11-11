@@ -21,6 +21,8 @@ export function buildCommands(): Command[] {
     ...(s.rec.steps.length && !s.rec.recording ? [{ id: 'rec.open', title: t('rec.last'), run: () => s.set({ overlay: 'recorder' }) }] : []),
     { id: 'speak.toggle', title: t(s.speaking ? 'tts.stop' : 'tts.read'), run: () => void api.speak(s.speaking ? 'stop' : 'auto') },
     { id: 'tabsearch.open', title: t('menu.findAllTabs'), hint: '⇧⌘F', run: () => s.set({ overlay: 'tabsearch' }) },
+    { id: 'focus.toggle', title: t(s.settings.focus?.on ? 'cmd.focusOff' : 'cmd.focusOn'), run: () => void api.setSettings({ focus: { ...(s.settings.focus ?? { sites: [], limits: {} }), on: !s.settings.focus?.on } }) },
+    { id: 'usage.open', title: t('usage.open'), run: () => s.set({ overlay: 'usage' }) },
     { id: 'notes.open', title: t('notes.title'), run: () => s.set({ overlay: 'notes' }) },
     { id: 'downloads.open', title: t('menu.downloads'), hint: '⇧⌘J', run: () => s.set({ overlay: 'downloads' }) },
     { id: 'pw.generate', title: t('pw.cmdGen'), run: () => { const p = generatePassword({ length: 20 }); void navigator.clipboard.writeText(p).then(() => toast(t('pw.genCopied'))) } },

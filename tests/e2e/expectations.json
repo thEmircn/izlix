@@ -4328,5 +4328,62 @@
       "eq",
       true
     ]
+  ],
+  "focus": [
+    [
+      "tracked",
+      "eq",
+      true
+    ],
+    [
+      "blockedPage",
+      "eq",
+      true
+    ],
+    [
+      "blockText",
+      "contains",
+      "Focus mode is on: example.com is blocked"
+    ],
+    [
+      "chip",
+      "eq",
+      1
+    ],
+    [
+      "goBlocked",
+      "eq",
+      true
+    ],
+    [
+      "snoozed",
+      "eq",
+      true
+    ],
+    [
+      "afterAllow",
+      "eq",
+      true
+    ],
+    [
+      "tokenOnce",
+      "eq",
+      410
+    ],
+    [
+      "limitPage",
+      "eq",
+      true
+    ],
+    [
+      "focusOff",
+      "eq",
+      true
+    ],
+    [
+      "usageRows",
+      "contains",
+      "example.com"
+    ]
   ]
 }
