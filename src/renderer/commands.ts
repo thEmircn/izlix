@@ -140,6 +140,7 @@ export function buildCommands(): Command[] {
   }
   // Bolunmus gorunum (Split View)
   const act = s.tabs.find((x) => x.id === s.activeTabId)
+  if (act) cmds.push({ id: 'tab.mute', title: t(act.muted ? 'ctx.unmute' : 'ctx.mute'), run: () => void api.muteTab(act.id, !act.muted) })
   if (act) cmds.push({ id: 'tab.hop', title: t('cmd.hopTab'), hint: '⌥⌘M', run: () => void api.hopTab(act.id) })
   if (act) cmds.push({ id: 'tab.pin', title: t(act.pinned ? 'cmd.unpin' : 'cmd.pin'), run: () => void api.pinTab(act.id, !act.pinned) })
   if (act && !act.lab) {

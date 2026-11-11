@@ -32,6 +32,7 @@ export const api = {
   adMenu: (host: string) => call(Ch.adMenu, { host }),
   newWindow: () => call(Ch.winNew) as Promise<number>,
   hopTab: (id: string) => call(Ch.tabHop, { id }) as Promise<boolean>,
+  muteTab: (id: string, muted: boolean) => call(Ch.tabMute, { id, muted }),
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,

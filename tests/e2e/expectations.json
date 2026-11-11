@@ -3036,5 +3036,37 @@
       "eq",
       true
     ]
+  ],
+  "audio": [
+    [
+      "audible",
+      "eq",
+      true
+    ],
+    [
+      "iconShown",
+      "gte",
+      1
+    ],
+    [
+      "muted",
+      "eq",
+      true
+    ],
+    [
+      "mutedIcon",
+      "eq",
+      1
+    ],
+    [
+      "wcMuted",
+      "eq",
+      true
+    ],
+    [
+      "unmuted",
+      "eq",
+      true
+    ]
   ]
 }

@@ -185,6 +185,7 @@ export class TabManager {
       })
       this.onChange()
     }
+    wc.on('audio-state-changed', () => { if (wc.isDestroyed() || e.view.webContents !== wc) return; const a = wc.isCurrentlyAudible(); if (a !== !!e.info.audible) { if (a) e.info.audible = true; else delete e.info.audible; this.onChange() } })
     wc.on('dom-ready', () => this.hooks.onDomReady?.(wc))
     wc.on('did-start-navigation', (d: any) => {
       if (!d.isMainFrame || d.isSameDocument) return
@@ -522,6 +523,7 @@ export class TabManager {
     e.view = view
     try { placeholder.webContents.close() } catch { /* yok */ }
     this.wire(e)
+    if (e.info.muted) view.webContents.setAudioMuted(true)
     view.webContents.on('focus', () => this.inWin(e.winId, () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activateIn(id) }))
     void (async () => {
       const wc = view.webContents
@@ -567,6 +569,12 @@ export class TabManager {
     return null
   }
 
+  setMuted(id: string, muted: boolean): void {
+    const e = this.tabs.get(id); if (!e) return
+    if (!e.view.webContents.isDestroyed()) e.view.webContents.setAudioMuted(muted)
+    if (muted) e.info.muted = true; else delete e.info.muted
+    this.onChange()
+  }
   private tidy(url: string): string { const st = this.hooks.stripTracking?.(); return st?.on ? cleanTrackingParams(url, st.dev) : url }
   go(id: string, input: string): void { const url = this.tidy(resolveInput(input, this.hooks.searchEngine?.())); const t = this.tabs.get(id); if (t?.info.sleeping) this.wake(t, url); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }

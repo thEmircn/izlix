@@ -20,6 +20,9 @@ export interface BusEvent {
 
 export interface SessionInfo { id: string; name: string; ts: number; tabs: { url: string; title: string }[]; active: number; split: [number, number] | null }
 export interface TabInfo {
+  /** Sekme ses caliyor / sessize alinmis */
+  audible?: boolean
+  muted?: boolean
   /** Uyuyan sekme: sayfa sureci kapatildi (bellek), secilince ayni adresle yeniden yuklenir */
   sleeping?: boolean
   /** Sabitlenmis sekme: seridin basinda, dar; oturumla geri gelir */

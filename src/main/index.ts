@@ -234,6 +234,7 @@ function registerIpc(): void {
     const target = e.winId !== here ? here : (tabs.windowIds().find((x) => x !== here) ?? await openWindow())
     return tabs.moveToWindow(id, target)
   })
+  handle(Ch.tabMute, schemas.tabMute, ({ id, muted }) => tabs.setMuted(id, muted))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -364,6 +365,7 @@ function registerIpc(): void {
     const e = tabs.get(id); if (!e) return
     const url = e.view.webContents.getURL()
     Menu.buildFromTemplate([
+      { label: tr(e.info.muted ? 'ctx.unmute' : 'ctx.mute'), click: () => tabs.setMuted(id, !e.info.muted) },
       { label: tr(e.info.pinned ? 'ctx.unpin' : 'ctx.pin'), click: () => tabs.setPinned(id, !e.info.pinned) },
       { label: tr('ctx.reload'), click: () => tabs.reload(id) },
       { label: tr('ctx.sleep'), enabled: id !== tabs.active()?.info.id && !e.info.sleeping, click: () => { tabs.sleep(id) } },

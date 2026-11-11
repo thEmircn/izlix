@@ -9,6 +9,7 @@ export const schemas = {
   tabSleep: z.object({ id: z.string().max(64).nullable() }),
   adMenu: z.object({ host: z.string().max(253) }),
   tabHop: z.object({ id: z.string().max(64) }),
+  tabMute: z.object({ id: z.string().max(64), muted: z.boolean() }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

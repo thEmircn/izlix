@@ -2,7 +2,7 @@ import { originKey } from '../shared/favicon'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
-import { IcShield, IcHop } from './icons'
+import { IcShield, IcHop, IcSpeaker, IcMuted } from './icons'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -163,6 +163,7 @@ export function App() {
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
             <span className="t">{!tb.private && s.favicons[originKey(tb.url) ?? ''] && <img className="tab-fav" alt="" src={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
+            {(tb.audible || tb.muted) && <button className={`tab-audio ${tb.muted ? 'muted' : ''}`} aria-label={t(tb.muted ? 'ctx.unmute' : 'ctx.mute')} title={t(tb.muted ? 'ctx.unmute' : 'ctx.mute')} onClick={(e) => { e.stopPropagation(); void api.muteTab(tb.id, !tb.muted) }}>{tb.muted ? <IcMuted /> : <IcSpeaker />}</button>}
             {!tb.pinned && <button className="tab-hop" aria-label={t('tab.hopTip')} title={t(tb.winId !== undefined && tb.winId !== s.winId ? 'tab.hopBack' : 'tab.hopTip')} onClick={(e) => { e.stopPropagation(); void api.hopTab(tb.id) }}><IcHop /></button>}
             {!tb.pinned && <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>}
           </div>
