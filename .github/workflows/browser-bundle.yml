@@ -112,6 +112,7 @@ jobs:
           SH
           sed -i '' 's/^          //' "$app/Contents/MacOS/$exe"; chmod +x "$app/Contents/MacOS/$exe"
           /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string Izlix' "$app/Contents/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName Izlix' "$app/Contents/Info.plist"
+          xattr -cr "$app"
           codesign --force --deep -s - "$app"
           mv "$app" work/Izlix.app
           echo "BUNDLE_EXE=work/Izlix.app/Contents/MacOS/$exe" >> "$GITHUB_ENV"
