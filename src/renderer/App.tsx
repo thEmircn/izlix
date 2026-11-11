@@ -10,6 +10,7 @@ import { TabSearch } from './TabSearch'
 import { DownloadsPage } from './DownloadsPage'
 import { NotePrompt, NotesPage } from './Notes'
 import { UsagePage } from './UsagePage'
+import { BudgetChip } from './BudgetChip'
 import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
@@ -289,6 +290,7 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {!appWin && <BudgetChip />}
             {s.settings.focus?.on && <button type="button" className="chip focuschip nodrag" title={t('cmd.focusOff')} onClick={() => void api.setSettings({ focus: { ...s.settings.focus!, on: false } })}><i /><b>{t('focus.chip')}</b></button>}
             {s.speaking && <button type="button" className="chip speakchip nodrag" title={t('tts.stop')} onClick={() => void api.speak('stop')}><i /><b>{t('tts.speaking')}</b></button>}
             {s.rec.recording && <button type="button" className="chip recchip nodrag" title={t('rec.stop')} onClick={() => void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' }))}><i /><b>REC</b><Roll text={s.rec.steps.length} /></button>}

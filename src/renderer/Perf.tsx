@@ -3,6 +3,7 @@ import type { BusEvent } from '../shared/events'
 import { summarizeVitals } from '../shared/vitals'
 import { useStore, useT } from './store'
 import { CountUp, Spark } from './ui'
+import { BudgetPanel } from './BudgetChip'
 import { leakHint, mb, metricMap } from '../shared/metrics'
 
 const fmt = (v: number, unit: string): { n: number; dec: number; u: string } => unit === 'ms' ? (v >= 1000 ? { n: v / 1000, dec: 2, u: 's' } : { n: v, dec: 0, u: 'ms' }) : { n: v, dec: 3, u: '' }
@@ -37,6 +38,7 @@ export function Perf({ events }: { events: BusEvent[] }) {
   return (
     <div className="perf">
       <div className="net-bar"><span style={{ color: 'var(--dim)' }}>{t('perf.hint')}</span><span style={{ flex: 1 }} /><button className="btn" onClick={() => tabId && void window.izlix.reload(tabId)}>{t('perf.measure')}</button></div>
+      <BudgetPanel events={events} />
       <div className="vgrid">
         {sum.vitals.map((v) => {
           const f = fmt(v.value, v.unit)

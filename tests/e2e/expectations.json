@@ -4452,5 +4452,37 @@
       "eq",
       "Istanbul"
     ]
+  ],
+  "budget": [
+    [
+      "chip",
+      "contains",
+      "Budget"
+    ],
+    [
+      "cells",
+      "gte",
+      2
+    ],
+    [
+      "badCells",
+      "gte",
+      1
+    ],
+    [
+      "savedFirst",
+      "eq",
+      true
+    ],
+    [
+      "savedSecond",
+      "eq",
+      true
+    ],
+    [
+      "chipGone",
+      "eq",
+      true
+    ]
   ]
 }

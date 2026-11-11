@@ -1,6 +1,7 @@
 import { ENGINES } from '../shared/search'
 import { generatePassword } from '../shared/pwgen'
 import { parseLimits, siteList } from '../shared/usage'
+import { BUDGET_KEYS, DEFAULT_BUDGET, unitOf } from '../shared/budgets'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
 import { useStore, useT, writePref, toast } from './store'
@@ -102,6 +103,16 @@ export function Settings({ onClose }: { onClose(): void }) {
             <div className="shint" style={{ margin: '8px 0 4px' }}>{t('set.focusLimits')}</div>
             <textarea value={fLimits} spellCheck={false} rows={2} placeholder="reddit.com 30" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setFLimits(e.target.value)} onBlur={() => saveFocus()} />
             <div style={{ marginTop: 8 }}><button className="btn" onClick={() => set({ overlay: 'usage' })}>{t('usage.open')}</button></div>
+          </div>
+          <div className="srow" style={{ display: 'block' }}>
+            <div className="stitle">{t('budget.title')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('budget.hint')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {BUDGET_KEYS.map((k) => (
+                <label key={k} className="bin"><span>{t(`budget.${k}` as any)}{unitOf(k)}</span>
+                  <input type="number" min={0} step={k === 'cls' ? 0.01 : 1} defaultValue={(settings.budgets as Record<string, number> | undefined)?.[k] ?? (DEFAULT_BUDGET as Record<string, number>)[k] ?? ''} placeholder="—"
+                    onBlur={(e) => { const v = Number(e.target.value); const next: Record<string, number> = { ...(settings.budgets ?? {}) }; if (v > 0) next[k] = v; else delete next[k]; void api.setSettings({ budgets: next }) }} /></label>
+              ))}
+            </div>
           </div>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>

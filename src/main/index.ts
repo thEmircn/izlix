@@ -12,6 +12,7 @@ import { Recorder } from './recorder'
 import { Speaker } from './speak'
 import { NoteStore } from './notes'
 import { UsageStore } from './usage'
+import { PerfHistory } from './perfhist'
 import { WidgetService } from './widgets'
 import { parseReminder } from '../shared/widgets'
 import { FocusServer } from './focus'
@@ -152,7 +153,7 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore, widgets: WidgetService
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore, widgets: WidgetService, perfHist: PerfHistory
 const notified: string[] = []
 const focusServer = new FocusServer((a) => {
   const f = settings.get().focus ?? { on: false, sites: [], limits: {} }
@@ -429,6 +430,8 @@ function registerIpc(): void {
   handle(Ch.remList, null, () => widgets.reminders())
   handle(Ch.remAdd, schemas.remAdd, ({ input }) => { const p = parseReminder(input); if (!p) return false; widgets.add(p.text, p.due); return true })
   handle(Ch.remDelete, schemas.remDelete, ({ id }) => widgets.remove(id))
+  handle(Ch.perfSave, schemas.perfSave, ({ key, m }) => perfHist.add(key, m))
+  handle(Ch.perfHistory, schemas.perfHistory, ({ key }) => perfHist.list(key))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -1024,6 +1027,7 @@ async function createWindow(): Promise<void> {
   sites = new SiteStore()
   notes = new NoteStore(app.getPath('userData'))
   usage = new UsageStore(app.getPath('userData'))
+  perfHist = new PerfHistory(app.getPath('userData'))
   widgets = new WidgetService(app.getPath('userData'),
     (u) => net.fetch(u, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.text() : null), () => null),
     (r) => { notified.push(r.text); if (process.env.DB_SCRIPT) return; const n = new Notification({ title: tr('rem.title'), body: r.text }); n.on('click', () => { win.show(); win.focus() }); n.show() })
