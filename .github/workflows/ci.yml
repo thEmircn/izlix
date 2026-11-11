@@ -46,3 +46,15 @@ jobs:
           echo "bin=${out#* }" >> "$GITHUB_OUTPUT"
       - name: Run the extension test
         run: xvfb-run -a env CHROME_BIN="${{ steps.cft.outputs.bin }}" CHROME_ARGS="--no-sandbox --disable-gpu" node packages/extension/tests/e2e.mjs
+
+  desktop-smoke:
+    name: Desktop app smoke test (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - name: Run a few end-to-end scripts under a virtual display
+        run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py shell chainui rules hub

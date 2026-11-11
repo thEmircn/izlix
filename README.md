@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/thEmircn/izlix/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/thEmircn/izlix/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS-1d1d20?style=flat-square&logo=apple&logoColor=white">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-1d1d20?style=flat-square&logo=electron&logoColor=47848f">
   <img alt="react" src="https://img.shields.io/badge/React-18%20%26%2019-1d1d20?style=flat-square&logo=react&logoColor=61dafb">
