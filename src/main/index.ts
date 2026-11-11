@@ -119,6 +119,18 @@ const send = (channel: string, payload: unknown): void => { for (const w of shel
 const pushTabs = (): void => { for (const [id, w] of shellWins) if (!w.isDestroyed()) w.webContents.send(Ch.tabsState, tabs.list(id)) }
 /** menu/kisayol komutu yalnizca odaktaki pencereye gider */
 const sendFocused = (channel: string, payload: unknown): void => { const f = BrowserWindow.getFocusedWindow(); const w = (f && shellWins.get(f.id)) ?? win; if (w && !w.isDestroyed()) w.webContents.send(channel, payload) }
+const loadedParts = new Set<string>()
+/** kayitli eklentileri bir oturuma yukler (gizli/Tor oturumlari haric); hatali olan sessizce atlanir */
+async function loadExtensionsInto(ses: Electron.Session, part: string): Promise<void> {
+  if (part.startsWith('incog') || part.startsWith('tor')) return
+  loadedParts.add(part)
+  for (const dir of settings?.get().extensions ?? []) { if (ses.getAllExtensions().some((e) => e.path === dir)) continue; await ses.loadExtension(dir).catch(() => {}) }
+}
+async function loadExtensionAll(dir: string): Promise<{ ok: boolean; error?: string }> {
+  let last: string | undefined
+  for (const part of loadedParts.size ? loadedParts : new Set(['persist:ws-default'])) { try { await session.fromPartition(part).loadExtension(dir) } catch (e) { last = String(e).replace(/^Error:\s*/, '').slice(0, 200) } }
+  return last ? { ok: false, error: last } : { ok: true }
+}
 const pushSettings = (): void => send(Ch.settingsState, settings.get())
 const pushRules = (): void => send(Ch.rulesState, rules.all())
 const pushSessions = (): void => send(Ch.sessState, sessions.all())
@@ -432,6 +444,17 @@ function registerIpc(): void {
   handle(Ch.noteDelete, schemas.noteDelete, ({ id }) => {
     const n = notes.remove(id); if (!n) return false
     tabs.each((wc) => { if (pageKey(wc.getURL()) === n.url) void wc.executeJavaScript(removeNoteScript(id)).catch(() => {}) }); return true
+  })
+  handle(Ch.extList, null, () => { const out: { id: string; name: string; version: string; path: string }[] = []; for (const part of new Set(['persist:ws-default', ...workspaces.list().map((w) => partitionFor(w.id))])) for (const e of session.fromPartition(part).getAllExtensions()) if (!out.some((o) => o.id === e.id)) out.push({ id: e.id, name: e.name, version: e.version, path: e.path }); return out })
+  handle(Ch.extAdd, null, async () => {
+    const dir = process.env.DB_EXT_DIR ?? (await dialog.showOpenDialog(curWin ?? win, { properties: ['openDirectory'], title: tr('set.extPick') })).filePaths[0]
+    if (!dir) return { ok: false }
+    const r = await loadExtensionAll(dir); if (!r.ok) return r
+    const cur = settings.get().extensions ?? []; if (!cur.includes(dir)) settings.set({ extensions: [...cur, dir] }); pushSettings(); return { ok: true }
+  })
+  handle(Ch.extRemove, schemas.extRemove, async ({ path }) => {
+    for (const part of loadedParts) for (const e of session.fromPartition(part).getAllExtensions()) if (e.path === path) await session.fromPartition(part).removeExtension(e.id)
+    settings.set({ extensions: (settings.get().extensions ?? []).filter((x) => x !== path) }); pushSettings(); return true
   })
   handle(Ch.appOpen, schemas.appOpen, ({ url }) => openAppWindow(url ?? tabs.active()?.info.url ?? ''))
   handle(Ch.usageGet, schemas.usageGet, ({ days }) => { const ds = lastDays(days); return { days: ds, usage: Object.fromEntries(ds.map((d) => [d, usage.all()[d] ?? {}])) } })
@@ -1055,6 +1078,7 @@ async function createWindow(): Promise<void> {
   notes = new NoteStore(app.getPath('userData'))
   usage = new UsageStore(app.getPath('userData'))
   perfHist = new PerfHistory(app.getPath('userData'))
+  for (const w of workspaces.list()) { const part = partitionFor(w.id); await loadExtensionsInto(session.fromPartition(part), part) }
   ai = new AiService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, () => (settings.get().ai ?? { provider: 'ollama', model: 'llama3.1' }) as AiConfig)
   widgets = new WidgetService(app.getPath('userData'),
     (u) => net.fetch(u, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.text() : null), () => null),
@@ -1091,7 +1115,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, focusBlock, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'normal') { const nw = tabs.normalWindowIds()[0]; if (nw !== undefined) void tabs.create({ url, workspaceId: e.info.workspaceId, winId: nw }).then((nid) => tabs.activate(nid)); return } if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: async (wc, id) => { await passwords?.attach(wc); await stateBridge.attach(wc, id) }, siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void applyNotes(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, focusBlock, shortcuts: () => mergeShortcuts(settings.get().shortcuts), onDivert: (id, url, mode) => { const e = tabs.get(id); if (!e) return; if (mode === 'normal') { const nw = tabs.normalWindowIds()[0]; if (nw !== undefined) void tabs.create({ url, workspaceId: e.info.workspaceId, winId: nw }).then((nid) => tabs.activate(nid)); return } if (mode === 'window') void openInNewWindow(url, e.info.workspaceId, e.winId, e.info.private); else void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...(e.info.private ? { private: e.info.private } : {}) }) }, httpsOnly: () => settings.get().httpsOnly !== false, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: async (wc, id) => { await passwords?.attach(wc); await stateBridge.attach(wc, id) }, siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { handleDisplayMedia(ses); { const part = [...(workspaces?.list() ?? []).map((w) => partitionFor(w.id)), 'persist:ws-default', 'incog-main', 'tor-main'].find((p) => session.fromPartition(p) === ses); if (part) void loadExtensionsInto(ses, part) }; ses.setSpellCheckerEnabled(settings.get().spellcheck !== false); if (process.platform !== 'darwin') ses.setSpellCheckerLanguages(settings.get().language === 'tr' ? ['tr', 'en-US'] : ['en-US']); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })

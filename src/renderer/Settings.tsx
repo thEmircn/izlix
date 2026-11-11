@@ -37,6 +37,9 @@ export function Settings({ onClose }: { onClose(): void }) {
   useEffect(() => { void api.aiPreview().then((p: { provider: string; hasKey: boolean }) => setAiHas((h) => ({ ...h, [p.provider]: p.hasKey }))) }, [aiCfg.provider])
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
+  const [exts, setExts] = useState<{ id: string; name: string; version: string; path: string }[]>([]); const [extErr, setExtErr] = useState('')
+  const loadExts = (): void => { void api.extList().then(setExts) }
+  useEffect(loadExts, [])
   const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
   useEffect(loadPerms, [])
   const Row = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (
@@ -93,6 +96,13 @@ export function Settings({ onClose }: { onClose(): void }) {
                 {!a.weak && !a.reused && !a.pwned && <span className="chip" style={{ color: 'var(--ok, #6ee7a8)' }}>{t('pw.ok')}</span>}</div>
             )))}
             {pw.never.map((o) => <div className="pwrow" key={o}><div className="pwo"><b>{o}</b><small>{t('pw.neverNote')}</small></div><button className="btn" onClick={() => void api.pwNeverRemove(o).then(loadPw)}>{t('pw.del')}</button></div>)}
+          </div>
+          <div className="srow" style={{ display: 'block' }}>
+            <div className="stitle">{t('set.ext')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.extHint')}</div>
+            {exts.length === 0 && <div className="shint">{t('set.extNone')}</div>}
+            {exts.map((x) => <div className="pwrow" key={x.id}><div className="pwo"><b>{x.name}</b><small>{x.version} · {x.path}</small></div><button className="btn" onClick={() => void api.extRemove(x.path).then(loadExts)}>{t('set.extRemove')}</button></div>)}
+            <button className="btn" data-testid="ext-add" onClick={() => void api.extAdd().then((r) => { setExtErr(r.ok ? '' : r.error ?? ''); loadExts() })}>{t('set.extAdd')}</button>
+            {extErr && <div className="shint" style={{ color: 'var(--bad, #ff6b6b)' }}>{t('set.extErr', { e: extErr })}</div>}
           </div>
           <Row title={t('set.spell')} hint={t('set.spellHint')}><Switch on={settings.spellcheck !== false} label={t('set.spell')} onChange={(v) => void api.setSettings({ spellcheck: v })} /></Row>
           <Row title={t('set.https')} hint={t('set.httpsHint')}><Switch on={settings.httpsOnly !== false} label={t('set.https')} onChange={(v) => void api.setSettings({ httpsOnly: v })} /></Row>

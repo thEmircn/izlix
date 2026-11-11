@@ -4675,5 +4675,32 @@
         "counter"
       ]
     ]
+  ],
+  "ext": [
+    [
+      "add.ok",
+      "eq",
+      true
+    ],
+    [
+      "attr",
+      "eq",
+      "merhaba"
+    ],
+    [
+      "saved",
+      "eq",
+      1
+    ],
+    [
+      "after",
+      "eq",
+      0
+    ],
+    [
+      "savedAfter",
+      "eq",
+      0
+    ]
   ]
 }
