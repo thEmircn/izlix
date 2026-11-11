@@ -28,6 +28,10 @@ jobs:
       - run: npm ci
       - run: npm run ${{ matrix.script }}
         env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+      - name: Smoke test the packaged app
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then xvfb-run -a node tools/packaged-smoke.mjs; else node tools/packaged-smoke.mjs; fi
       - name: Collect the artifacts
         shell: bash
         run: |
