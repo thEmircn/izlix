@@ -40,7 +40,7 @@ import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
-import { app, net, screen, desktopCapturer, powerMonitor, Notification, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, systemPreferences, net, screen, desktopCapturer, powerMonitor, Notification, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { execFile } from 'node:child_process'
@@ -771,6 +771,20 @@ async function pollServers(): Promise<void> {
 }
 
 /** Site izinleri: kayitli karar > (konum emulasyonu) > kullaniciya sor; bilinmeyen izinler reddedilir. */
+/** macOS sistem izni (TCC): kamera/mikrofon icin once sistemden iste; reddedilmisse Sistem Ayarlari'ni ac. Test modunda atlanir. */
+async function ensureSystemMedia(kinds: ('camera' | 'microphone')[]): Promise<boolean> {
+  if (process.platform !== 'darwin' || process.env.DB_SCRIPT) return true
+  for (const k of kinds) {
+    let st = systemPreferences.getMediaAccessStatus(k)
+    if (st === 'not-determined') st = (await systemPreferences.askForMediaAccess(k).catch(() => false)) ? 'granted' : 'denied'
+    if (st !== 'granted') {
+      const r = await dialog.showMessageBox(curWin ?? win, { type: 'info', buttons: [tr('perm.openSettings'), tr('dlg.cancel')], defaultId: 0, cancelId: 1, message: tr(k === 'camera' ? 'perm.sysCamera' : 'perm.sysMic'), detail: tr('perm.sysDetail') })
+      if (r.response === 0) void shell.openExternal(`x-apple.systempreferences:com.apple.preference_security?Privacy_${k === 'camera' ? 'Camera' : 'Microphone'}`)
+      return false
+    }
+  }
+  return true
+}
 const permissionHandlers = {
   check: (wc: Electron.WebContents | null, permission: string, origin: string, details: any): boolean => {
     if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
@@ -785,12 +799,14 @@ const permissionHandlers = {
     if (key === 'auto') return true
     const origin = originOf(details?.requestingUrl ?? wc?.getURL() ?? '')
     if (!key || !origin) return false
+    const kinds = permission === 'media' ? ((details?.mediaTypes ?? []) as string[]).flatMap((t) => (t === 'video' ? ['camera' as const] : t === 'audio' ? ['microphone' as const] : [])) : []
     const stored = perms.get(origin, key)
-    if (stored) return stored === 'allow'
+    if (stored === 'deny') return false
+    if (stored === 'allow') return kinds.length ? ensureSystemMedia(kinds) : true
     const id = `perm-${++permSeq}`
     send(Ch.permAsk, { id, origin, permission: key })
     return new Promise<boolean>((resolve) => {
-      pendingPerms.set(id, (a) => { if (a === 'allow') perms.set(origin, key, 'allow'); if (a === 'block') perms.set(origin, key, 'deny'); resolve(a !== 'block') })
+      pendingPerms.set(id, (a) => { if (a === 'allow') perms.set(origin, key, 'allow'); if (a === 'block') perms.set(origin, key, 'deny'); if (a === 'block' || !kinds.length) resolve(a !== 'block'); else void ensureSystemMedia(kinds).then(resolve) })
       setTimeout(() => { if (pendingPerms.delete(id)) resolve(false) }, 30_000)
     })
   }
