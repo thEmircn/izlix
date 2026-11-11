@@ -6,6 +6,9 @@ import { useStore } from '../../../src/renderer/store'
 import { Timeline } from '../../../src/renderer/Timeline'
 
 /** Panel bir uzantidir: kabuk API'sinin (window.izlix) yalnizca gereken kismi gercek, gerisi guvenli no-op. */
+// test/tanilama: yakalanmamis hatalari say
+const errs: string[] = []; (window as any).__izlixErrors = errs
+addEventListener('error', (e) => errs.push(String(e.message))); addEventListener('unhandledrejection', (e) => errs.push(String((e as PromiseRejectionEvent).reason)))
 const tabId = Number(new URLSearchParams(location.search).get('tabId'))
 const KEY = `tab-${tabId}`
 const port = chrome.runtime.connect({ name: 'izlix-panel' })
