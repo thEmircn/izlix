@@ -17,7 +17,7 @@ def _subst(x):
     if isinstance(x, dict): return {k: _subst(v) for k, v in x.items()}
     return x
 
-EXP = _subst(json.load(open(os.path.join(ROOT, 'expectations.json'))))
+EXP = _subst(json.load(open(os.path.join(ROOT, 'expectations.json'), encoding='utf-8')))
 
 def get(obj, path):
     for part in re.findall(r'[^.\[\]]+|\[\d+\]', path):
@@ -73,7 +73,7 @@ def run(name):
     # gecici kullanici verisi her kosudan sonra silinir (disk dolmasin)
     import shutil; shutil.rmtree(ud, ignore_errors=True)
     if not os.path.exists(out): return None
-    return json.load(open(out))['result']
+    return json.load(open(out, encoding='utf-8'))['result']
 
 SKIP = set(filter(None, os.environ.get('E2E_SKIP', '').split(',')))  # bilinen platform/ag bagimli betikleri (CI)
 names = [n for n in (sys.argv[1:] or list(EXP)) if n not in SKIP]
