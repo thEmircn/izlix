@@ -42,9 +42,7 @@ function RollDigit({ d }: { d: number }) {
   useEffect(() => { if (snap) { const r = requestAnimationFrame(() => requestAnimationFrame(() => setSnap(false))); return () => cancelAnimationFrame(r) } }, [snap])
   return (
     <span className="roll-d" aria-hidden="true">
-      <span className={`roll-strip ${snap ? 'snap' : ''}`} style={{ transform: `translateY(calc(${idx} * -1.18em))` }} onTransitionEnd={done}>
-        {Array.from({ length: 19 }, (_, k) => <span key={k}>{k % 10}</span>)}
-      </span>
+      <span className={`roll-strip ${snap ? 'snap' : ''}`} style={{ transform: `translateY(calc(${idx} * -1.18em))` }} onTransitionEnd={done} />
       <span className="roll-ghost">{d}</span>
     </span>
   )

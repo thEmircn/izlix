@@ -947,8 +947,8 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .roll-d { position: relative; display: inline-block; height: 1.18em; line-height: 1.18em; overflow: hidden; vertical-align: bottom; }
 .roll-strip { display: flex; flex-direction: column; transition: transform .85s cubic-bezier(.22, 1.2, .36, 1); will-change: transform; }
 .roll-strip.snap { transition: none; }
-.roll-strip > span { display: block; height: 1.18em; line-height: 1.18em; }
-.roll-ghost { visibility: hidden; position: absolute; left: 0; top: 0; } /* genislik icin (tabular-nums ile ayni) */
+.roll-strip::before { content: '0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9\A 0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8'; white-space: pre; display: block; line-height: 1.18em; } /* rakamlar CSS icerigi: DOM metni yalniz gercek rakam */
+.roll-ghost { position: absolute; inset: 0; color: transparent; pointer-events: none; text-align: center; line-height: 1.18em; } /* kopyalama/erisilebilirlik icin gercek rakam */
 .roll-ch { display: inline-block; height: 1.18em; line-height: 1.18em; }
 .stat b { animation: none; }
 @media (prefers-reduced-motion: reduce) { .roll-strip { transition: none; } }
