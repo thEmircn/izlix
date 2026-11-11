@@ -20,15 +20,17 @@
     "type": "module"
   },
   "permissions": [
+    "alarms",
     "debugger",
-    "tabs",
     "sidePanel",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://localhost/*"
+    "https://localhost/*",
+    "https://api.github.com/repos/thEmircn/izlix/releases*"
   ],
   "optional_host_permissions": [
     "https://*/*",
@@ -42,5 +44,6 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "version_name": "0.1.0-alpha.1"
 }

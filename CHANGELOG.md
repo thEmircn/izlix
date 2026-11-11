@@ -9,6 +9,9 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Visual regression test with baselines for nine screens.
 - Third-party notices (`THIRD_PARTY_NOTICES.md`) generated from the dependency tree.
 
+### Added
+- Chrome extension checks the public GitHub release list once a day and shows an update notice in the panel.
+
 ### Changed
 - Chrome extension: the toolbar button now opens the side panel natively and tracing starts when the panel opens; the panel follows the active tab.
 - Design tokens and motion preferences moved into one file; "reduce motion" is respected.

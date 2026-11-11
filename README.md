@@ -103,7 +103,7 @@ npm run build:ext
 # chrome://extensions -> turn on Developer mode -> Load unpacked -> packages/extension/dist
 ```
 
-Open your React app on `localhost`, click the Izlix toolbar button; the page reloads with tracing on. Chrome shows its standard "started debugging this browser" bar while the extension is attached. Early alpha: the timeline, network, console, render tracker, request rules (mock, delay, redirect, status, headers) and click-to-source are available; the other panels of the desktop app are not ported yet.
+Open your React app on `localhost`, click the Izlix toolbar button; the page reloads with tracing on. Chrome shows its standard "started debugging this browser" bar while the extension is attached. Once a day the extension asks GitHub's public release list whether a newer version exists and shows a small notice in the panel; nothing about you or your pages is sent. Early alpha: the timeline, network, console, render tracker, request rules (mock, delay, redirect, status, headers) and click-to-source are available; the other panels of the desktop app are not ported yet.
 
 ## Izlix Browser (alpha bundle)
 

@@ -8,6 +8,7 @@ import { createResolver } from './stub-resolver'
 import { editorUrl, isSafeSourcePath } from '../../../src/shared/editor'
 import type { SourceResolver } from '../../../src/core/sources'
 import type { CdpClient } from '../../../src/core/cdp-client'
+import { compareVersions, latestTagged } from '../../../src/shared/version'
 
 const bus = new EventBus()
 const tabKey = (tabId: number): string => `tab-${tabId}`
@@ -15,6 +16,25 @@ interface Attached { collector: Collector<SourceResolver>; client: CdpClient; in
 const attached = new Map<number, Attached>()
 const tabUrls = new Map<number, string>()
 const ports = new Set<chrome.runtime.Port>()
+
+// --- Surum denetimi: GitHub'daki herkese acik release listesinden en yeni eklenti surumu (kullanici verisi gitmez); gunde bir ---
+interface UpdateNotice { latest: string; url: string }
+let updateNotice: UpdateNotice | null = null
+const REL_URL = 'https://api.github.com/repos/thEmircn/izlix/releases?per_page=30'
+export async function checkUpdate(tags?: string[]): Promise<UpdateNotice | null> {
+  try {
+    const list = tags ?? ((await (await fetch(REL_URL, { headers: { accept: 'application/vnd.github+json' } })).json()) as { tag_name: string }[]).map((r) => r.tag_name)
+    const cur = chrome.runtime.getManifest().version_name ?? chrome.runtime.getManifest().version
+    const best = latestTagged(list, 'ext-v')
+    updateNotice = best && compareVersions(best.version, cur) === 1 ? { latest: best.version, url: `https://github.com/thEmircn/izlix/releases/tag/${best.tag}` } : null
+    await chrome.storage.local.set({ 'izlix.update': { at: Date.now(), notice: updateNotice } })
+    ports.forEach((p) => p.postMessage({ t: 'update', notice: updateNotice }))
+  } catch { /* cevrimdisi: sessizce gec */ }
+  return updateNotice
+}
+void chrome.storage.local.get('izlix.update').then((r) => { const u = r['izlix.update'] as { at: number; notice: UpdateNotice | null } | undefined; if (u?.notice) updateNotice = u.notice; if (!u || Date.now() - u.at > 20 * 3600_000) void checkUpdate() })
+chrome.alarms.create('izlix-update', { periodInMinutes: 24 * 60 })
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'izlix-update') void checkUpdate() })
 
 // --- Request Rules: kurallar kalici (chrome.storage), her izlenen sekmede ayni cekirdek Interceptor calisir ---
 let rulesCfg: RulesConfig = { rules: [], domains: DEFAULT_DOMAINS }
@@ -90,6 +110,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (m.t === 'hello') {
       // panel bir sekmeyi izlemek ister: gerekirse izlemeyi baslat, gecmisi gonder, canli olaylara abone ol (onceki abonelik kapanir)
       off()
+      port.postMessage({ t: 'update', notice: updateNotice })
       const key = tabKey(m.tabId)
       void ensureAttached(m.tabId).then(() => {
         port.postMessage({ t: 'events', tabId: m.tabId, events: bus.snapshot(key) })
@@ -101,4 +122,4 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 
 // Test/gelistirme girisi (service worker kapsami sayfalardan erisilemez)
-;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }
+;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), checkUpdate, setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }
