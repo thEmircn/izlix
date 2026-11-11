@@ -4626,5 +4626,54 @@
       "eq",
       true
     ]
+  ],
+  "statepanel": [
+    [
+      "names",
+      "contains",
+      "counter: @init"
+    ],
+    [
+      "names",
+      "contains",
+      "counter: counter/inc"
+    ],
+    [
+      "names",
+      "contains",
+      "cart: cart/add"
+    ],
+    [
+      "changed",
+      "eq",
+      [
+        "n"
+      ]
+    ],
+    [
+      "finalN",
+      "eq",
+      2
+    ],
+    [
+      "cartItems",
+      "eq",
+      [
+        "x"
+      ]
+    ],
+    [
+      "panelRows",
+      "gte",
+      2
+    ],
+    [
+      "storeChips",
+      "eq",
+      [
+        "cart",
+        "counter"
+      ]
+    ]
   ]
 }

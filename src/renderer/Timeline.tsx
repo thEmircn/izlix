@@ -5,6 +5,7 @@ import { toCurl } from '../shared/network'
 import { Inspector, RenderTracker } from './Inspector'
 import { Network } from './Network'
 import { ContextMenu, Roll, type MenuItem } from './ui'
+import { StatePanel } from './StatePanel'
 import { Elements } from './Elements'
 import { Storage } from './Storage'
 import { Perf } from './Perf'
@@ -97,7 +98,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const open = (file: string, line: number, column?: number): void => { void window.izlix.openSource({ file, line, column, editor }) }
   const select = (id: number): void => set({ selectedEventId: id })
 
-  const labels = { overview: t('tl.overview'), timeline: t('tl.timeline'), network: t('tl.network'), console: t('tl.console'), elements: t('tl.elements'), sources: t('tl.sources'), storage: t('tl.storage'), perf: t('tl.perf'), coverage: t('tl.coverage'), a11y: t('tl.a11y'), profiler: t('tl.profiler'), seo: t('tl.seo'), server: t('tl.server'), components: t('tl.components'), renders: t('tl.renders'), raw: `${t('tl.raw')} (${all.length})`, stylelab: t('tl.stylelab') } as Record<PanelTab, string>
+  const labels = { state: t('tl.state'), overview: t('tl.overview'), timeline: t('tl.timeline'), network: t('tl.network'), console: t('tl.console'), elements: t('tl.elements'), sources: t('tl.sources'), storage: t('tl.storage'), perf: t('tl.perf'), coverage: t('tl.coverage'), a11y: t('tl.a11y'), profiler: t('tl.profiler'), seo: t('tl.seo'), server: t('tl.server'), components: t('tl.components'), renders: t('tl.renders'), raw: `${t('tl.raw')} (${all.length})`, stylelab: t('tl.stylelab') } as Record<PanelTab, string>
 
   const panelSide = useStore((x) => x.panelSide), dockOn = useStore((x) => x.dock !== 'off')
   // sekmeler arasi gecis yonu: yeni sekme ilerideyse sagdan, gerideyse soldan kayar
@@ -151,7 +152,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {snapshot && <div className="snapbar"><span>{t('snap.viewing', { n: snapshot.name })}</span><button className="btn sm" onClick={() => set({ snapshot: null, selectedEventId: null })}>{t('snap.close')}</button></div>}
       <ErrorBoundary label={tab}>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
-      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'stylelab' ? <Elements startTab="lab" /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
+      {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'stylelab' ? <Elements startTab="lab" /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'state' ? <StatePanel events={all} /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <div className="tl-body">
           <div className="tl-live"><LiveTraffic events={all} compact mode="activity" height={88} /></div>
           <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} onMenu={(e, x, y) => setMenu({ ev: e, x, y })} />

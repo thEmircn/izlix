@@ -1,12 +1,12 @@
 import { useRef, type ComponentType, type SVGProps } from 'react'
 import type { PanelTab } from './store'
-import { IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcStyle, IcTimeline } from './icons'
+import { IcA11y, IcComponents, IcConsole, IcCoverage, IcElements, IcNetwork, IcOverview, IcPerf, IcProfiler, IcRaw, IcRenders, IcSeo, IcServer, IcSources, IcStorage, IcStyle, IcTimeline, IcState } from './icons'
 import { Seg } from './ui'
 
 type Ic = ComponentType<SVGProps<SVGSVGElement>>
 export const RAIL_ICONS: Record<PanelTab, Ic> = {
   overview: IcOverview, stylelab: IcStyle, timeline: IcTimeline, network: IcNetwork, console: IcConsole, elements: IcElements, sources: IcSources, storage: IcStorage, perf: IcPerf,
-  coverage: IcCoverage, a11y: IcA11y, profiler: IcProfiler, seo: IcSeo, server: IcServer, components: IcComponents, renders: IcRenders, raw: IcRaw
+  coverage: IcCoverage, a11y: IcA11y, profiler: IcProfiler, seo: IcSeo, server: IcServer, components: IcComponents, renders: IcRenders, state: IcState, raw: IcRaw
 }
 
 /** Ray ogeleri: birden cok sekmesi olan gruplar panel basliginda alt sekmelerle acilir (16 ikon yerine 10 oge). */
@@ -15,7 +15,7 @@ export const RAIL_SETS: RailGroup[][] = [
   [{ tabs: ['timeline', 'raw'], icon: IcTimeline, label: 'timeline' }, { tabs: ['network'], icon: IcNetwork, label: 'network' }, { tabs: ['console'], icon: IcConsole, label: 'console' }],
   [{ tabs: ['elements', 'stylelab'], icon: IcElements, label: 'elements' }, { tabs: ['sources'], icon: IcSources, label: 'sources' }, { tabs: ['storage'], icon: IcStorage, label: 'storage' }],
   [{ tabs: ['perf', 'coverage', 'profiler'], icon: IcPerf, label: 'perf' }, { tabs: ['a11y', 'seo'], icon: IcA11y, label: 'quality' }],
-  [{ tabs: ['components', 'renders'], icon: IcComponents, label: 'react' }, { tabs: ['server'], icon: IcServer, label: 'server' }]
+  [{ tabs: ['components', 'renders', 'state'], icon: IcComponents, label: 'react' }, { tabs: ['server'], icon: IcServer, label: 'server' }]
 ]
 export const RAIL_GROUPS: RailGroup[] = RAIL_SETS.flat()
 export const groupOf = (tab: PanelTab): RailGroup | undefined => RAIL_GROUPS.find((g) => g.tabs.includes(tab))

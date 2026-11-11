@@ -6,8 +6,8 @@ import type { SessionInfo, BusEvent, DevToolsDock, Editor, Language, Settings, T
 import { translate, type Key } from '../shared/i18n'
 import type { PanelSide } from '../shared/layout'
 
-export type PanelTab = 'stylelab' | 'overview' | 'timeline' | 'network' | 'console' | 'elements' | 'sources' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'profiler' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
-export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'sources', 'storage', 'perf', 'coverage', 'a11y', 'profiler', 'seo', 'server', 'components', 'renders', 'raw', 'overview', 'stylelab']
+export type PanelTab = 'stylelab' | 'overview' | 'timeline' | 'network' | 'console' | 'elements' | 'sources' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'profiler' | 'seo' | 'server' | 'components' | 'renders' | 'state' | 'raw'
+export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'sources', 'storage', 'perf', 'coverage', 'a11y', 'profiler', 'seo', 'server', 'components', 'renders', 'state', 'raw', 'overview', 'stylelab']
 
 interface State {
   /** sekme duzeni: ustte yatay serit / solda dikey kenar cubugu (+ daraltilmis) */
