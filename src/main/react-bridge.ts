@@ -256,7 +256,7 @@ export const BRIDGE_SOURCE = String.raw`(() => {
     if (!f) return null;
     let idx = inspected.findIndex((x) => x === f || x === f.alternate);
     if (idx === -1) { window.__IZLIX_TREE__(); idx = inspected.findIndex((x) => x === f || x === f.alternate); }
-    return idx === -1 ? null : { id: idx, name: nameOf(f) };
+    return idx === -1 ? null : { id: idx, name: nameOf(f), t: typeIdOf(f), src: srcOf(f) };
   };
 
   let rid = 0, commitSeq = 0;

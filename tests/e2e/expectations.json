@@ -3799,5 +3799,77 @@
       "eq",
       true
     ]
+  ],
+  "ctxdev": [
+    [
+      "firstIsComponent",
+      "eq",
+      true
+    ],
+    [
+      "componentName",
+      "eq",
+      "App"
+    ],
+    [
+      "devActs",
+      "contains",
+      "openRoot"
+    ],
+    [
+      "devActs",
+      "contains",
+      "copySel"
+    ],
+    [
+      "hasNewTab",
+      "eq",
+      true
+    ],
+    [
+      "opened.file",
+      "contains",
+      "/src/App.tsx"
+    ],
+    [
+      "opened.editor",
+      "eq",
+      "vscode"
+    ],
+    [
+      "selector",
+      "eq",
+      "#load"
+    ],
+    [
+      "newTabAdded",
+      "eq",
+      true
+    ],
+    [
+      "split",
+      "eq",
+      2
+    ],
+    [
+      "lab",
+      "eq",
+      3
+    ],
+    [
+      "panel",
+      "eq",
+      "Elements"
+    ],
+    [
+      "shot",
+      "eq",
+      true
+    ],
+    [
+      "noComponentOnPlain",
+      "eq",
+      true
+    ]
   ]
 }

@@ -20,7 +20,8 @@ import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
 import { app, net, screen, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { execFile } from 'node:child_process'
 import { z } from 'zod'
 import { Ch, schemas } from '../shared/ipc'
 import type { Editor } from '../shared/events'
@@ -567,19 +568,7 @@ function registerIpc(): void {
   handle(Ch.dbgEval, schemas.dbgEval, ({ id, frameId, expression }) => dbg.evalOnFrame(id, frameId, expression))
   handle(Ch.overlay, schemas.overlay, ({ open }) => tabs.setOverlay(open))
   // Click-to-source: yalnizca source map'ten cozumlenmis dosyalar acilir
-  handle(Ch.sourceOpen, schemas.sourceOpen, async ({ file, line, column, editor }) => {
-    // Dosya yolu sayfanin source map'inden / derleme eklentisinden gelir (guvenilmez): yalnizca bilinen VE guvenilir bir kokun
-    // (Workspace klasoru, dev sunucusunun proje klasoru, demo) altindaki dosyalar editorde acilir.
-    const known = tabs.list().tabs.some((t) => {
-      const e = tabs.get(t.id)
-      if (!e?.cdp?.resolver.knownFiles.has(file)) return false
-      return isInsideAny([workspaces.get(e.info.workspaceId)?.rootDir, e.cdp.resolver.rootProvider?.(), join(samplesDir, 'demo-src')], file)
-    })
-    if (!known) return false
-    if (process.env.DB_SCRIPT) return true // testlerde editor baslatilmaz
-    await shell.openExternal(editorUrl(editor ?? 'vscode', file, line, column ?? 1))
-    return true
-  })
+  handle(Ch.sourceOpen, schemas.sourceOpen, ({ file, line, column, editor }) => openInEditor(file, line, column ?? 1, editor ?? 'vscode'))
 }
 
 async function pollServers(): Promise<void> {
@@ -681,15 +670,44 @@ async function pageOutput(wc: Electron.WebContents, mode: 'print' | 'pdf' | 'sav
 
 /** Sayfa sag-tik menusu: tanim shared/ctxmenu.ts'te, burada native menuye cevrilir */
 const viewSourceServer = new MockServer()
-async function showCtx(tabId: string, p: Electron.ContextMenuParams): Promise<void> {
+async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false): Promise<{ items: CtxItem[]; run: (it: CtxItem) => Promise<void> } | void> {
   const e = tabs.get(tabId); if (!e) return
   const wc = e.view.webContents, owner = shellWins.get(e.winId) ?? win
   const engine = engineById(settings.get().searchEngine)
-  const items = buildCtxMenu({ ...p, pageURL: wc.getURL(), canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), editFlags: p.editFlags })
+  const url0 = wc.getURL()
+  // sayfa baglami: sagtiklanan ogenin React bileseni, proje klasoru, yuklu tarayicilar
+  const probe = /^https?:/.test(url0) ? await probeAt(wc, p.x, p.y) : null
+  const root = e.cdp?.resolver.rootProvider?.() ?? workspaces.get(e.info.workspaceId)?.rootDir ?? null
+  const editorLabel = EDITOR_LABEL[settings.get().editor ?? 'vscode'] ?? 'VS Code'
+  const items = buildCtxMenu({ ...p, pageURL: url0, canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), editFlags: p.editFlags,
+    extra: { component: probe?.comp?.name, editorLabel, hasRoot: !!root, chrome: existsSync('/Applications/Google Chrome.app'), windows: tabs.windowIds().length, hasSelector: !!probe?.sel } })
   const open = (url: string, priv?: 'incognito' | 'tor'): void => { void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...((priv ?? e.info.private) ? { private: priv ?? e.info.private } : {}) }) }
   const run = async (it: CtxItem): Promise<void> => {
     const a = it.arg ?? ''
     switch (it.act) {
+      case 'newTab': open('', undefined); break
+      case 'newWindow': void openWindow(); break
+      case 'linkSplit': void tabs.create({ url: a, workspaceId: e.info.workspaceId, winId: e.winId, activate: false, ...(e.info.private ? { private: e.info.private } : {}) }).then((nid) => { tabs.inWin(e.winId, () => tabs.setSplit(nid)) }); break
+      case 'linkOtherWin': { const other = tabs.windowIds().find((w) => w !== e.winId); if (other !== undefined) void tabs.create({ url: a, workspaceId: e.info.workspaceId, winId: other, ...(e.info.private ? { private: e.info.private } : {}) }); break }
+      case 'component': {
+        const c = probe?.comp; if (!c) break
+        const resolver = e.cdp?.resolver; let loc: { file: string; line: number; column: number } | null = null
+        if (resolver && c.t !== undefined) loc = c.src ? resolver.setPrecise(c.t, c.name, c.src) : await resolver.resolveType(c.t, c.name).catch(() => null)
+        const ok = loc ? await openInEditor(loc.file, loc.line, loc.column, settings.get().editor ?? 'vscode') : false
+        if (!ok && root) await openInEditor0(root) // kaynak cozulemediyse proje klasorunu ac
+        break
+      }
+      case 'openRoot': if (root) await openInEditor0(root); break
+      case 'inspectEl': {
+        owner.webContents.send(Ch.cmd, 'inspect.elements'); await new Promise((r) => setTimeout(r, 600))
+        if (probe?.backendNodeId !== undefined) send(Ch.dtEvent, { id: tabId, method: 'Overlay.inspectNodeRequested', params: { backendNodeId: probe.backendNodeId } })
+        break
+      }
+      case 'copySel': if (probe?.sel) clipboard.writeText(probe.sel); break
+      case 'lab': void tabs.setLab(tabId, ['iphone-se', 'iphone-15', 'ipad-mini']); break
+      case 'shotView': case 'shotFull': { const png = await captureShot(wc, it.act === 'shotFull' ? 'full' : 'viewport'); if (png) { mkdirSync(app.getPath('downloads'), { recursive: true }); const f = uniquePath(app.getPath('downloads'), shotName(url0)); writeFileSync(f, png); if (!process.env.DB_SCRIPT) shell.showItemInFolder(f); lastShot = f } break }
+      case 'openChrome': execFile('open', ['-a', 'Google Chrome', url0]); break
+      case 'openSafari': execFile('open', ['-a', 'Safari', url0]); break
       case 'back': wc.navigationHistory.goBack(); break
       case 'forward': wc.navigationHistory.goForward(); break
       case 'reload': wc.reload(); break
@@ -719,9 +737,58 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams): Promise<vo
       }
     }
   }
-  const label = (it: CtxItem): string => it.act === 'suggest' ? (it.arg ?? '') : it.act === 'addWord' ? tr('cm.addWord') : it.act === 'search' ? tr('cm.search', { engine: engine.label, q: (it.arg ?? '').slice(0, 30) }) : tr((it.label ?? `cm.${it.act}`) as Key)
-  const tpl: Electron.MenuItemConstructorOptions[] = items.map((it) => (it.sep ? { type: 'separator' as const } : { label: label(it), enabled: it.enabled !== false, ...(it.act === 'suggest' ? { } : {}), click: () => void run(it) }))
+  const label = (it: CtxItem): string => it.label === 'cm.dev' ? tr('cm.dev') : it.act === 'component' ? tr('cm.component', { name: it.vars?.name ?? '', editor: it.vars?.editor ?? '' }) : it.act === 'openRoot' ? tr('cm.openRoot', { editor: it.vars?.editor ?? '' }) : it.act === 'suggest' ? (it.arg ?? '') : it.act === 'addWord' ? tr('cm.addWord') : it.act === 'search' ? tr('cm.search', { engine: engine.label, q: (it.arg ?? '').slice(0, 30) }) : tr((it.label ?? `cm.${it.act}`) as Key)
+  const conv = (list: CtxItem[]): Electron.MenuItemConstructorOptions[] => list.map((it) => (it.sep ? { type: 'separator' as const } : it.submenu ? { label: label(it), submenu: conv(it.submenu) } : { label: label(it), enabled: it.enabled !== false, click: () => void run(it) }))
+  if (dry) return { items, run } // testler: native menu acmadan maddeleri ve eylemleri dogrudan dene
+  const tpl = conv(items)
   Menu.buildFromTemplate(tpl).popup({ window: owner })
+}
+
+/** Dosya yolu sayfanin source map'inden / derleme eklentisinden gelir (guvenilmez): yalnizca bilinen VE guvenilir bir kokun
+ *  (Workspace klasoru, dev sunucusunun proje klasoru, demo) altindaki dosyalar editorde acilir. */
+async function openInEditor(file: string, line: number, column: number, editor: Editor): Promise<boolean> {
+  const known = tabs.list().tabs.some((t) => {
+    const e = tabs.get(t.id)
+    if (!e?.cdp?.resolver.knownFiles.has(file)) return false
+    return isInsideAny([workspaces.get(e.info.workspaceId)?.rootDir, e.cdp.resolver.rootProvider?.(), join(samplesDir, 'demo-src')], file)
+  })
+  if (!known) return false
+  if (process.env.DB_SCRIPT) { lastEditorOpen = { file, line, column, editor }; return true } // testlerde editor baslatilmaz
+  await shell.openExternal(editorUrl(editor, file, line, column))
+  return true
+}
+let lastEditorOpen: { file: string; line: number; column: number; editor: string } | null = null
+const EDITOR_LABEL: Record<string, string> = { vscode: 'VS Code', cursor: 'Cursor', webstorm: 'WebStorm' }
+
+/** Klasoru editorde ac (yalnizca kendi tespit ettigimiz proje/Workspace klasoru) */
+async function openInEditor0(dir: string): Promise<void> {
+  const ed = settings.get().editor ?? 'vscode'
+  if (process.env.DB_SCRIPT) { lastEditorOpen = { file: dir, line: 1, column: 1, editor: ed }; return }
+  await shell.openExternal(editorUrl(ed, dir, 1, 1))
+}
+let lastShot: string | null = null
+
+/** Sag tik noktasindaki oge: en yakin React bileseni (+ kaynak) ve CSS secici. DOM/Runtime CDP uzerinden; 300 ms'de donmezse yok sayilir. */
+const CTX_PROBE_FN = `function () {
+  const el = this.nodeType === 1 ? this : this.parentElement; if (!el) return null
+  const comp = window.__IZLIX_INDEX_OF__ ? window.__IZLIX_INDEX_OF__(el) : null
+  const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : s)
+  let sel = ''
+  if (el.id) sel = '#' + esc(el.id)
+  else { const parts = []; for (let n = el, i = 0; n && n.nodeType === 1 && i < 5 && n !== document.documentElement; n = n.parentElement, i++) { let s = n.tagName.toLowerCase(); if (n.id) { parts.unshift('#' + esc(n.id)); break } const p = n.parentElement; if (p) { const same = [...p.children].filter((c) => c.tagName === n.tagName); if (same.length > 1) s += ':nth-of-type(' + (same.indexOf(n) + 1) + ')' } parts.unshift(s) } sel = parts.join(' > ') }
+  return { comp: comp, sel: sel }
+}`
+interface Probe { comp?: { id: number; name: string; t?: number; src?: string }; sel?: string; backendNodeId?: number }
+async function probeAt(wc: Electron.WebContents, x: number, y: number): Promise<Probe | null> {
+  const run = async (): Promise<Probe | null> => {
+    const loc: any = await wc.debugger.sendCommand('DOM.getNodeForLocation', { x: Math.round(x), y: Math.round(y), includeUserAgentShadowDOM: false })
+    const r: any = await wc.debugger.sendCommand('DOM.resolveNode', { backendNodeId: loc.backendNodeId })
+    const objectId = r.object?.objectId; if (!objectId) return null
+    const res: any = await wc.debugger.sendCommand('Runtime.callFunctionOn', { objectId, returnByValue: true, functionDeclaration: CTX_PROBE_FN })
+    void wc.debugger.sendCommand('Runtime.releaseObject', { objectId }).catch(() => {})
+    const v = res.result?.value; return v ? { comp: v.comp ?? undefined, sel: v.sel || undefined, backendNodeId: loc.backendNodeId } : null
+  }
+  try { return await Promise.race([run(), new Promise<null>((r) => setTimeout(() => r(null), 300))]) } catch { return null }
 }
 
 /** Kabuk penceresi kapaniyorsa sekmeleri kalan pencereye tasir (uygulama kapanirken oturum bozulmasin diye atlanir) */
@@ -831,6 +898,7 @@ async function createWindow(): Promise<void> {
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
       newTab, openWindow, shellWins, passwords, cardState, recorder,
+      ctxPrepare: (id: string, params: Partial<Electron.ContextMenuParams>) => showCtx(id, { x: 20, y: 20, ...params } as Electron.ContextMenuParams, true), editorOpens: () => lastEditorOpen, lastShot: () => lastShot, resetCtx: () => { lastEditorOpen = null; lastShot = null },
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
       pageEval: (code: string): Promise<any> => tabs.active()!.view.webContents.executeJavaScript(code),

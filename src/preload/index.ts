@@ -70,7 +70,7 @@ export const api = {
   showDownload: (id: string) => call(Ch.downloadShow, { id }),
   onLibrary: sub(Ch.libState),
   getSettings: () => call(Ch.settingsGet),
-  setSettings: (p: { telemetry?: string; onboarded?: boolean; language?: string; autoOpen?: boolean; searchEngine?: string; searchSuggest?: boolean; adblock?: string; adblockAllow?: string[]; ambient?: boolean; stripTracking?: boolean; httpsOnly?: boolean; spellcheck?: boolean; cookieBanners?: boolean; sleepMinutes?: number }) => call(Ch.settingsSet, p),
+  setSettings: (p: { telemetry?: string; onboarded?: boolean; language?: string; autoOpen?: boolean; searchEngine?: string; searchSuggest?: boolean; adblock?: string; adblockAllow?: string[]; ambient?: boolean; stripTracking?: boolean; editor?: string; httpsOnly?: boolean; spellcheck?: boolean; cookieBanners?: boolean; sleepMinutes?: number }) => call(Ch.settingsSet, p),
   track: (name: string, props?: Record<string, string | number | boolean>) => call(Ch.track, { name, props }),
   openDemo: () => call(Ch.demoOpen),
   onSettings: sub(Ch.settingsState),

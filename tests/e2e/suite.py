@@ -10,7 +10,9 @@ EXP = json.load(open(os.path.join(ROOT, 'expectations.json')))
 
 def get(obj, path):
     for part in re.findall(r'[^.\[\]]+|\[\d+\]', path):
-        if part.startswith('['): obj = obj[int(part[1:-1])]
+        if part.startswith('['):
+            try: obj = obj[int(part[1:-1])]
+            except (IndexError, TypeError, KeyError): return None
         else: obj = obj.get(part) if isinstance(obj, dict) else None
         if obj is None: return None
     return obj

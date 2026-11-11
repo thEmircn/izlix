@@ -20,6 +20,6 @@ module.exports = async ({ tabs, sleep, shellEval, bus }) => {
   await tab('Performance'); await sleep(1500)
   out.cards = await shellEval(`[...document.querySelectorAll('.vcard .vnum')].map(e=>e.innerText.replace(/\\s+/g,''))`)
   await tab('A11y'); await sleep(2500)
-  out.a11y = await shellEval(`[...document.querySelectorAll('.a11y .stat b')].map(e=>e.innerText)`)
+  out.a11y = await shellEval(`[...document.querySelectorAll('.a11y .stat b')].map(e=>e.querySelector('.roll')?.getAttribute('aria-label') ?? e.innerText)`)
   return out
 }

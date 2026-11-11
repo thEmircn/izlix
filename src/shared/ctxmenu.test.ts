@@ -5,8 +5,8 @@ const acts = (l: CtxItem[]): string[] => l.map((x) => (x.sep ? '-' : (x.act ?? x
 describe('buildCtxMenu', () => {
   it('bos sayfa: gezinme + sayfa eylemleri + kaynak/inceleme; ayirac duzgun', () => {
     const l = buildCtxMenu({ pageURL: 'https://a.com/', canGoBack: true })
-    expect(acts(l)).toEqual(['back', 'forward', 'reload', '-', 'savePage', 'print', 'savePdf', 'translate', 'qr', '-', 'viewSource', 'inspect'])
-    expect(l[0].enabled).toBe(true); expect(l[1].enabled).toBe(false)
+    expect(acts(l)).toEqual(['newTab', 'newWindow', '-', 'back', 'forward', 'reload', '-', 'savePage', 'print', 'savePdf', 'translate', 'qr', '-', 'cm.dev', '-', 'viewSource', 'inspect'])
+    const b = l.filter((x) => x.act === 'back' || x.act === 'forward'); expect(b[0].enabled).toBe(true); expect(b[1].enabled).toBe(false)
   })
   it('baglanti: yeni sekme/gizli/kopyala; yalniz http(s)', () => {
     expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', linkURL: 'https://b.com/x' }))).toContain('linkNewTab')
@@ -25,5 +25,21 @@ describe('buildCtxMenu', () => {
   })
   it('dosya/about sayfasinda sayfa eylemleri yok', () => {
     expect(acts(buildCtxMenu({ pageURL: 'about:blank' }))).not.toContain('print')
+  })
+  it('React bileseni bulunursa en ustte editorde ac; adlandirma degiskenleri', () => {
+    const l = buildCtxMenu({ pageURL: 'https://a.com/', extra: { component: 'PayButton', editorLabel: 'Cursor' } })
+    expect(l[0]).toMatchObject({ act: 'component', vars: { name: 'PayButton', editor: 'Cursor' } })
+    expect(buildCtxMenu({ pageURL: 'https://a.com/' }).some((x) => x.act === 'component')).toBe(false)
+  })
+  it('gelistirici alt menusu: proje klasoru ve Chrome yalniz varsa; secici kopyalama etkinligi', () => {
+    const dev = (x: any) => buildCtxMenu({ pageURL: 'http://localhost:5173/', extra: x }).find((i) => i.label === 'cm.dev')!.submenu!
+    const a = dev({ hasRoot: true, chrome: true, hasSelector: true }).map((i) => i.act ?? '-')
+    expect(a).toEqual(['inspectEl', 'copySel', 'openRoot', '-', 'lab', 'shotView', 'shotFull', '-', 'openChrome', 'openSafari'])
+    const b = dev({}).map((i) => i.act ?? '-'); expect(b).not.toContain('openRoot'); expect(b).not.toContain('openChrome')
+    expect(dev({}).find((i) => i.act === 'copySel')!.enabled).toBe(false)
+  })
+  it('baglantida bolunmus gorunumde ac; ikinci pencere varsa diger pencerede ac', () => {
+    const a = (w: number) => acts(buildCtxMenu({ pageURL: 'https://a.com/', linkURL: 'https://b.com/', extra: { windows: w } }))
+    expect(a(1)).toContain('linkSplit'); expect(a(1)).not.toContain('linkOtherWin'); expect(a(2)).toContain('linkOtherWin')
   })
 })

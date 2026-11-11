@@ -7,7 +7,7 @@ module.exports = async ({ tabs, sleep, shellEval, pageEval, bus }) => {
   out.names = [...new Set(names)]
   await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='Performance').click()`); await sleep(1200)
   out.cards = await shellEval(`[...document.querySelectorAll('.vcard .vname')].map(e=>e.textContent)`)
-  out.tbt = await shellEval(`document.querySelector('.net-stats .stat b').textContent`)
+  out.tbt = await shellEval(`(()=>{const b=document.querySelector('.net-stats .stat b'); return b.querySelector('.roll')?.getAttribute('aria-label') ?? b.textContent})()`)
   out.tasks = await shellEval(`document.querySelectorAll('.task').length`)
   return out
 }

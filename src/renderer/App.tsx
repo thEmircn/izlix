@@ -119,6 +119,7 @@ export function App() {
           case 'rec.toggle': { if (st.rec.recording) void api.recStop().then((steps: any) => st.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' })); else void api.recStart(); break }
           case 'rec.open': st.set({ overlay: 'recorder' }); break
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
+          case 'inspect.elements': st.set({ panelTab: 'elements', panelOpen: true, dashboard: false }); break
           case 'history.open': st.set({ overlay: 'history' }); break
           case 'site.open': st.set({ overlay: 'site' }); break
           case 'page.print': void api.printPage('print'); break
@@ -143,6 +144,7 @@ export function App() {
     return () => { offs.forEach((f) => f()); clearInterval(t); window.removeEventListener('resize', onResize) }
   }, [])
 
+  useEffect(() => { void window.izlix.setSettings({ editor: s.editor }) }, [s.editor])
   useEffect(() => { void window.izlix.getSettings().then((st: any) => { useStore.getState().set({ settings: st, ...(st.onboarded ? {} : { overlay: 'welcome' as const }) }) }) }, [])
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])

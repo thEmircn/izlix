@@ -11,7 +11,7 @@ module.exports = async ({ tabs, sleep, click, shellEval, pageEval }) => {
   out.indicatorMoved = (await ind()) !== i0
   out.rows = await shellEval(`document.querySelectorAll('.net-row').length`)
   out.has500 = await shellEval(`[...document.querySelectorAll('.net-row .pill')].some(p=>p.textContent==='500')`)
-  out.errorsStat = await shellEval(`document.querySelector('.net-stats .stat:last-child b').textContent`)
+  out.errorsStat = await shellEval(`(()=>{const b=document.querySelector('.net-stats .stat:last-child b'); return b.querySelector('.roll')?.getAttribute('aria-label') ?? b.textContent})()`)
   await shellEval(`[...document.querySelectorAll('.net-row')].find(r=>r.querySelector('.pill.server')).click()`); await sleep(600)
   out.drawer = await shellEval(`!!document.querySelector('.drawer')`)
   out.headersShown = await shellEval(`document.querySelector('.drawer-b').innerText.includes('Content-Length')`)
