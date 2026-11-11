@@ -404,6 +404,10 @@ function registerIpc(): void {
     const on = library.toggleBookmark(e.info.workspaceId, e.view.webContents.getURL(), e.view.webContents.getTitle())
     pushLibrary(); return on
   })
+  handle(Ch.downloadAct, schemas.downloadAct, ({ id, act }) => {
+    switch (act) { case 'pause': return downloads.pause(id); case 'resume': return downloads.resume(id); case 'cancel': return downloads.cancel(id)
+      case 'open': downloads.open(id); return true; case 'show': downloads.show(id); return true; case 'remove': return downloads.remove(id); case 'clear': return downloads.clearDone() > 0 }
+  })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.settingsGet, null, () => settings.get())
   handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.spellcheck !== undefined) tabs.each((wc) => wc.session.setSpellCheckerEnabled(p.spellcheck!)); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.language && p.language !== before) installMenu((cmd) => sendFocused(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })

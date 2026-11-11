@@ -30,7 +30,7 @@ interface State {
   bookmarks: Record<string, { url: string; title: string }[]>
   /** site ikonlari: kaynak anahtari -> data URL */
   favicons: Record<string, string>
-  downloads: { id: string; name: string; received: number; total: number; state: string }[]
+  downloads: import('../shared/events').DlInfo[]
   panelTab: PanelTab
   /** Sag panel acik mi / tam ekran dashboard acik mi */
   panelOpen: boolean; dashboard: boolean; panelSide: PanelSide
@@ -48,7 +48,7 @@ interface State {
   preserveLog: boolean
   toasts: { id: number; text: string }[]
   find: { open: boolean; active: number; total: number }
-  overlay: 'session' | 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | 'shortcuts' | 'marker' | 'site' | 'history' | 'bookmarks' | 'qr' | 'recorder' | 'tabsearch' | null
+  overlay: 'session' | 'palette' | 'rules' | 'welcome' | 'rename' | 'settings' | 'shortcuts' | 'marker' | 'site' | 'history' | 'bookmarks' | 'qr' | 'recorder' | 'tabsearch' | 'downloads' | null
   settings: Settings
   set(p: Partial<State>): void
   ingest(batch: BusEvent[]): void

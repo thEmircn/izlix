@@ -63,6 +63,7 @@ export const api = {
   heapSnapshot: () => call(Ch.heapSnap) as Promise<{ file: string; mb: number } | null>,
   lanInfo: (id: string) => call(Ch.lanInfo, { id }) as Promise<{ url: string; ip: string; reachable: boolean } | null>,
   tabsSearch: (q: string) => call(Ch.tabsSearch, { q }) as Promise<import('../shared/tabsearch').TabHit[]>,
+  downloadAct: (id: string, act: 'pause' | 'resume' | 'cancel' | 'open' | 'show' | 'remove' | 'clear') => call(Ch.downloadAct, { id, act }) as Promise<boolean>,
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,

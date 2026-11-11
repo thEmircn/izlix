@@ -4065,5 +4065,72 @@
       "eq",
       true
     ]
+  ],
+  "dlmanager": [
+    [
+      "started",
+      "eq",
+      true
+    ],
+    [
+      "hasUrl",
+      "eq",
+      true
+    ],
+    [
+      "row",
+      "eq",
+      true
+    ],
+    [
+      "paused",
+      "eq",
+      true
+    ],
+    [
+      "stillWhilePaused",
+      "eq",
+      true
+    ],
+    [
+      "resumeBtn",
+      "eq",
+      true
+    ],
+    [
+      "resumed",
+      "eq",
+      true
+    ],
+    [
+      "completed",
+      "eq",
+      true
+    ],
+    [
+      "cancelled",
+      "eq",
+      true
+    ],
+    [
+      "cancelState",
+      "eq",
+      "cancelled"
+    ],
+    [
+      "removed",
+      "eq",
+      true
+    ],
+    [
+      "removedGone",
+      "eq",
+      true
+    ],
+    [
+      "cleared",
+      "eq",
+      true
+    ]
   ]
 }

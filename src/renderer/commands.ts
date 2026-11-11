@@ -19,6 +19,7 @@ export function buildCommands(): Command[] {
     { id: 'rec.toggle', title: t(s.rec.recording ? 'rec.stop' : 'rec.start'), run: () => { if (s.rec.recording) void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' })); else void api.recStart() } },
     ...(s.rec.steps.length && !s.rec.recording ? [{ id: 'rec.open', title: t('rec.last'), run: () => s.set({ overlay: 'recorder' }) }] : []),
     { id: 'tabsearch.open', title: t('menu.findAllTabs'), hint: '⇧⌘F', run: () => s.set({ overlay: 'tabsearch' }) },
+    { id: 'downloads.open', title: t('menu.downloads'), hint: '⇧⌘J', run: () => s.set({ overlay: 'downloads' }) },
     { id: 'history.open', title: t('menu.history'), hint: '⌘Y', run: () => s.set({ overlay: 'history' }) },
     { id: 'win.new', title: t('cmd.newWindow'), hint: '⌘N', run: () => void api.newWindow() },
     { id: 'tab.newPrivate', title: t('cmd.newPrivate'), hint: '⇧⌘N', run: () => void api.createTab(undefined, 'incognito') },

@@ -69,6 +69,7 @@ export interface WorkspaceInfo {
   servers: { port: number; framework?: string }[]
 }
 
+export interface DlInfo { id: string; name: string; path: string; received: number; total: number; state: 'progressing' | 'completed' | 'cancelled' | 'interrupted'; url?: string; paused?: boolean; startedAt?: number; speed?: number; missing?: boolean }
 export type Editor = 'vscode' | 'cursor' | 'webstorm'
 export type DevToolsDock = 'right' | 'bottom' | 'off'
 

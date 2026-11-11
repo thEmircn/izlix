@@ -7,6 +7,7 @@ import { SiteSettings } from './SiteSettings'
 import { HistoryPage } from './HistoryPage'
 import { QrDialog } from './QrDialog'
 import { TabSearch } from './TabSearch'
+import { DownloadsPage } from './DownloadsPage'
 import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
@@ -122,6 +123,7 @@ export function App() {
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'inspect.elements': st.set({ panelTab: 'elements', panelOpen: true, dashboard: false }); break
           case 'tabsearch.open': st.set({ overlay: 'tabsearch' }); break
+          case 'downloads.open': st.set({ overlay: 'downloads' }); break
           case 'history.open': st.set({ overlay: 'history' }); break
           case 'site.open': st.set({ overlay: 'site' }); break
           case 'page.print': void api.printPage('print'); break
@@ -294,7 +296,7 @@ export function App() {
           </span>
         )}
         {s.downloads.length > 0 && (
-          <button className="chip" title={s.downloads.map((d) => `${d.name} (${d.state})`).join('\n')} onClick={() => s.set({ overlay: 'palette' })}>
+          <button className="chip" title={s.downloads.map((d) => `${d.name} (${d.state})`).join('\n')} onClick={() => s.set({ overlay: 'downloads' })}>
             <Download />{' '}{busyDl ? t('dl.busy', { n: busyDl }) : t('dl.count', { n: s.downloads.length })}
           </button>
         )}
@@ -344,6 +346,7 @@ export function App() {
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'recorder' && <RecorderDialog onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'qr' && active && <QrDialog tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'downloads' && <DownloadsPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'tabsearch' && <TabSearch onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'bookmarks' && <BookmarkManager onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'history' && <HistoryPage onClose={() => s.set({ overlay: null })} />}
