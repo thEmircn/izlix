@@ -4,14 +4,14 @@
 
 <p align="center">
   <a href="https://github.com/thEmircn/izlix/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/thEmircn/izlix/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS-1d1d20?style=flat-square&logo=apple&logoColor=white">
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-1d1d20?style=flat-square">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-1d1d20?style=flat-square&logo=electron&logoColor=47848f">
   <img alt="react" src="https://img.shields.io/badge/React-18%20%26%2019-1d1d20?style=flat-square&logo=react&logoColor=61dafb">
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-ff6a2b?style=flat-square">
   <img alt="status" src="https://img.shields.io/badge/status-alpha-ff6a2b?style=flat-square">
 </p>
 
-**Izlix** (from the old Turkic *iz*, "trace") is a **React-aware development browser** for macOS. When something breaks, you see *why*: the click, the request it fired, the response, the state change and the render that followed are drawn on **one timeline with cause arrows**. Click any component, render, error or request and the source file opens at the exact line in your editor.
+**Izlix** (from the old Turkic *iz*, "trace") is a **React-aware development browser** for macOS, Windows and Linux. When something breaks, you see *why*: the click, the request it fired, the response, the state change and the render that followed are drawn on **one timeline with cause arrows**. Click any component, render, error or request and the source file opens at the exact line in your editor.
 
 <p align="center">
   <img src="docs/assets/demo.gif" alt="A click becomes a request, a response and a render on the timeline" width="62%">
@@ -132,7 +132,7 @@ flowchart LR
 - **Unsigned, no auto-update.** Chromium security fixes arrive only when you update Electron (`npm run update-electron`). The app checks and tells you.
 - No extension store, passkeys or Widevine DRM (Netflix, Spotify web) with stock Electron.
 - The malware and look-alike warning is **not** Google Safe Browsing; its coverage is narrower.
-- macOS only.
+- Some features use macOS-only services for now (Keychain, iCloud Drive sync, read-aloud). See Platform support.
 
 ## Security
 
@@ -140,7 +140,7 @@ Pages run in sandboxed views with no preload and cannot reach IPC. Camera, micro
 
 ## Türkçe özet
 
-**Izlix**, React geliştiricisi için macOS'ta çalışan bir geliştirici tarayıcısıdır. Adı Eski Türkçe *iz* kelimesinden gelir. Bir hatanın sebebini tıklamadan render'a kadar **tek zaman çizelgesinde** görürsünüz, kaynağını tek tıkla editörünüzde açarsınız, backend'e dokunmadan istekleri değiştirirsiniz. Alfa sürümdür; Google hesabı girişi, imzalı sürüm ve otomatik güncelleme henüz yok.
+**Izlix**, React geliştiricisi için macOS, Windows ve Linux'ta çalışan bir geliştirici tarayıcısıdır. Adı Eski Türkçe *iz* kelimesinden gelir. Bir hatanın sebebini tıklamadan render'a kadar **tek zaman çizelgesinde** görürsünüz, kaynağını tek tıkla editörünüzde açarsınız, backend'e dokunmadan istekleri değiştirirsiniz. Alfa sürümdür; Google hesabı girişi, imzalı sürüm ve otomatik güncelleme henüz yok.
 
 ## License
 

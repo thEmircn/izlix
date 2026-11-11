@@ -28,7 +28,7 @@
   <rect x=".5" y=".5" width="1199" height="359" rx="23.5" fill="none" stroke="#ffffff" stroke-opacity=".1"/>
   <text x="64" y="150" class="title">Izlix<tspan class="cursor" fill="#ff6a2b">_</tspan></text>
   <text x="66" y="196" class="tag">Follow the trace, from click to render.</text>
-  <text x="66" y="232" class="tag" style="font-size:17px">A React-aware development browser for macOS.</text>
+  <text x="66" y="232" class="tag" style="font-size:17px">A React-aware development browser for macOS, Windows and Linux.</text>
   <text x="66" y="300" class="lbl mono">CAUSE · EFFECT · SOURCE</text>
   <circle class="pulse" cx="1010" cy="150" r="70" fill="url(#glow)"/>
   <g transform="translate(560 60)">
