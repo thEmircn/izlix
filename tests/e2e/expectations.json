@@ -3004,5 +3004,37 @@
       "contains",
       "gclid=1"
     ]
+  ],
+  "consent": [
+    [
+      "rejected",
+      "gte",
+      1
+    ],
+    [
+      "neverAccepts",
+      "eq",
+      true
+    ],
+    [
+      "generic",
+      "eq",
+      1
+    ],
+    [
+      "cssHides",
+      "eq",
+      "none"
+    ],
+    [
+      "scrollUnlocked",
+      "eq",
+      "auto"
+    ],
+    [
+      "offUntouched",
+      "eq",
+      true
+    ]
   ]
 }
