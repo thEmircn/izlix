@@ -23,6 +23,14 @@
 
 ---
 
+## Quick start
+
+1. Grab a build from the [Releases page](https://github.com/thEmircn/izlix/releases): **Izlix Browser** (a ready-to-run browser with Izlix built in) or **Izlix for Chrome** (the extension).
+2. Open your React app on `localhost`.
+3. Click the Izlix button in the toolbar. Click something in your app and watch the click, request, response and render appear on the timeline with arrows between them.
+
+Builds are unsigned alpha builds; see the notes on each release for the first-launch steps on your OS.
+
 ## See · Find · Change
 
 <table>

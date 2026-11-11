@@ -2,7 +2,7 @@
 
 All notable changes to Izlix are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.1.0-alpha.2] - 2026-11-12
 
 ### Added
 - Izlix UI component package (`packages/ui`): Button, Switch, Chip, Field, Dialog, PromptDialog, Segmented, with a gallery.
@@ -16,6 +16,8 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Chrome extension: the toolbar button now opens the side panel natively and tracing starts when the panel opens; the panel follows the active tab.
 - Design tokens and motion preferences moved into one file; "reduce motion" is respected.
 - Every legacy button now uses the new button look and press behavior.
+
+## [Unreleased]
 
 ## [0.1.0-alpha.1] - 2026-11-11
 
