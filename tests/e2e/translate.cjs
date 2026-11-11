@@ -6,12 +6,12 @@ module.exports = async ({ tabs, sleep, shellEval }) => {
   const info = () => tabs.list().tabs.find((t) => t.id === id)
   out.lang = info().lang
   out.chip = await shellEval(`[...document.querySelectorAll('.transchip')].map(c=>c.textContent)`)
-  await shellEval(`window.izlix.translateTab('${id}')`); await sleep(600)
+  await shellEval(`window.izlix.translateTab('${id}')`); for (let i = 0; i < 40 && !tabs.get(id).view.webContents.getURL().startsWith('https://translate.google.com'); i++) await sleep(200)
   out.fromSet = info().translatedFrom
   out.goesToTranslate = tabs.get(id).view.webContents.getURL().startsWith('https://translate.google.com/translate?') || info().url.startsWith('https://translate.google.com')
   out.targetLang = new URL(tabs.get(id).view.webContents.getURL() || 'http://x').searchParams.get('tl')
   out.originalChip = await shellEval(`[...document.querySelectorAll('.transchip.on')].length`)
-  await shellEval(`window.izlix.translateTab('${id}', true)`); await sleep(1800)
+  await shellEval(`window.izlix.translateTab('${id}', true)`); for (let i = 0; i < 50 && !(info().url === 'http://localhost:5421/de' && info().translatedFrom === undefined); i++) await sleep(200)
   out.backOriginal = info().url === 'http://localhost:5421/de'
   out.fromCleared = info().translatedFrom === undefined
   // uygulama dilindeki sayfada oneri yok
