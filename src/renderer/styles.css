@@ -1,10 +1,5 @@
-:root {
-  color-scheme: dark;
-  --bg: #0a0a0b; --bg2: #0f0f11; --panel: #111113; --card: #141417; --raise: #1a1a1d; --hover: rgba(255,255,255,.06);
-  --line: rgba(255,255,255,.07); --line2: rgba(255,255,255,.14);
-  --fg: #ededee; --dim: #8b8b92; --accent: #ff6a2b; --ac: #ff6a2b; --ac-soft: rgba(255,106,43,.14); --ok: #5ad08a; --warn: #f5b83d; --bad: #ff5c5c;
-  --r: 12px; --ease: cubic-bezier(.2,.8,.2,1); --mono: ui-monospace, 'SF Mono', Menlo, monospace;
-}
+@import './design/tokens.css';
+@import './design/motion.css';
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body { font: 12px/1.45 -apple-system, 'SF Pro Text', ui-sans-serif, sans-serif; color: var(--fg); background: var(--bg); overflow: hidden; -webkit-font-smoothing: antialiased; }
@@ -616,14 +611,6 @@ h4.sec { font: 500 10px var(--mono); letter-spacing: .09em; margin: 16px 12px 6p
 /* ============================================================
    TASARIM v4 — cam (vibrancy + buzlu yuzeyler), su dalgasi, yayli hareket
    ============================================================ */
-:root {
-  --g1: rgba(255,255,255,.045); --g2: rgba(255,255,255,.08); --g3: rgba(255,255,255,.13);
-  --g-brd: rgba(255,255,255,.10); --g-brd2: rgba(255,255,255,.18);
-  --g-hi: inset 0 1px 0 rgba(255,255,255,.09);
-  --shadow-s: 0 4px 14px rgba(0,0,0,.28); --shadow-l: 0 22px 60px rgba(0,0,0,.5);
-  --spring: cubic-bezier(.34,1.56,.64,1);
-  --panel: rgba(22,22,26,.92); --card: rgba(255,255,255,.04); --line: rgba(255,255,255,.08); --raise: rgba(255,255,255,.08); --bg2: rgba(0,0,0,.22);
-}
 html, body, #root { background: transparent; }
 body { background: radial-gradient(1100px 650px at 100% 100%, rgba(255,106,43,.055), transparent 62%), rgba(9,9,12,.84); }
 

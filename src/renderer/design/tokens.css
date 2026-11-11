@@ -1,0 +1,27 @@
+/* Izlix tasarim belirtecleri (tek kaynak). Renk, yuzey, golge, yaricap ve hareket degerleri burada tanimlanir;
+   bilesen stilleri yalnizca var(--...) kullanir. Degisiklikten sonra `python3 tests/e2e/suite.py visual` ile gorsel farki dogrula. */
+
+/* -- temel palet (koyu) -- */
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0b; --bg2: #0f0f11; --panel: #111113; --card: #141417; --raise: #1a1a1d; --hover: rgba(255,255,255,.06);
+  --line: rgba(255,255,255,.07); --line2: rgba(255,255,255,.14);
+  --fg: #ededee; --dim: #8b8b92; --accent: #ff6a2b; --ac: #ff6a2b; --ac-soft: rgba(255,106,43,.14); --ok: #5ad08a; --warn: #f5b83d; --bad: #ff5c5c;
+  --r: 12px; --ease: cubic-bezier(.2,.8,.2,1); --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* -- cam yuzeyler, golgeler, yayli hareket (tasarim v4) -- */
+:root {
+  --g1: rgba(255,255,255,.045); --g2: rgba(255,255,255,.08); --g3: rgba(255,255,255,.13);
+  --g-brd: rgba(255,255,255,.10); --g-brd2: rgba(255,255,255,.18);
+  --g-hi: inset 0 1px 0 rgba(255,255,255,.09);
+  --shadow-s: 0 4px 14px rgba(0,0,0,.28); --shadow-l: 0 22px 60px rgba(0,0,0,.5);
+  --spring: cubic-bezier(.34,1.56,.64,1);
+  --panel: rgba(22,22,26,.92); --card: rgba(255,255,255,.04); --line: rgba(255,255,255,.08); --raise: rgba(255,255,255,.08); --bg2: rgba(0,0,0,.22);
+}
+
+/* -- hareket sureleri ve egriler (yeni bilesenler icin; mevcut --ease/--spring ile uyumlu) -- */
+:root {
+  --dur-fast: 120ms; --dur-med: 220ms; --dur-slow: 420ms;
+  --ease-out: cubic-bezier(.2,.8,.2,1); --ease-in-out: cubic-bezier(.65,0,.35,1);
+}
