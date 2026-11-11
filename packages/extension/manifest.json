@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Izlix",
+  "version": "0.1.0",
+  "description": "See why your React app broke: one timeline from click to render, with cause arrows.",
+  "action": { "default_title": "Open Izlix for this tab" },
+  "side_panel": { "default_path": "panel.html" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["debugger", "tabs", "sidePanel", "storage"],
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*", "https://localhost/*"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'" }
+}

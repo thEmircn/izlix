@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "types": ["chrome"], "lib": ["ES2023", "DOM", "DOM.Iterable"] },
+  "include": ["src", "../../src/core", "../../src/shared", "../../src/renderer/types.d.ts"]
+}
