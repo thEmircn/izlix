@@ -16,9 +16,9 @@ async function main(ctx) {
   // arayuz: Components sekmesi
   await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='Components').click()`); await sleep(900)
   out.rows = await shellEval(`document.querySelectorAll('[data-testid=tree] > div > div').length`)
-  await shot('/private/tmp/e2e-tmp/inspector.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-inspector.png')
   await shellEval(`[...document.querySelectorAll('.seg2 > button')].find(b=>b.textContent==='Renders').click()`); await sleep(500)
   out.tracker = await shellEval(`[...document.querySelectorAll('tbody tr')].slice(0,4).map(r=>r.textContent)`)
-  await shot('/private/tmp/e2e-tmp/tracker.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-tracker.png')
   return out
 }

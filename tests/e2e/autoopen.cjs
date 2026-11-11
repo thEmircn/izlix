@@ -1,7 +1,7 @@
 // Workspace'e ait yeni dev sunucusu baslayinca sekme otomatik acilir (secenek acikken)
 module.exports = async ({ tabs, workspaces, settings, sleep, detected }) => {
   const cp = require('child_process'), fs = require('fs')
-  const root = '/private/tmp/e2e-tmp/autoproj'; fs.mkdirSync(root, { recursive: true })
+  const root = require('os').tmpdir() + '/izlix-e2e-autoproj'; fs.mkdirSync(root, { recursive: true })
   workspaces.create('Auto', root)
   await sleep(3500) // ilk tarama bitsin
   const n0 = tabs.list().tabs.length

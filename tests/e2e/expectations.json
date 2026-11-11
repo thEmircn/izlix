@@ -3876,9 +3876,9 @@
       "eq",
       [
         "-n",
-        "/home/user/project",
+        "{TESTAPP}",
         "-g",
-        "/home/user/project"
+        "{TESTAPP}/src/App.tsx:31:17"
       ]
     ]
   ],
@@ -4855,5 +4855,6 @@
       "eq",
       ""
     ]
-  ]
+  ],
+  "docshots": []
 }

@@ -10,12 +10,12 @@ module.exports = async ({ tabs, sleep, shellEval, pageEval, shot }) => {
   await pageEval(`for (let i=0;i<17;i++) fetch('/api/'+i); 0`); await sleep(120)
   // animasyon sirasinda: seritler hareket halinde (transform sifirdan farkli) ve goruntu al
   out.moving = await shellEval(`[...document.querySelectorAll('.net-stats .roll-strip')].some(s => getComputedStyle(s).transform !== 'none' && getComputedStyle(s).transform !== 'matrix(1, 0, 0, 1, 0, 0)')`)
-  await shot('/private/tmp/e2e-tmp/roll-mid.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-roll-mid.png')
   await sleep(1500)
   out.after = Number(await label())
   out.grew = out.after >= out.before + 17
   // metin: aria-label gercek deger, gorunen rakam kolonlari esit sayida
   out.digitCols = await shellEval(`document.querySelectorAll('.net-stats .stat:first-child .roll-d').length`) === String(out.after).length
-  await shot('/private/tmp/e2e-tmp/roll-end.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-roll-end.png')
   srv.close(); return out
 }

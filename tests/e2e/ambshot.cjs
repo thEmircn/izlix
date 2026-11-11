@@ -10,6 +10,6 @@ module.exports = async ({ tabs, sleep, settings }) => {
   settings.set({ ambient: true, ambientDev: true })
   await tabs.create({ url: 'http://localhost:5291/', workspaceId: 'default' }); await sleep(4500)
   const img = await tabs.active().view.webContents.capturePage()
-  fs.writeFileSync(process.env.AMB_OUT || '/private/tmp/e2e-tmp/amb.png', img.toPNG())
+  fs.writeFileSync(process.env.AMB_OUT || require('os').tmpdir() + '/izlix-e2e-amb.png', img.toPNG())
   srv.close(); return { size: img.getSize() }
 }

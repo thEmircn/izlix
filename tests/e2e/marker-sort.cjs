@@ -8,7 +8,7 @@ module.exports = async ({ tabs, win, sleep, shellEval, click, exportReport }) =>
   out.markerText = await shellEval(`document.querySelector('svg g.marker text')?.textContent`)
   await shellEval(`document.querySelector('svg g.marker').dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(300)
   out.detail = await shellEval(`document.body.innerText.includes('Marker: bug burada')`)
-  const file = '/private/tmp/e2e-tmp/marker-report.zip'
+  const file = require('os').tmpdir() + '/izlix-e2e-marker-report.zip'
   await exportReport(file)
   out.reportHas = require('child_process').execFileSync('unzip', ['-p', file, 'summary.md']).toString().includes('bug burada')
   // Network siralama

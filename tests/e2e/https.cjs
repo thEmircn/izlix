@@ -1,7 +1,7 @@
 // Kendinden imzali yerel HTTPS acilir; baska alan adlarinda dogrulama gevsemez
 module.exports = async ({ tabs, sleep }) => {
   const https = require('https'), cp = require('child_process'), fs = require('fs')
-  const d = '/private/tmp/e2e-tmp/cert'; fs.mkdirSync(d, { recursive: true })
+  const d = require('os').tmpdir() + '/izlix-e2e-cert'; fs.mkdirSync(d, { recursive: true })
   cp.execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', d + '/k.pem', '-out', d + '/c.pem', '-days', '2', '-subj', '/CN=localhost'], { stdio: 'ignore' })
   const srv = https.createServer({ key: fs.readFileSync(d + '/k.pem'), cert: fs.readFileSync(d + '/c.pem') }, (q, r) => r.end('<title>secure-local</title>hi'))
   await new Promise((r) => srv.listen(5195, '127.0.0.1', r))

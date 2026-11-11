@@ -11,20 +11,20 @@ module.exports = async ({ tabs, win, rules, refreshRules, sleep, click, shellEva
   out.paletteOpen = await shellEval(`!!document.querySelector('.pal-input')`)
   out.typeMs = await shellEval(`new Promise(r=>{const i=document.querySelector('.pal-input');const t=performance.now();Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'rule');i.dispatchEvent(new Event('input',{bubbles:true}));requestAnimationFrame(()=>requestAnimationFrame(()=>r(Math.round(performance.now()-t))))})`)
   out.items = await shellEval(`[...document.querySelectorAll('.pal-item span:first-child')].map(e=>e.textContent).slice(0,4)`)
-  await shot('/private/tmp/e2e-tmp/palette.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-palette.png')
   await shellEval(`document.querySelector('.pal-input').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`); await sleep(300)
   out.paletteClosed = await shellEval(`!document.querySelector('.pal-input')`)
 
   out.badgeText = await shellEval(`document.querySelector('.rule-badge')?.textContent`)
   win.webContents.send('ui:cmd', 'rules.open'); await sleep(400)
   out.rulesPanel = await shellEval(`document.querySelectorAll('.dialog input[type=checkbox]').length`)
-  await shot('/private/tmp/e2e-tmp/rules-panel.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-rules-panel.png')
   win.webContents.send('ui:cmd', 'palette.open'); await sleep(200)
   await sleep(200)
 
   // rapor
   tabs.activate(id)
-  const file = '/private/tmp/e2e-tmp/report.zip'
+  const file = require('os').tmpdir() + '/izlix-e2e-report.zip'
   out.report = await exportReport(file)
   out.zip = require('child_process').execFileSync('unzip', ['-Z1', file]).toString().trim().split('\n')
   out.summary = require('child_process').execFileSync('unzip', ['-p', file, 'summary.md']).toString().split('\n').slice(0, 14)

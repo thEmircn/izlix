@@ -7,6 +7,6 @@ module.exports = async (ctx) => {
   out.nodes = await shellEval(`(async()=>{const t=performance.now();const r=await window.izlix.inspectTree(${JSON.stringify(tabs.list().activeId)});return {n:r.nodes.length,ms:Math.round(performance.now()-t)}})()`)
   await sleep(800)
   out.scroll = await shellEval(`new Promise(res=>{const el=document.querySelector('[data-testid=tree]');const frames=[];let last=performance.now();let y=0;let n=0;function step(){const now=performance.now();frames.push(now-last);last=now;y+=60;el.scrollTop=y;if(++n<120)requestAnimationFrame(step);else{frames.shift();frames.sort((a,b)=>a-b);res({frames:frames.length,medianMs:+frames[frames.length>>1].toFixed(1),p95Ms:+frames[Math.floor(frames.length*0.95)].toFixed(1),maxMs:+frames[frames.length-1].toFixed(1),rowsInDom:el.firstChild.children.length,total:el.firstChild.style.height})}}requestAnimationFrame(step)})`)
-  await shot('/private/tmp/e2e-tmp/inspector-big.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-inspector-big.png')
   return out
 }

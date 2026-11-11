@@ -5,7 +5,7 @@ module.exports = async ({ tabs, sleep, shellEval, click, bus, shot, settings, ap
   await sleep(1200)
   out.welcomeShown = await shellEval(`!!document.querySelector('[role=dialog][aria-label*="Welcome"]')`)
   out.before = settings.get().telemetry
-  await shot('/private/tmp/e2e-tmp/welcome.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-welcome.png')
   await shellEval(`[...document.querySelectorAll('.dialog button')].find(b=>b.textContent==='Allow').click()`); await sleep(300)
   out.consent = settings.get().telemetry
   await shellEval(`[...document.querySelectorAll('.dialog button')].find(b=>b.textContent==='Open the demo').click()`); await sleep(3500)

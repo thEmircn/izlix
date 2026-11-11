@@ -39,5 +39,7 @@
   },
   "bin": {
     "izlix": "bin/izlix.js"
-  }
+  },
+  "license": "Apache-2.0",
+  "author": "Izlix contributors"
 }

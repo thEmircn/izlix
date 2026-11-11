@@ -1,6 +1,6 @@
 module.exports = async ({ tabs, workspaces, handleLaunch, sleep, detected }) => {
   const out = {}
-  const dir = '/home/user/project'
+  const dir = process.env.DB_TESTAPP
   await handleLaunch({ type: 'dir', dir }); await sleep(2500)
   out.workspaces = workspaces.list().map((w) => `${w.name}:${w.rootDir}`)
   out.tab = tabs.list().tabs.map((t) => t.url)

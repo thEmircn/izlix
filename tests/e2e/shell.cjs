@@ -39,7 +39,7 @@ module.exports = async ({ tabs, workspaces, sleep, pageEval, click, bus, detectS
   out.afterCrashUrl = wc.getURL(); out.afterCrashAlive = !wc.isCrashed()
 
   await sleep(500)
-  await shot('/private/tmp/e2e-tmp/shell1.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-shell1.png')
   out.tabs = tabs.list().tabs.map((t) => `${t.workspaceId}:${t.url}`)
   return out
 }

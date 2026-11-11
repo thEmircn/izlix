@@ -9,6 +9,6 @@ module.exports = async ({ tabs, sleep, click, shellEval, shot }) => {
   out.hasChain = /Cause chain/.test(out.text)
   out.hasInput = /input #\d+ click/.test(out.text); out.hasRequest = /request #\d+ GET/.test(out.text); out.hasResponse = /response #\d+ 200/.test(out.text)
   delete out.text
-  await shot('/private/tmp/e2e-tmp/chain.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-chain.png')
   return out
 }

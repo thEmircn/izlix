@@ -1289,7 +1289,7 @@ async function createWindow(): Promise<void> {
     let result: unknown
     try { result = await require(process.env.DB_SCRIPT)(ctx) } catch (e) { result = { scriptError: String(e) } }
     const tabId = tabs.list().activeId
-    writeFileSync(process.env.DB_DUMP ?? '/private/tmp/e2e-tmp/db-result.json', JSON.stringify({ result, events: tabId ? bus.snapshot(tabId) : [] }, null, 1))
+    writeFileSync(process.env.DB_DUMP ?? require('os').tmpdir() + '/izlix-e2e-db-result.json', JSON.stringify({ result, events: tabId ? bus.snapshot(tabId) : [] }, null, 1))
     app.quit()
   }
 }

@@ -1,7 +1,7 @@
 // MVP #8: Request Rules - mock, gecikme, durum kodu, yonlendirme, header, alan adi siniri, Fetch'in kapali kalmasi
 module.exports = async ({ tabs, rules, refreshRules, sleep, pageEval, click, bus, shot }) => {
   const out = {}
-  const fs = require('fs'); const save = (k) => fs.writeFileSync('/private/tmp/e2e-tmp/rules-progress.json', JSON.stringify({ at: k, out }, null, 1))
+  const fs = require('fs'); const save = (k) => fs.writeFileSync(require('os').tmpdir() + '/izlix-e2e-rules-progress.json', JSON.stringify({ at: k, out }, null, 1))
   const id = await tabs.create({ url: 'localhost:5173', workspaceId: 'default' })
   await sleep(2500)
   const itx = tabs.get(id).interceptor
@@ -59,6 +59,6 @@ module.exports = async ({ tabs, rules, refreshRules, sleep, pageEval, click, bus
   out.modeDisabled = itx.mode
 
   await set([mk('m4', { type: 'delay', ms: 10 })])
-  await shot('/private/tmp/e2e-tmp/rules1.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-rules1.png')
   return out
 }

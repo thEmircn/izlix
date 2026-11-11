@@ -1,5 +1,5 @@
 module.exports = async ({ tabs, rules, refreshRules, sleep, pageEval }) => {
-  const fs = require('fs'); const out = {}; const save = (k) => fs.writeFileSync('/private/tmp/e2e-tmp/cors-progress.json', JSON.stringify({ at: k, out }))
+  const fs = require('fs'); const out = {}; const save = (k) => fs.writeFileSync(require('os').tmpdir() + '/izlix-e2e-cors-progress.json', JSON.stringify({ at: k, out }))
   if (process.env.NODT) tabs.setLayout({ dock: 'off', panelRatio: 0.4, chromeHeight: 84 })
   await tabs.create({ url: 'localhost:5173', workspaceId: 'default' }); await sleep(2500)
   rules.set('default', { rules: [{ id: 'x', name: 'x', enabled: true, urlPattern: '/api/items', action: { type: 'mock', status: 201, body: '{"ok":true}', contentType: 'application/json' } }], domains: ['localhost'] })

@@ -2,11 +2,22 @@
 """E2E regresyon paketi: her betigi calistirir, expectations.json'a gore gecti/kaldi verir.
 Onkosul: `npx electron-vite build` ve localhost:5173'te test uygulamasi (spike/testapps/vite-react19: npx vite).
 Kullanim: python3 tests/e2e/suite.py [betik ...]"""
-import json, os, re, subprocess, sys
+import json, os, re, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.dirname(os.path.dirname(ROOT))
-EXP = json.load(open(os.path.join(ROOT, 'expectations.json')))
+# Test uygulamasi (Vite + React 19): DB_TESTAPP ile degistirilebilir; varsayilan depo disindaki spike klasoru
+TESTAPP = os.environ.get('DB_TESTAPP') or os.path.abspath(os.path.join(APP, '..', 'spike', 'testapps', 'vite-react19'))
+TMPD = os.environ.get('DB_E2E_TMP') or os.path.join(tempfile.gettempdir(), 'izlix-e2e')
+os.makedirs(TMPD, exist_ok=True)
+
+def _subst(x):
+    if isinstance(x, str): return x.replace('{TESTAPP}', TESTAPP)
+    if isinstance(x, list): return [_subst(i) for i in x]
+    if isinstance(x, dict): return {k: _subst(v) for k, v in x.items()}
+    return x
+
+EXP = _subst(json.load(open(os.path.join(ROOT, 'expectations.json'))))
 
 def get(obj, path):
     for part in re.findall(r'[^.\[\]]+|\[\d+\]', path):
@@ -32,17 +43,18 @@ def check(res, path, op, want):
     return ok, got
 
 def run(name):
-    out = '/private/tmp/e2e-tmp/suite-%s.json' % name
+    out = os.path.join(TMPD, 'suite-%s.json' % name)
     if os.path.exists(out): os.remove(out)
-    ud = subprocess.check_output(['mktemp', '-d', '/private/tmp/e2e-tmp/ud.XXXX']).decode().strip()
+    ud = tempfile.mkdtemp(prefix='ud.', dir=TMPD)
     env = {k: v for k, v in os.environ.items() if k != 'ELECTRON_RUN_AS_NODE'}
-    env.update(DB_USER_DATA=ud, DB_SCRIPT=os.path.join(ROOT, name + '.cjs'), DB_DUMP=out, DB_URL='')
+    env.update(DB_USER_DATA=ud, DB_SCRIPT=os.path.join(ROOT, name + '.cjs'), DB_DUMP=out, DB_URL='', DB_TESTAPP=TESTAPP)
     if name == 'sync': env['DB_ICLOUD_DIR'] = ud + '/icloud/Izlix'
     if name == 'threat':
         open(ud + '/threat.txt', 'w').write('# test\n127.0.0.1\tmalware-test.invalid\n')
         env['DB_THREAT_LIST'] = ud + '/threat.txt'
     if name == 'ext': env['DB_EXT_DIR'] = '/tmp/ext-try'
-    if name == 'onboarding': env['DB_ONBOARD'] = '1'
+    if name in ('onboarding', 'docshots'): env['DB_ONBOARD'] = '1'
+    if name == 'docshots': env['DB_SHOT_DIR'] = os.path.join(APP, 'docs', 'screenshots')
     subprocess.run(['perl', '-e', 'alarm 150; exec @ARGV', 'npx', 'electron', '.'], cwd=APP, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if not os.path.exists(out): return None
     return json.load(open(out))['result']

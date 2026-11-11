@@ -32,7 +32,7 @@ module.exports = async (ctx) => {
   // yazma: input'a tikla + metin ekle
   await sclick('#name'); primary.focus(); await sleep(200); await primary.insertText('merhaba'); await sleep(600)
   out.values = await Promise.all(lab.views.map((v) => ev(v, "document.querySelector('#name').value")))
-  await shot('/private/tmp/e2e-tmp/lab.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-lab.png')
   // cikis: emulasyon geri alinmali
   await tabs.setLab(id, null); await sleep(800)
   out.afterExit = { lab: tabs.get(id).info.lab ?? null, inner: await primary.executeJavaScript('[innerWidth, navigator.userAgent.includes("iPhone")]'), views: tabs.get(id).lab ? 'still' : 'gone' }

@@ -1,6 +1,6 @@
 module.exports = async ({ tabs, workspaces, win, sleep, shellEval }) => {
   const net = require('net'), out = {}
-  const root = '/private/tmp/e2e-tmp/srvproj'
+  const root = require('os').tmpdir() + '/izlix-e2e-srvproj'
   const w = workspaces.create('SrvProj', root)
   await shellEval(`window.izlix.switchWorkspace(${JSON.stringify(w.id)})`); await sleep(800)
   const info = await shellEval(`window.izlix.serverInfo(${JSON.stringify(w.id)})`)

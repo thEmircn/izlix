@@ -2,7 +2,7 @@
 module.exports = async (ctx) => { try { return await main(ctx) } catch (e) { return { fail: String(e && e.stack || e).slice(0, 500) } } }
 async function main({ tabs, sleep, bus, pageEval }) {
   const http = require('http'), fs = require('fs'), path = require('path')
-  const root = '/private/tmp/e2e-tmp/conc/dist'
+  const root = require('os').tmpdir() + '/izlix-e2e-conc/dist'
   const srv = http.createServer((q, r) => {
     const u = new URL(q.url, 'http://x')
     if (u.pathname === '/a' || u.pathname === '/b') { setTimeout(() => r.end(u.pathname.slice(1) + Math.random().toString(36).slice(2, 5)), Number(u.searchParams.get('d') || 0)); return }

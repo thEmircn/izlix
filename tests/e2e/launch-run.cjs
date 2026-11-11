@@ -1,7 +1,7 @@
 module.exports = async ({ tabs, workspaces, handleLaunch, sleep, shellEval }) => {
   const out = {}
-  await handleLaunch({ type: 'dir', dir: '/private/tmp/e2e-tmp/srvproj', run: true }); await sleep(7000)
-  const w = workspaces.list().find((x) => x.rootDir === '/private/tmp/e2e-tmp/srvproj')
+  await handleLaunch({ type: 'dir', dir: require('os').tmpdir() + '/izlix-e2e-srvproj', run: true }); await sleep(7000)
+  const w = workspaces.list().find((x) => x.rootDir === require('os').tmpdir() + '/izlix-e2e-srvproj')
   out.ws = !!w
   out.tab = tabs.list().tabs.map((t) => t.url).find((u) => u.includes('5184'))
   out.status = (await shellEval(`window.izlix.serverInfo(${JSON.stringify(w.id)})`)).status

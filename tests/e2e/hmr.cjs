@@ -1,7 +1,7 @@
 // Dosya kaydi -> Vite HMR bildirimi -> render (tahmini hmr→render baglantisi)
 module.exports = async ({ tabs, bus, sleep }) => {
   const fs = require('fs')
-  const f = '/home/user/project'
+  const f = require('path').join(process.env.DB_TESTAPP, 'src/App.tsx')
   const orig = fs.readFileSync(f, 'utf8')
   const out = {}
   try {

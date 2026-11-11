@@ -15,7 +15,7 @@ module.exports = async ({ tabs, sleep, shellEval: rawEval, pageEval, shot }) => 
   out.chips = await shellEval(`[...document.querySelectorAll('.lab-chips .rchip')].map(c=>c.textContent)`)
   out.css = await shellEval(`document.querySelector('.lab-code pre')?.textContent`)
   out.tw = await shellEval(`[...document.querySelectorAll('.lab-code pre')][1]?.textContent`)
-  await shot('/private/tmp/e2e-tmp/stylelab.png')
+  await shot(require('os').tmpdir() + '/izlix-e2e-stylelab.png')
   await shellEval(`[...document.querySelectorAll('.lab button')].find(b=>b.textContent==='Reset all').click()`); await sleep(700)
   out.afterReset = await pageEval(`document.getElementById('card').getAttribute('style')`)
   srv.close(); return out
