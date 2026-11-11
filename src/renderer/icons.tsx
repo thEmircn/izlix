@@ -44,3 +44,5 @@ export const IcGear = ic('M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8zM8 1.8v
 export const IcClock = ic('M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 5v3.2l2.2 1.3')
 export const IcBookmark = ic('M4.5 2.5h7v11L8 10.8 4.5 13.5z')
 export const IcLayers = ic('M8 2.5 13.5 5.5 8 8.5 2.5 5.5zM2.5 8.2 8 11.2l5.5-3M2.5 10.8 8 13.8l5.5-3')
+export const IcSearch = ic('M7 2.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM10.4 10.4 13.5 13.5')
+export const IcArrow = ic('M3 8h9.5M8.5 4 12.5 8l-4 4')

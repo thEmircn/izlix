@@ -2598,5 +2598,52 @@
       "eq",
       null
     ]
+  ],
+  "suggest": [
+    [
+      "inline",
+      "eq",
+      "localhost:5231"
+    ],
+    [
+      "inlineSel",
+      "eq",
+      "5-14"
+    ],
+    [
+      "listOpen",
+      "eq",
+      true
+    ],
+    [
+      "rows",
+      "contains",
+      "Zeta Portal"
+    ],
+    [
+      "selectedIdx",
+      "eq",
+      1
+    ],
+    [
+      "navigated",
+      "eq",
+      true
+    ],
+    [
+      "listClosed",
+      "eq",
+      true
+    ],
+    [
+      "startRows",
+      "gte",
+      2
+    ],
+    [
+      "startClosed",
+      "eq",
+      true
+    ]
   ]
 }

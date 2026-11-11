@@ -1,5 +1,7 @@
 import { originKey } from '../shared/favicon'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { Sug } from '../shared/suggest'
+import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
 import { DashboardView } from './DashboardView'
@@ -35,9 +37,16 @@ export function App() {
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [addr, setAddr] = useState('')
   const [editing, setEditing] = useState(false)
+  const addrRef = useRef<HTMLInputElement>(null)
+  const [typed, setTyped] = useState<string | null>(null) // kullanicinin yazdigi metin (tamamlama ve oneriler buna gore)
+  const sg = useSuggestions(typed ?? '', editing)
+  const sugOpen = typed !== null && editing && sg.items.length > 1
+  const pendingSel = useRef<[number, number] | null>(null)
+  useLayoutEffect(() => { if (pendingSel.current && addrRef.current) { addrRef.current.setSelectionRange(...pendingSel.current); pendingSel.current = null } })
   const active = s.tabs.find((t) => t.id === s.activeTabId)
   const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId)
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
+  const pickSug = (x: Sug): void => { setTyped(null); if (x.kind === 'tab' && x.tabId) void api.activateTab(x.tabId); else if (active) void api.go(active.id, x.url); else void api.createTab(x.url); addrRef.current?.blur() }
   const bookmarked = !!active && (s.bookmarks[s.activeWorkspaceId] ?? []).some((b) => b.url === active.url)
   const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
   const chromeH = CHROME_H + (active?.lab ? LAB_BAR_H : 0)
@@ -103,7 +112,7 @@ export function App() {
   // yeni sekme sayfasi: URL'si olmayan (bos) sekmede (veya hic sekme yokken) shell DOM'undaki baslangic sayfasi gorunur
   const startVisible = !s.dashboard && (!active || (!active.url && !active.lab && !active.split))
   // overlay acikken sayfa gorunumleri (native katman) gizlenir, aksi halde shell'in ustunde kalirlardi
-  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0 || s.dashboard || startVisible) }, [s.overlay, s.permPrompts.length, s.dashboard, startVisible])
+  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0 || s.dashboard || startVisible || sugOpen) }, [s.overlay, s.permPrompts.length, s.dashboard, startVisible, sugOpen])
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
@@ -155,9 +164,19 @@ export function App() {
         <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}><Forward /></button>
         <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}><Reload /></button>
         <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#fbbf24' : undefined }} onClick={() => { if (active) void api.toggleBookmark(active.id).then((on: boolean) => toast(t(on ? 'toast.bookmarked' : 'toast.unbookmarked'))) }}><Star filled={bookmarked} /></button>
-        <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
- <input className="addr" value={addr} placeholder={t('addr.placeholder')} spellCheck={false}
-            onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => setEditing(false)} onChange={(e) => setAddr(e.target.value)} />
+        <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); setTyped(null); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
+ <input ref={addrRef} className="addr" value={addr} placeholder={t('addr.placeholder')} spellCheck={false} autoComplete="off"
+            onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => { setEditing(false); setTyped(null) }}
+            onChange={(e) => {
+              const v = e.target.value; setAddr(v); setTyped(v)
+              if (((e.nativeEvent as InputEvent).inputType ?? '').startsWith('insert')) { const c = sg.complete(v); if (c) { setAddr(c); pendingSel.current = [v.length, c.length] } } // satir ici tamamlama: geri kalan secili
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setTyped(null); setAddr(active?.url ?? ''); (e.target as HTMLElement).blur(); return }
+              if (!sugOpen) return
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = sg.items.length; sg.setIdx((i) => (i + (e.key === 'ArrowDown' ? 1 : n - 1)) % n) }
+              else if (e.key === 'Enter' && sg.idx > 0) { e.preventDefault(); pickSug(sg.items[sg.idx]) }
+            }} />
           {nActive > 0 && (
             <button type="button" className="rule-badge nodrag" title={t('rules.badge.title')} onClick={() => s.set({ overlay: 'rules' })}>{t('rules.badge', { n: nActive })}</button>
           )}
@@ -210,6 +229,7 @@ export function App() {
           <span style={{ color: 'var(--dim)' }}>{t('lab.hint')}</span>
         </div>
       )}
+      {sugOpen && <SuggestList items={sg.items} idx={sg.idx} anchor={addrRef.current} query={typed ?? ''} onPick={pickSug} onHover={sg.setIdx} />}
       {startVisible && <StartPage tabId={active?.id ?? null} style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
       {panelVisible && <div className={`panel side-${side}`} style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
         <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />

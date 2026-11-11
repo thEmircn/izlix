@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, useT, wsName } from './store'
 import { originKey } from '../shared/favicon'
 import { Fav } from './ui'
+import { SuggestList, useSuggestions } from './Suggest'
+import type { Sug } from '../shared/suggest'
 import { IcBookmark, IcClock, IcFolder, IcGear, IcHome, IcLayers, IcServer, Plus } from './icons'
 
 type Section = 'home' | 'servers' | 'bookmarks' | 'history' | 'sessions'
@@ -19,6 +21,10 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
   const [q, setQ] = useState('')
   const [hist, setHist] = useState<Hist[]>([])
   const filter = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [focused, setFocused] = useState(false)
+  const sg = useSuggestions(q, true)
+  const pickSug = (x: Sug): void => { setFocused(false); if (x.kind === 'tab' && x.tabId) void api.activateTab(x.tabId); else go(x.url) }
   const [pop, setPop] = useState<{ url: string; x: number; y: number; img: string | null | undefined } | null>(null)
   const thumbs = useRef(new Map<string, string | null>())
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -111,8 +117,14 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
       <section className="hub-content">
         <header className="hub-head">
           <h2 key={sec}>{title}</h2>
-          <form className="hub-filter" onSubmit={(e) => { e.preventDefault(); if (looksLikeUrl(q)) go(q); else if (sec === 'home' || !ql) go(q) }}>
-            <input ref={filter} value={q} spellCheck={false} placeholder={t('hub.filterPh')} onChange={(e) => setQ(e.target.value)} />
+          <form ref={formRef} className="hub-filter" onSubmit={(e) => { e.preventDefault(); if (looksLikeUrl(q)) go(q); else if (sec === 'home' || !ql) go(q) }}>
+            <input ref={filter} value={q} spellCheck={false} autoComplete="off" placeholder={t('hub.filterPh')} onChange={(e) => { setQ(e.target.value); setFocused(true) }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+              onKeyDown={(e) => {
+                if (!focused || sg.items.length < 2) return
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = sg.items.length; sg.setIdx((i) => (i + (e.key === 'ArrowDown' ? 1 : n - 1)) % n) }
+                else if (e.key === 'Enter' && sg.idx > 0) { e.preventDefault(); pickSug(sg.items[sg.idx]) }
+                else if (e.key === 'Escape') setFocused(false)
+              }} />
             {looksLikeUrl(q) && <button type="submit" className="hub-act">{t('hub.go')} ↵</button>}
           </form>
         </header>
@@ -135,6 +147,7 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
           </>)}
         </div>
       </section>
+      {focused && <SuggestList items={sg.items} idx={sg.idx} anchor={formRef.current} query={q} onPick={pickSug} onHover={sg.setIdx} />}
       {pop && (
         <div className="hub-pop" style={{ left: Math.min(pop.x + 12, window.innerWidth - 392), top: Math.max(12, Math.min(pop.y - 110, window.innerHeight - 250)) }}>
           {pop.img ? <img alt="" src={pop.img} /> : <div className={`hub-pop-empty ${pop.img === undefined ? 'load' : ''}`}>{pop.img === undefined ? '' : t('hub.noPreview')}</div>}
