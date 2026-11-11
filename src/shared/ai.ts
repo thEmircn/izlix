@@ -8,7 +8,7 @@ export interface AiConfig { provider: Provider; model: string; /** ollama icin a
 export const DEFAULT_MODELS: Record<Provider, string> = { ollama: 'llama3.1', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o-mini' }
 export const MAX_PROMPT = 7000
 
-const SYSTEM = (lang: string): string => `You are a senior React/web debugging assistant inside a Izlix. You get a compact, redacted log of what just happened on a page (errors, failed requests, console errors). Explain the most likely root cause, how the events relate (request -> state -> render -> error), and give concrete fixes with short code where useful. Be concise. Answer in ${lang === 'tr' ? 'Turkish' : 'English'}.`
+const SYSTEM = (lang: string): string => `You are a senior React/web debugging assistant inside a izlix. You get a compact, redacted log of what just happened on a page (errors, failed requests, console errors). Explain the most likely root cause, how the events relate (request -> state -> render -> error), and give concrete fixes with short code where useful. Be concise. Answer in ${lang === 'tr' ? 'Turkish' : 'English'}.`
 export const systemPrompt = SYSTEM
 
 const clip = (s: string, n: number): string => (s.length > n ? s.slice(0, n) + '…' : s)

@@ -27,6 +27,7 @@ import { screenAtPoint } from '../shared/screenpick'
 import { DEFAULT_HUB, SERVICES, nextUnread, serviceById, serviceUrl, type HubSettings } from '../shared/services'
 import { ThreatService } from './threat'
 import { checkUpdate, updateInfo } from './updatecheck'
+import { migrateLegacyData } from './migrate'
 import { SyncService, deviceName } from './sync'
 import { mergeBookmarks, mergeNotes, mergeSites, pickSettings, type SyncPayload } from '../shared/sync'
 import { loadDoc as loadDocS, saveDoc as saveDocS } from './docdb'
@@ -85,6 +86,7 @@ import { WorkspaceStore, detectServers, partitionFor, type DetectedServer } from
 
 // Test/izolasyon: calisma verisini ayri bir dizine yonlendir (gercek kullanici verisine dokunmaz)
 if (process.env.DB_USER_DATA) { app.setPath('userData', process.env.DB_USER_DATA); app.setPath('downloads', join(process.env.DB_USER_DATA, 'downloads')) }
+else { try { migrateLegacyData(app.getPath('appData')) } catch { /* tasima basarisizsa yeni bos klasorle devam */ } }
 
 registerAppScheme()
 const bus = new EventBus()

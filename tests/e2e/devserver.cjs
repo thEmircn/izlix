@@ -1,6 +1,10 @@
 module.exports = async ({ tabs, workspaces, win, sleep, shellEval }) => {
   const net = require('net'), out = {}
   const root = require('os').tmpdir() + '/izlix-e2e-srvproj'
+  // sahte dev sunucu projesi (test kendi kurar; launch-run da ayni klasoru kullanir)
+  const fs = require('fs'); fs.mkdirSync(root, { recursive: true })
+  fs.writeFileSync(root + '/package.json', JSON.stringify({ name: 'srvproj', scripts: { dev: 'node server.js', build: 'echo building', predev: 'echo no' } }))
+  fs.writeFileSync(root + '/server.js', "require('http').createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end('<title>srv-app</title>hello') }).listen(5184, () => { console.log('  VITE ready'); console.log('  \\u001b[32mLocal:\\u001b[0m   http://localhost:5184/') })")
   const w = workspaces.create('SrvProj', root)
   await shellEval(`window.izlix.switchWorkspace(${JSON.stringify(w.id)})`); await sleep(800)
   const info = await shellEval(`window.izlix.serverInfo(${JSON.stringify(w.id)})`)
