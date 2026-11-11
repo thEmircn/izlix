@@ -3,6 +3,7 @@ import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
 import { translateUrl } from '../shared/translate'
 import { MockServer } from './mockserver'
 import { engineById, searchUrl } from '../shared/search'
+import { Recorder } from './recorder'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
 import { siteHost, stepZoom } from '../shared/sites'
@@ -137,6 +138,7 @@ async function handleLaunch(l: Launch): Promise<void> {
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
 let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService
+const recorder = new Recorder((st) => send(Ch.recState, st))
 /** Ambient isik betigini sayfaya koyar (yerel gelistirme sayfalari haric) ve acik/kapali durumunu esitler */
 async function injectAmbient(wc: Electron.WebContents): Promise<void> {
   const s = settings?.get(); if (!s || wc.isDestroyed()) return
@@ -312,6 +314,17 @@ function registerIpc(): void {
   handle(Ch.translate, schemas.translate, ({ id, off }) => tabs.translate(id, settings.get().language, off))
   // Sekme onizleme karti: sayfa gorunumlerinin USTUNDE duran kucuk bir WebContentsView (kabuk DOM'u native gorunumun altinda kalir)
   handle(Ch.tabCard, schemas.tabCard, ({ id, x, y, side }) => showTabCard(id, x, y, side ?? 'below'))
+  // Recorder
+  handle(Ch.recStart, null, async () => { const e = tabs.active(); return e ? recorder.start(e.view.webContents, e.info.id) : false })
+  handle(Ch.recStop, null, async () => { const a = recorder.active(); const e = a && tabs.get(a.tabId); return e ? recorder.stop(e.view.webContents) : [] })
+  handle(Ch.recSave, schemas.recSave, async ({ code, name }) => {
+    const base = (name || 'recorded-flow').replace(/[^\w\-]+/g, '_').slice(0, 60) || 'recorded-flow'
+    let file: string | undefined
+    if (process.env.DB_OUT_DIR) file = join(process.env.DB_OUT_DIR, `${base}.spec.ts`)
+    else { const r = await dialog.showSaveDialog(curWin ?? win, { defaultPath: join(app.getPath('documents'), `${base}.spec.ts`), filters: [{ name: 'Playwright', extensions: ['ts'] }] }); file = r.canceled ? undefined : r.filePath }
+    if (!file) return null
+    writeFileSync(file, code); return file
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -799,7 +812,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, shellWins, passwords, cardState,
+      newTab, openWindow, shellWins, passwords, cardState, recorder,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
       pageEval: (code: string): Promise<any> => tabs.active()!.view.webContents.executeJavaScript(code),

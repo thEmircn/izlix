@@ -6,6 +6,7 @@ import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune, IcKey } from './icons'
 import { SiteSettings } from './SiteSettings'
 import { HistoryPage } from './HistoryPage'
 import { QrDialog } from './QrDialog'
+import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
 import { GROUP_COLORS } from '../shared/groups'
@@ -81,6 +82,7 @@ export function App() {
       api.onTabs((p: any) => s.set({ tabs: p.tabs, activeTabId: p.activeId, winId: p.win ?? 0, wins: p.wins ?? 1, groups: p.groups ?? [] })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
+      api.onRec((r: any) => s.set({ rec: r })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
       api.onPermAsk((p: any) => useStore.setState((st) => ({ permPrompts: [...st.permPrompts, p] }))),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
@@ -114,6 +116,8 @@ export function App() {
           case 'pw.fill': if (act && act.logins) void api.pwFill(act.id); break
           case 'bm.open': st.set({ overlay: 'bookmarks' }); break
           case 'bmbar.toggle': { const v = !st.bmBar; writePref('bmBar', v ? '1' : '0'); st.set({ bmBar: v }); break }
+          case 'rec.toggle': { if (st.rec.recording) void api.recStop().then((steps: any) => st.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' })); else void api.recStart(); break }
+          case 'rec.open': st.set({ overlay: 'recorder' }); break
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'history.open': st.set({ overlay: 'history' }); break
           case 'site.open': st.set({ overlay: 'site' }); break
@@ -256,6 +260,7 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {s.rec.recording && <button type="button" className="chip recchip nodrag" title={t('rec.stop')} onClick={() => void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' }))}><i /><b>REC</b><Roll text={s.rec.steps.length} /></button>}
             {insecure && <span className="chip insecure nodrag" title={t('sec.insecureTip')}>{t('sec.insecure')}</span>}
             {active.translatedFrom
               ? <button type="button" className="chip transchip on nodrag" title={t('tr.showOriginal')} onClick={() => void api.translateTab(active.id, true)}>{t('tr.original')}</button>
@@ -333,6 +338,7 @@ export function App() {
       {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'recorder' && <RecorderDialog onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'qr' && active && <QrDialog tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'bookmarks' && <BookmarkManager onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'history' && <HistoryPage onClose={() => s.set({ overlay: null })} />}

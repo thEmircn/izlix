@@ -983,3 +983,9 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .chip.insecure { height: 28px; display: inline-flex; align-items: center; padding: 0 9px; font-size: 11.5px; color: var(--warn, #f5b94a); border: 1px solid rgba(245,185,74,.4); border-radius: 8px; }
 
 .qrbox { width: 240px; height: 240px; background: #fff; border-radius: 10px; padding: 4px; } .qrbox svg { width: 100%; height: 100%; display: block; }
+
+/* v9: recorder */
+.chip.recchip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; color: #ff7a7a; border: 1px solid rgba(255,90,90,.45); border-radius: 8px; } .chip.recchip i { width: 8px; height: 8px; border-radius: 50%; background: #ff5555; animation: recblink 1.1s ease-in-out infinite; } .chip.recchip b { font: 700 10.5px ui-monospace, Menlo, monospace; letter-spacing: .06em; }
+@keyframes recblink { 50% { opacity: .25; } }
+.dialog.rec { width: min(980px, 95vw); height: min(80vh, 720px); display: flex; flex-direction: column; } .rec-main { flex: 1; display: flex; min-height: 0; } .rec-steps { width: 44%; overflow: auto; padding: 8px 12px; border-right: 1px solid var(--line); } .rec-step { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; } .rec-step em { font-style: normal; color: var(--dim); width: 22px; text-align: right; flex: none; font-size: 11px; } .rec-step code { font-size: 11.5px; word-break: break-all; }
+.rec-code { flex: 1; resize: none; border: 0; background: rgba(0,0,0,.25); color: var(--fg); padding: 12px; font: 12px/1.55 ui-monospace, Menlo, monospace; outline: none; } .rec-foot { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }

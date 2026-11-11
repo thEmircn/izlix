@@ -3683,5 +3683,82 @@
       "eq",
       "http://localhost:5461/qrtest?a=1"
     ]
+  ],
+  "recorder": [
+    [
+      "started",
+      "eq",
+      true
+    ],
+    [
+      "chip",
+      "eq",
+      1
+    ],
+    [
+      "stepTypes",
+      "contains",
+      "goto"
+    ],
+    [
+      "stepTypes",
+      "contains",
+      "press"
+    ],
+    [
+      "stepTypes",
+      "contains",
+      "click"
+    ],
+    [
+      "fillEmail",
+      "contains",
+      "\"ali\""
+    ],
+    [
+      "secret",
+      "contains",
+      "••••"
+    ],
+    [
+      "leak",
+      "eq",
+      false
+    ],
+    [
+      "chipGone",
+      "eq",
+      true
+    ],
+    [
+      "dialog",
+      "eq",
+      true
+    ],
+    [
+      "code",
+      "contains",
+      "getByPlaceholder('E-posta').fill('ali')"
+    ],
+    [
+      "code",
+      "contains",
+      "process.env.PASSWORD"
+    ],
+    [
+      "code",
+      "contains",
+      "getByRole('button', { name: 'Giris' }).click()"
+    ],
+    [
+      "saved",
+      "eq",
+      true
+    ],
+    [
+      "fileName",
+      "eq",
+      "giris_akisi.spec.ts"
+    ]
   ]
 }

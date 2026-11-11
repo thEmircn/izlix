@@ -16,6 +16,8 @@ export function buildCommands(): Command[] {
   const cmds: Command[] = [
     { id: 'bm.open', title: t('menu.bmManager'), hint: '⌥⌘B', run: () => s.set({ overlay: 'bookmarks' }) },
     { id: 'bmbar.toggle', title: t(s.bmBar ? 'cmd.bmBarHide' : 'cmd.bmBarShow'), hint: '⇧⌘B', run: () => { const v = !s.bmBar; writePref('bmBar', v ? '1' : '0'); s.set({ bmBar: v }) } },
+    { id: 'rec.toggle', title: t(s.rec.recording ? 'rec.stop' : 'rec.start'), run: () => { if (s.rec.recording) void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' })); else void api.recStart() } },
+    ...(s.rec.steps.length && !s.rec.recording ? [{ id: 'rec.open', title: t('rec.last'), run: () => s.set({ overlay: 'recorder' }) }] : []),
     { id: 'history.open', title: t('menu.history'), hint: '⌘Y', run: () => s.set({ overlay: 'history' }) },
     { id: 'win.new', title: t('cmd.newWindow'), hint: '⌘N', run: () => void api.newWindow() },
     { id: 'tab.newPrivate', title: t('cmd.newPrivate'), hint: '⇧⌘N', run: () => void api.createTab(undefined, 'incognito') },
