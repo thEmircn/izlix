@@ -25,6 +25,8 @@ import { siteOf as siteOfUsage } from '../shared/adblock'
 import { CAPTURE_SELECTION, applyNotesScript, pageKey, removeNoteScript } from '../shared/notes'
 import { screenAtPoint } from '../shared/screenpick'
 import { DEFAULT_HUB, SERVICES, nextUnread, serviceById, serviceUrl, type HubSettings } from '../shared/services'
+import { ThreatService } from './threat'
+import { checkUpdate, updateInfo } from './updatecheck'
 import { SyncService, deviceName } from './sync'
 import { mergeBookmarks, mergeNotes, mergeSites, pickSettings, type SyncPayload } from '../shared/sync'
 import { loadDoc as loadDocS, saveDoc as saveDocS } from './docdb'
@@ -223,13 +225,24 @@ let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore, widgets: WidgetService, perfHist: PerfHistory, ai: AiService
 const notified: string[] = []
 const focusServer = new FocusServer((a) => {
+  if (a.kind === 'trust') { threat.trust(a.host); return }
   const f = settings.get().focus ?? { on: false, sites: [], limits: {} }
   if (a.kind === 'off') settings.set({ focus: { ...f, on: false } })
   else settings.set({ focus: { ...f, snooze: { ...(f.snooze ?? {}), [a.site]: Date.now() + a.minutes * 60_000 } } })
   pushSettings()
 })
+let updNotified = ''
+let threat: ThreatService
+/** zararli/taklit site uyari sayfasi; sorun yoksa (veya ozellik kapaliysa) null */
+function threatBlock(url: string): string | null {
+  if (!threat || !focusServer.ready || settings.get().safeBrowsing === false) return null
+  const th = threat.check(url); if (!th) return null
+  const key = th.kind === 'malware' ? 'threat.malware' : th.kind === 'idn' ? 'threat.idn' : 'threat.lookalike'
+  return focusServer.warnUrlFor({ host: th.host, target: url, title: tr('threat.title'), msg: tr(key, { b: th.brand ?? '' }), back: tr('threat.back'), proceed: tr('threat.proceed') })
+}
 /** engelli adres icin engel sayfasi adresi; engelli degilse null */
 function focusBlock(url: string): string | null {
+  const t = threatBlock(url); if (t) return t
   const b = blockReason(url, settings?.get().focus, (s) => usage?.usedToday(s) ?? 0)
   if (!b || !focusServer.ready) return null
   const lim = settings.get().focus?.limits[b.site]
@@ -499,12 +512,16 @@ function registerIpc(): void {
   handle(Ch.syncState, null, () => ({ enabled: syncSt.enabled, hasPass: !!syncSt.pass, last: syncSt.last, error: syncSt.error, dir: syncSvc.dir(), icloud: syncSvc.available() }))
   handle(Ch.syncSetup, schemas.syncSetup, (p) => { if (p.clear) syncSt = { enabled: false, last: 0, error: '', pass: '' }; if (p.pass) syncSt.pass = syncCipher().encrypt(p.pass); if (p.enabled !== undefined) syncSt.enabled = p.enabled; saveSyncSt(); return true })
   handle(Ch.syncNow, null, () => runSync())
-  handle(Ch.hubOpen, schemas.hubOpen, ({ id, background }) => hubOpen(id, !!background))
+  handle(Ch.hubOpen, schemas.hubOpen, async ({ id, background, external }) => {
+    if (external) { const svc = serviceById(id), url = svc && serviceUrl(svc, hubCfg()); if (!url || !/^https:/.test(url)) return 'no-url'; await shell.openExternal(url); return 'ok' }
+    return hubOpen(id, !!background)
+  })
   handle(Ch.hubNext, null, async () => {
     const cur = tabs.active()?.info.service
     const items = tabs.list().tabs.filter((t) => t.service).map((t) => ({ id: t.service!, unread: t.unread ?? 0 }))
     const id = nextUnread(items, cur); if (id) await hubOpen(id); return id
   })
+  handle(Ch.updateInfo, schemas.updateInfo, async ({ check }) => (check || !updateInfo().checked ? checkUpdate() : updateInfo()))
   handle(Ch.extList, null, () => { const out: { id: string; name: string; version: string; path: string }[] = []; for (const part of new Set(['persist:ws-default', ...workspaces.list().map((w) => partitionFor(w.id))])) for (const e of session.fromPartition(part).getAllExtensions()) if (!out.some((o) => o.id === e.id)) out.push({ id: e.id, name: e.name, version: e.version, path: e.path }); return out })
   handle(Ch.extAdd, null, async () => {
     const dir = process.env.DB_EXT_DIR ?? (await dialog.showOpenDialog(curWin ?? win, { properties: ['openDirectory'], title: tr('set.extPick') })).filePaths[0]
@@ -1183,6 +1200,11 @@ async function createWindow(): Promise<void> {
     (r) => { notified.push(r.text); if (process.env.DB_SCRIPT) return; const n = new Notification({ title: tr('rem.title'), body: r.text }); n.on('click', () => { win.show(); win.focus() }); n.show() })
   widgets.start()
   await focusServer.start()
+  if (!process.env.DB_SCRIPT) {
+    const notify = async (): Promise<void> => { const u = await checkUpdate(); if (u.newer && updNotified !== u.latest) { updNotified = u.latest; new Notification({ title: tr('upd.title'), body: tr('upd.body', { v: u.latest, c: u.electron }) }).show() } }
+    setTimeout(() => void notify(), 8000); setInterval(() => void notify(), 12 * 3600_000).unref()
+  }
+  threat = new ThreatService(); void threat.refresh(); setInterval(() => void threat.refresh(), 6 * 3600_000).unref()
   passwords = new PasswordService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, {
     isPrivate: (wc) => tabs.isPrivateWc(wc),
     changed: () => tabs?.refreshSites(),

@@ -4823,5 +4823,37 @@
       "eq",
       "youtrack"
     ]
+  ],
+  "threat": [
+    [
+      "malTitle",
+      "eq",
+      "Dangerous site ahead"
+    ],
+    [
+      "lookTitle",
+      "eq",
+      "Dangerous site ahead"
+    ],
+    [
+      "lookBrand",
+      "eq",
+      true
+    ],
+    [
+      "okTitle",
+      "eq",
+      "ok"
+    ],
+    [
+      "afterProceed",
+      "eq",
+      ""
+    ],
+    [
+      "offTitle",
+      "eq",
+      ""
+    ]
   ]
 }

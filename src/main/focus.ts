@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
 
 export interface FocusStrings { title: string; focusMsg: string; limitMsg: string; allow5: string; allow30: string; off: string; back: string }
-type Act = { kind: 'allow'; site: string; minutes: number } | { kind: 'off' }
+type Act = { kind: 'allow'; site: string; minutes: number } | { kind: 'off' } | { kind: 'trust'; host: string }
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 
 /** Odak/limit engel sayfasi: yalniz 127.0.0.1; her dugme TEK KULLANIMLIK rastgele jetonla calisir (baska siteler tetikleyemez). */
@@ -29,6 +29,19 @@ export class FocusServer {
   }
   get ready(): boolean { return this.port > 0 }
 
+  /** Zararli/taklit site uyari sayfasi: varsayilan "geri don"; "yine de git" o alan adini bu oturum icin guvenilir yapar */
+  warnUrlFor(o: { host: string; target: string; title: string; msg: string; back: string; proceed: string }): string {
+    const t = randomBytes(12).toString('hex'); this.acts.set(t, { act: { kind: 'trust', host: o.host }, target: o.target, exp: Date.now() + 30 * 60_000 })
+    const html = `<!doctype html><meta charset="utf-8"><title>${esc(o.title)}</title><style>
+html,body{height:100%;margin:0;background:#1a0f10;color:#f1e6e6;font:15px -apple-system,system-ui,sans-serif}
+main{height:100%;display:grid;place-content:center;text-align:center;gap:14px;padding:24px}
+h1{font-size:22px;margin:0;font-weight:600}p{margin:0;color:#c9a9a9;max-width:480px;line-height:1.5}code{color:#ffb3a6}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}.b{padding:9px 16px;border-radius:10px;background:#2a1a1c;border:1px solid #4a2b2e;color:#f1e6e6;text-decoration:none}.p{background:#ff6a2b;border-color:#ff6a2b;color:#111}
+.ic{width:46px;height:46px;border-radius:50%;margin:0 auto;border:2px solid #ff4d3d;display:grid;place-items:center;color:#ff4d3d;font-size:24px}</style>
+<main><div class="ic">!</div><h1>${esc(o.title)}</h1><p>${esc(o.msg)}</p><p><code>${esc(o.host)}</code></p><div class="row"><a class="b p" href="javascript:history.back()">${esc(o.back)}</a><a class="b" href="/a/${t}">${esc(o.proceed)}</a></div></main>`
+    const id = randomBytes(12).toString('hex'); this.pages.set(id, html); if (this.pages.size > 100) this.pages.delete(this.pages.keys().next().value!)
+    return `http://127.0.0.1:${this.port}/b/${id}`
+  }
   /** Engel sayfasinin adresi (hedef URL'ye izin verilince yonlendirir) */
   urlFor(o: { site: string; reason: 'focus' | 'limit'; limitMin?: number; target: string; s: FocusStrings }): string {
     const tok = (act: Act): string => { const t = randomBytes(12).toString('hex'); this.acts.set(t, { act, target: o.target, exp: Date.now() + 30 * 60_000 }); if (this.acts.size > 200) this.acts.delete(this.acts.keys().next().value!); return t }

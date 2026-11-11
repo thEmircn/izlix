@@ -1,12 +1,12 @@
 /** Gunluk uygulamalar (Hub): her biri kendi izole, kalici oturumunda (giris korunur) web surumuyle acilir. */
-export interface Service { id: string; name: string; url: string; color: string; /** kullanicinin kendi adresi gerekir (YouTrack) */ custom?: boolean; /** okunmamis sayisi baslikta gelir */ unread: boolean; hosts: string[] }
+export interface Service { id: string; name: string; url: string; color: string; /** kullanicinin kendi adresi gerekir (YouTrack) */ custom?: boolean; /** okunmamis sayisi baslikta gelir */ unread: boolean; hosts: string[]; /** Google hesabi girisi gomulu tarayicilarda engellenir: sistem tarayicisinda acma onerilir */ google?: true }
 
 export const SERVICES: Service[] = [
   { id: 'whatsapp', name: 'WhatsApp', url: 'https://web.whatsapp.com/', color: '#25d366', unread: true, hosts: ['web.whatsapp.com'] },
   { id: 'telegram', name: 'Telegram', url: 'https://web.telegram.org/a/', color: '#2aabee', unread: true, hosts: ['web.telegram.org'] },
-  { id: 'meet', name: 'Meet', url: 'https://meet.google.com/', color: '#00a37a', unread: false, hosts: ['meet.google.com'] },
+  { id: 'meet', name: 'Meet', url: 'https://meet.google.com/', color: '#00a37a', unread: false, hosts: ['meet.google.com'], google: true },
   { id: 'youtrack', name: 'YouTrack', url: '', color: '#b45cff', custom: true, unread: true, hosts: [] },
-  { id: 'youtube', name: 'YouTube', url: 'https://www.youtube.com/', color: '#ff2d2d', unread: true, hosts: ['www.youtube.com', 'youtube.com', 'm.youtube.com'] },
+  { id: 'youtube', name: 'YouTube', url: 'https://www.youtube.com/', color: '#ff2d2d', unread: true, hosts: ['www.youtube.com', 'youtube.com', 'm.youtube.com'], google: true },
   { id: 'instagram', name: 'Instagram', url: 'https://www.instagram.com/', color: '#f5a742', unread: true, hosts: ['www.instagram.com', 'instagram.com'] }
 ]
 

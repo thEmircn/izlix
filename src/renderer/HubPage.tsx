@@ -33,11 +33,13 @@ export function HubPage({ onClose }: { onClose(): void }) {
                 </div>
                 {enabled && <>
                   <div className="svc-count" style={{ color: st.unread ? s.color : 'var(--dim)' }}><Roll text={st.unread} /></div>
+                  {s.google && <div className="shint">{t('svch.googleNote')}</div>}
                   <div className="svc-state">{st.tab ? t('svch.running') : url ? t('svch.stopped') : t('svch.needUrl')}</div>
                   {s.custom && <input className="svc-url" value={urlDraft} placeholder="acme.youtrack.cloud" aria-label={`${s.name} URL`} onChange={(e) => setUrlDraft(e.target.value)} onBlur={() => save({ urls: { ...hub.urls, [s.id]: urlDraft.trim() } })} onKeyDown={(e) => { if (e.key === 'Enter') save({ urls: { ...hub.urls, [s.id]: urlDraft.trim() } }) }} />}
                   <div className="svc-act">
                     <button className="btn primary" disabled={!url && !st.tab} onClick={() => open(s.id)}>{t('svch.open')}</button>
                     {!st.tab && url && <button className="btn" onClick={() => open(s.id, true)}>{t('svch.startBg')}</button>}
+                    {s.google && <button className="btn" onClick={() => void api.hubOpen(s.id, false, true)}>{t('svch.external')}</button>}
                   </div>
                 </>}
               </div>

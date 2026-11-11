@@ -12,7 +12,8 @@
     "pack": "electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --dir -c.mac.target=dir",
     "dist": "electron-vite build && electron-builder --mac",
     "build:demo": "vite build -c samples/demo-src/vite.config.ts",
-    "e2e": "electron-vite build && python3 tests/e2e/suite.py"
+    "e2e": "electron-vite build && python3 tests/e2e/suite.py",
+    "update-electron": "npm install electron@latest --save-exact=false && npm run build && npx vitest run"
   },
   "dependencies": {
     "react": "^19.3.1",

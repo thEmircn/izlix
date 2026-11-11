@@ -38,6 +38,9 @@ def run(name):
     env = {k: v for k, v in os.environ.items() if k != 'ELECTRON_RUN_AS_NODE'}
     env.update(DB_USER_DATA=ud, DB_SCRIPT=os.path.join(ROOT, name + '.cjs'), DB_DUMP=out, DB_URL='')
     if name == 'sync': env['DB_ICLOUD_DIR'] = ud + '/icloud/Izlix'
+    if name == 'threat':
+        open(ud + '/threat.txt', 'w').write('# test\n127.0.0.1\tmalware-test.invalid\n')
+        env['DB_THREAT_LIST'] = ud + '/threat.txt'
     if name == 'ext': env['DB_EXT_DIR'] = '/tmp/ext-try'
     if name == 'onboarding': env['DB_ONBOARD'] = '1'
     subprocess.run(['perl', '-e', 'alarm 150; exec @ARGV', 'npx', 'electron', '.'], cwd=APP, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -42,6 +42,8 @@ export function Settings({ onClose }: { onClose(): void }) {
   const [sy, setSy] = useState<{ enabled: boolean; hasPass: boolean; last: number; error: string; dir: string; icloud: boolean } | null>(null); const [syPass, setSyPass] = useState(''); const [syBusy, setSyBusy] = useState(false)
   const loadSy = (): void => { void api.syncState().then(setSy) }
   useEffect(loadSy, [])
+  const [upd, setUpd] = useState<{ electron: string; chromium: string; latest: string; newer: boolean; checked: number; error: boolean } | null>(null)
+  useEffect(() => { void api.updateInfo().then(setUpd) }, [])
   const [drm, setDrm] = useState<'check' | 'yes' | 'no'>('check')
   useEffect(() => { void navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{ initDataTypes: ['cenc'], videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }] }]).then(() => setDrm('yes'), () => setDrm('no')) }, [])
   const [exts, setExts] = useState<{ id: string; name: string; version: string; path: string }[]>([]); const [extErr, setExtErr] = useState('')
@@ -128,6 +130,14 @@ export function Settings({ onClose }: { onClose(): void }) {
             {extErr && <div className="shint" style={{ color: 'var(--bad, #ff6b6b)' }}>{t('set.extErr', { e: extErr })}</div>}
           </div>
           <Row title={t('set.spell')} hint={t('set.spellHint')}><Switch on={settings.spellcheck !== false} label={t('set.spell')} onChange={(v) => void api.setSettings({ spellcheck: v })} /></Row>
+          <div className="srow" style={{ display: 'block' }} data-testid="update-row">
+            <div className="stitle">{t('upd.section')}</div>
+            <div className="shint">{upd ? t('upd.versions', { e: upd.electron, c: upd.chromium }) : '…'}</div>
+            <div className="shint" style={{ color: upd?.newer ? 'var(--warn, #f5b94a)' : undefined }}>{!upd ? '' : upd.error ? t('upd.error') : upd.newer ? t('upd.newer', { v: upd.latest }) : t('upd.current')}</div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}><button className="btn" onClick={() => { setUpd(null); void api.updateInfo(true).then(setUpd) }}>{t('upd.check')}</button>{upd?.newer && <button className="btn" onClick={() => void navigator.clipboard.writeText('npm run update-electron').then(() => toast(t('upd.copied')))}>{t('upd.copy')}</button>}</div>
+            <div className="shint" style={{ marginTop: 6 }}>{t('upd.note')}</div>
+          </div>
+          <Row title={t('set.safe')} hint={t('set.safeHint')}><Switch on={settings.safeBrowsing !== false} label={t('set.safe')} onChange={(v) => void api.setSettings({ safeBrowsing: v })} /></Row>
           <Row title={t('set.https')} hint={t('set.httpsHint')}><Switch on={settings.httpsOnly !== false} label={t('set.https')} onChange={(v) => void api.setSettings({ httpsOnly: v })} /></Row>
           <div className="srow" style={{ display: 'block' }}>
             <div className="stitle">{t('set.shortcuts')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.shortcutsHint')}</div>
