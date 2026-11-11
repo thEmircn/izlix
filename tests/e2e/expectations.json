@@ -4385,5 +4385,72 @@
       "contains",
       "example.com"
     ]
+  ],
+  "widgets": [
+    [
+      "cards",
+      "eq",
+      3
+    ],
+    [
+      "remRow",
+      "contains",
+      "su ic"
+    ],
+    [
+      "remStored",
+      "eq",
+      true
+    ],
+    [
+      "fired",
+      "eq",
+      1
+    ],
+    [
+      "firedAgain",
+      "eq",
+      0
+    ],
+    [
+      "notified",
+      "eq",
+      true
+    ],
+    [
+      "firedHidden",
+      "eq",
+      true
+    ],
+    [
+      "removed",
+      "eq",
+      true
+    ],
+    [
+      "ratesOff",
+      "eq",
+      true
+    ],
+    [
+      "rates",
+      "contains",
+      "USD"
+    ],
+    [
+      "rates",
+      "contains",
+      "EUR"
+    ],
+    [
+      "weather",
+      "contains",
+      "°"
+    ],
+    [
+      "weatherCity",
+      "eq",
+      "Istanbul"
+    ]
   ]
 }

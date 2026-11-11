@@ -3,6 +3,7 @@ import { useStore, useT, wsName } from './store'
 import { originKey } from '../shared/favicon'
 import { Fav, Roll } from './ui'
 import { SuggestList, useSuggestions } from './Suggest'
+import { weatherLabel, type Rate, type Reminder, type Weather } from '../shared/widgets'
 import type { Sug } from '../shared/suggest'
 import { IcBookmark, IcClock, IcFolder, IcGear, IcHome, IcLayers, IcServer, Plus } from './icons'
 
@@ -45,6 +46,17 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
 
   useEffect(() => { const o = s.detected.map((d) => `http://localhost:${d.port}`); if (o.length) void api.favicons(o).then((f) => useStore.setState((st) => ({ favicons: { ...st.favicons, ...f } }))).catch(() => {}) }, [s.detected.map((d) => d.port).join(',')])
   const iconOf = (url: string): string | undefined => s.favicons[originKey(url) ?? '']
+  // parcalar: hava / doviz (opt-in) ve hatirlaticilar
+  const wset = s.settings.widgets ?? {}
+  const [weather, setWeather] = useState<Weather | null>(null)
+  const [rates, setRates] = useState<Rate[]>([])
+  const [rems, setRems] = useState<Reminder[]>([])
+  const [cityIn, setCityIn] = useState('')
+  const [remIn, setRemIn] = useState('')
+  const loadRems = (): void => { void api.remList().then((l: Reminder[]) => setRems(l ?? [])).catch(() => {}) }
+  useEffect(() => { loadRems(); const h = setInterval(loadRems, 20_000); return () => clearInterval(h) }, [])
+  useEffect(() => { if (wset.weatherCity) { void api.wWeather(wset.weatherCity).then(setWeather).catch(() => {}); const h = setInterval(() => void api.wWeather(wset.weatherCity!).then(setWeather).catch(() => {}), 900_000); return () => clearInterval(h) } }, [wset.weatherCity])
+  useEffect(() => { if (wset.currency) void api.wRates().then((r: Rate[]) => setRates(r ?? [])).catch(() => {}) }, [wset.currency])
   const marks = s.bookmarks[s.activeWorkspaceId] ?? []
   const sess = s.sessions[s.activeWorkspaceId] ?? []
   const servers = s.detected
@@ -131,6 +143,23 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
         <div className="hub-body" key={sec}>
           {sec === 'home' && (
             <>
+              <div className="hub-widgets">
+                <div className="wcard">
+                  <h5>{t('w.weather')}</h5>
+                  {wset.weatherCity ? (weather ? <><b className="wbig">{weather.temp}°</b><small>{weather.name} · {weatherLabel(weather.code, s.settings.language === 'tr' ? 'tr' : 'en')}</small><small>{weather.min}° / {weather.max}°</small><button className="link" onClick={() => void api.setSettings({ widgets: { ...wset, weatherCity: '' } })}>{t('w.change')}</button></> : <small>{t('w.loading')}</small>)
+                    : <form onSubmit={(e) => { e.preventDefault(); if (cityIn.trim()) void api.setSettings({ widgets: { ...wset, weatherCity: cityIn.trim() } }) }}><input value={cityIn} placeholder={t('w.city')} onChange={(e) => setCityIn(e.target.value)} /><small>{t('w.weatherNote')}</small></form>}
+                </div>
+                <div className="wcard">
+                  <h5>{t('w.rates')}</h5>
+                  {wset.currency ? (rates.length ? rates.map((r) => <div className="wrate" key={r.code}><span>{r.code}</span><code>{r.sell.toFixed(2)} ₺</code></div>) : <small>{t('w.loading')}</small>)
+                    : <><small>{t('w.ratesNote')}</small><button className="btn" onClick={() => void api.setSettings({ widgets: { ...wset, currency: true } })}>{t('w.enable')}</button></>}
+                </div>
+                <div className="wcard wrem">
+                  <h5>{t('w.reminders')}</h5>
+                  {rems.filter((r) => !r.fired).slice(0, 4).map((r) => <div className="wrow" key={r.id}><span>{r.text}</span><code>{new Date(r.due).toLocaleString(s.settings.language === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</code><button className="hist-x" style={{ opacity: 1 }} aria-label={t('bm.delete')} onClick={() => void api.remDelete(r.id).then(loadRems)}>×</button></div>)}
+                  <form onSubmit={(e) => { e.preventDefault(); if (remIn.trim()) void api.remAdd(remIn).then(() => { setRemIn(''); loadRems() }) }}><input value={remIn} placeholder={t('w.remPh')} onChange={(e) => setRemIn(e.target.value)} /></form>
+                </div>
+              </div>
               {servers.length === 0 && marks.length === 0 && hist.length === 0 && sess.length === 0 && <div className="hub-empty">{t('start.empty')}</div>}
               {(s.settings.apps ?? []).length > 0 && (
                 <section className="hub-block"><header><h4>{t('hub.apps')}</h4></header>

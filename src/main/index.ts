@@ -12,6 +12,8 @@ import { Recorder } from './recorder'
 import { Speaker } from './speak'
 import { NoteStore } from './notes'
 import { UsageStore } from './usage'
+import { WidgetService } from './widgets'
+import { parseReminder } from '../shared/widgets'
 import { FocusServer } from './focus'
 import { blockReason, lastDays } from '../shared/usage'
 import { siteOf as siteOfUsage } from '../shared/adblock'
@@ -30,7 +32,7 @@ import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
-import { app, net, screen, desktopCapturer, powerMonitor, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, net, screen, desktopCapturer, powerMonitor, Notification, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { execFile } from 'node:child_process'
@@ -150,7 +152,8 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore, widgets: WidgetService
+const notified: string[] = []
 const focusServer = new FocusServer((a) => {
   const f = settings.get().focus ?? { on: false, sites: [], limits: {} }
   if (a.kind === 'off') settings.set({ focus: { ...f, on: false } })
@@ -420,6 +423,12 @@ function registerIpc(): void {
   })
   handle(Ch.appOpen, schemas.appOpen, ({ url }) => openAppWindow(url ?? tabs.active()?.info.url ?? ''))
   handle(Ch.usageGet, schemas.usageGet, ({ days }) => { const ds = lastDays(days); return { days: ds, usage: Object.fromEntries(ds.map((d) => [d, usage.all()[d] ?? {}])) } })
+  // Baslangic sayfasi parcalari
+  handle(Ch.wRates, null, () => (settings.get().widgets?.currency ? widgets.rates() : []))
+  handle(Ch.wWeather, schemas.wWeather, ({ city }) => widgets.weather(city))
+  handle(Ch.remList, null, () => widgets.reminders())
+  handle(Ch.remAdd, schemas.remAdd, ({ input }) => { const p = parseReminder(input); if (!p) return false; widgets.add(p.text, p.due); return true })
+  handle(Ch.remDelete, schemas.remDelete, ({ id }) => widgets.remove(id))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -1015,6 +1024,10 @@ async function createWindow(): Promise<void> {
   sites = new SiteStore()
   notes = new NoteStore(app.getPath('userData'))
   usage = new UsageStore(app.getPath('userData'))
+  widgets = new WidgetService(app.getPath('userData'),
+    (u) => net.fetch(u, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.text() : null), () => null),
+    (r) => { notified.push(r.text); if (process.env.DB_SCRIPT) return; const n = new Notification({ title: tr('rem.title'), body: r.text }); n.on('click', () => { win.show(); win.focus() }); n.show() })
+  widgets.start()
   await focusServer.start()
   passwords = new PasswordService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, {
     isPrivate: (wc) => tabs.isPrivateWc(wc),
@@ -1083,7 +1096,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, openAppWindow, usage: () => usage, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
+      newTab, openWindow, openAppWindow, usage: () => usage, widgets: () => widgets, notified, shellWins, passwords, cardState, recorder, notes: () => notes, applyNotes, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
       ctxPrepare: (id: string, params: Partial<Electron.ContextMenuParams>) => showCtx(id, { x: 20, y: 20, ...params } as Electron.ContextMenuParams, true), editorOpens: () => lastEditorOpen, lastShot: () => lastShot, resetCtx: () => { lastEditorOpen = null; lastShot = null },
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
