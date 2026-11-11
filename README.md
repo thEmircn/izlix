@@ -1,35 +1,71 @@
-# Izlix (working name)
+<p align="center">
+  <img src="docs/assets/hero.svg" alt="Izlix: follow the trace, from click to render" width="100%">
+</p>
 
-A **React-aware development browser** for macOS. See *why* something broke: a click, the request it fired, the response, the state change and the render that followed are drawn on **one timeline with cause arrows**, and any component, render, error or request opens its source file at the exact line in your editor.
+<p align="center">
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS-1d1d20?style=flat-square&logo=apple&logoColor=white">
+  <img alt="electron" src="https://img.shields.io/badge/Electron-45-1d1d20?style=flat-square&logo=electron&logoColor=47848f">
+  <img alt="react" src="https://img.shields.io/badge/React-18%20%26%2019-1d1d20?style=flat-square&logo=react&logoColor=61dafb">
+  <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-ff6a2b?style=flat-square">
+  <img alt="status" src="https://img.shields.io/badge/status-alpha-ff6a2b?style=flat-square">
+</p>
 
-> Status: **alpha**. Built with Electron 45 + React 19 + TypeScript. macOS only. Not signed, no auto-update (see [Limitations](#limitations)).
+**Izlix** (from the old Turkic *iz*, "trace") is a **React-aware development browser** for macOS. When something breaks, you see *why*: the click, the request it fired, the response, the state change and the render that followed are drawn on **one timeline with cause arrows**. Click any component, render, error or request and the source file opens at the exact line in your editor.
 
-| Timeline with cause chain | Command palette | Apps hub |
-|---|---|---|
-| ![timeline](docs/screenshots/timeline.png) | ![palette](docs/screenshots/palette.png) | ![hub](docs/screenshots/hub.png) |
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="A click becomes a request, a response and a render on the timeline" width="62%">
+</p>
 
-## What it does
+> **Status: alpha.** macOS only, not signed, no auto-update. Please read [Limitations](#limitations) before using it as your main browser.
 
-**See**
-- Unified Timeline: input → request → response → render → error on one axis. Each link is marked *certain* or *estimated*.
-- React Inspector and Render Tracker (props/state/hooks, render count, time, reason), React 18 and 19.
-- Own Network, Console, Elements, Sources (breakpoints, source maps), Storage, Performance, Coverage, Accessibility and SEO panels. Chrome DevTools can be embedded as well.
-- State panel for Zustand and Redux stores.
+---
 
-**Find**
-- Click-to-source: component, render, error or request → `file:line` in VS Code, Cursor or WebStorm.
-- Workspaces with isolated cookies/storage, running dev servers detected in seconds.
-- Command palette (⌘K), search across all tabs, session recorder with Playwright export and replay.
+## See · Find · Change
 
-**Change**
-- Request Rules per workspace: redirect, headers, JSON mock, latency, status code. Changed requests are badged on the timeline.
-- Responsive Lab: up to 4 synchronized viewports, device/network/CPU/geolocation/media emulation.
-- Bug report zip: timeline, HAR, screenshot, console, environment, Markdown summary. Tokens and cookies are masked.
+<table>
+<tr>
+<td width="33%" valign="top">
 
-**Everyday browser features**
-Tabs and groups, vertical tabs, bookmarks, history, downloads manager, built-in password manager (macOS Keychain), private tabs and Tor tabs, ad/tracker blocker, HTTPS-only, malware and look-alike site warning, translate, reader mode, page notes, picture-in-picture, multi-window with shared tabs, optional encrypted iCloud Drive sync, and an Apps Hub (WhatsApp, Telegram, Meet, YouTrack, YouTube, Instagram) with unread counts.
+### See
+- **Unified timeline**: input → request → response → render → error on one axis. Every link is marked *exact* or *estimated*.
+- **React Inspector** and render tracker: props, state, hooks, render count, time and reason (React 18 and 19).
+- Own **Network, Console, Elements, Sources** (breakpoints, source maps), **Storage, Performance, Coverage, Accessibility, SEO** panels.
+- **State panel** for Zustand and Redux.
 
-## Run
+</td>
+<td width="33%" valign="top">
+
+### Find
+- **Click-to-source**: component, render, error or request → `file:line` in VS Code, Cursor or WebStorm.
+- **Workspaces** with isolated cookies and storage; running dev servers are detected in seconds.
+- **Command palette** (⌘K), search across all tabs, session recorder with Playwright export and replay.
+
+</td>
+<td width="33%" valign="top">
+
+### Change
+- **Request rules** per workspace: redirect, headers, JSON mock, latency, status code. Changed requests are badged on the timeline.
+- **Responsive Lab**: up to 4 synchronized viewports, device, network, CPU, geolocation and media emulation.
+- **Bug report** zip: timeline, HAR, screenshot, console, environment and a Markdown summary, with tokens and cookies masked.
+
+</td>
+</tr>
+</table>
+
+<p align="center">
+  <img src="docs/screenshots/timeline.png" alt="Timeline with a cause chain" width="49%">
+  <img src="docs/screenshots/palette.png" alt="Command palette" width="49%">
+</p>
+
+## It is also a real browser
+
+Tabs and groups · vertical tabs · bookmarks and history · download manager · built-in password manager (macOS Keychain) · private and Tor tabs · ad and tracker blocker · HTTPS-only · malware and look-alike site warning · translate · reader mode with read-aloud · page notes and highlights · picture-in-picture · multi-window with shared tabs · optional end-to-end encrypted iCloud Drive sync · and an **Apps Hub** for WhatsApp, Telegram, Meet, YouTrack, YouTube and Instagram with unread counts.
+
+<p align="center">
+  <img src="docs/screenshots/hub.png" alt="Apps hub" width="70%">
+</p>
+
+## Run it
 
 ```bash
 npm install
@@ -37,34 +73,46 @@ npm run dev          # development (electron-vite)
 npm test             # unit tests (vitest)
 npm run typecheck
 npm run pack         # unsigned .app in dist/
-python3 tests/e2e/suite.py [name ...]   # end-to-end suite (real Electron, quiet mode)
+python3 tests/e2e/suite.py [name ...]   # end-to-end suite on a real Electron (quiet mode)
 ```
 
-`ELECTRON_RUN_AS_NODE` must not be set (the scripts clear it). Some e2e scripts expect a Vite + React 19 test app: set `DB_TESTAPP` to its folder and run it on `localhost:5173`.
+`ELECTRON_RUN_AS_NODE` must not be set (the scripts clear it). Some end-to-end scripts expect a Vite + React 19 test app: point `DB_TESTAPP` to its folder and serve it on `localhost:5173`.
 
-## Architecture (short)
+Open a project from the terminal with `izlix open .` (see `bin/izlix.js`). An optional Chrome helper extension in `extension/` opens the current page in Izlix.
 
-- `src/main`: windows/tabs, CDP collector, React bridge, event bus, correlator, source resolver, request interceptor, lab.
-- `src/renderer`: shell UI (React + Zustand). Never talks to pages directly; everything goes through allow-listed, zod-validated IPC.
-- `src/shared`: pure logic (rules, layout, search, masking, correlation helpers), unit tested.
-- Pages run in sandboxed `WebContentsView`s with no preload. Details: [docs/PLAN.md](docs/PLAN.md) (Turkish product plan).
+## How it works
+
+```mermaid
+flowchart LR
+  P[Page<br/>sandboxed view] -- CDP + React bridge --> C[Collector]
+  C --> B[(Event bus<br/>ring buffer)]
+  B --> R[Correlator<br/>exact / estimated links]
+  R --> S[Shell UI<br/>React + Zustand]
+  S -- allow-listed IPC<br/>zod validated --> M[Main process]
+  M -- rules / mocks --> P
+  S -- click-to-source --> E[Your editor]
+```
+
+- `src/main`: windows and tabs, CDP collector, React bridge, event bus, correlator, source resolver, request interceptor, lab.
+- `src/renderer`: the shell UI. It never talks to pages directly; everything goes through allow-listed, zod-validated IPC.
+- `src/shared`: pure logic (rules engine, layout, search, masking, correlation), unit tested.
+- Product plan: [docs/PLAN.md](docs/PLAN.md) (Turkish).
 
 ## Limitations
 
-Please read before using it as your main browser.
-- **No Google sign-in.** Google refuses sign-in in embedded Chromium browsers. Use another browser for Google accounts; the hub offers "open in default browser".
-- **Unsigned, no auto-update.** Chromium security fixes arrive only when you update Electron yourself (`npm run update-electron`). The app checks and tells you.
-- No extension store, passkeys or Widevine DRM (Netflix/Spotify web) with stock Electron.
-- The malware/look-alike warning is **not** Google Safe Browsing: coverage is narrower.
+- **No Google sign-in.** Google refuses sign-in inside embedded Chromium browsers. Use another browser for Google accounts. The hub offers "open in default browser".
+- **Unsigned, no auto-update.** Chromium security fixes arrive only when you update Electron (`npm run update-electron`). The app checks and tells you.
+- No extension store, passkeys or Widevine DRM (Netflix, Spotify web) with stock Electron.
+- The malware and look-alike warning is **not** Google Safe Browsing; its coverage is narrower.
 - macOS only.
 
 ## Security
 
-Pages are sandboxed and cannot reach IPC; permissions are denied by default; no telemetry unless you opt in; login requests are not recorded to the timeline. To report a vulnerability, open a private security advisory on GitHub.
+Pages run in sandboxed views with no preload and cannot reach IPC. Camera, microphone, location and notifications are denied by default. Telemetry is off unless you opt in. Sign-in requests are never recorded on the timeline, and exports mask tokens and cookies. To report a vulnerability, please open a private security advisory on GitHub.
 
 ## Türkçe özet
 
-React geliştiricisi için macOS'ta çalışan, "hatanın sebebini tıklamadan render'a kadar tek zaman çizelgesinde gör, kaynağını tek tıkla editörde aç" diyen bir geliştirici tarayıcısı. Alfa sürüm. Google hesabı girişi, imzalı sürüm ve otomatik güncelleme yok. Ürün planı: [docs/PLAN.md](docs/PLAN.md).
+**Izlix**, React geliştiricisi için macOS'ta çalışan bir geliştirici tarayıcısıdır. Adı Eski Türkçe *iz* kelimesinden gelir. Bir hatanın sebebini tıklamadan render'a kadar **tek zaman çizelgesinde** görürsünüz, kaynağını tek tıkla editörünüzde açarsınız, backend'e dokunmadan istekleri değiştirirsiniz. Alfa sürümdür; Google hesabı girişi, imzalı sürüm ve otomatik güncelleme henüz yok. Ürün planı: [docs/PLAN.md](docs/PLAN.md).
 
 ## License
 
