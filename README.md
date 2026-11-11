@@ -93,7 +93,9 @@ npm install
 npm run dev          # development (electron-vite)
 npm test             # unit tests (vitest)
 npm run typecheck
-npm run pack         # unsigned .app in dist/
+npm run pack         # unsigned .app in dist/ (macOS)
+npm run dist:win     # Windows package (run on Windows)
+npm run dist:linux   # AppImage and tar.gz (run on Linux)
 python3 tests/e2e/suite.py [name ...]   # end-to-end suite on a real Electron (quiet mode)
 ```
 

@@ -12,6 +12,7 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Visual regression test with baselines for nine screens.
 - Third-party notices (`THIRD_PARTY_NOTICES.md`) generated from the dependency tree, shipped inside the browser bundles.
 - Project website and component gallery on GitHub Pages.
+- Desktop app packages for macOS, Windows and Linux built in CI (unsigned), published on `desktop-v*` tags.
 
 ### Changed
 - Chrome extension: the toolbar button opens the side panel natively, tracing starts when the panel opens, and the panel follows the active tab.
