@@ -43,6 +43,7 @@ export function buildCommands(): Command[] {
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
     ...ENGINES.filter((e) => e.id !== (s.settings.searchEngine ?? 'duckduckgo')).map((e) => ({ id: `search.${e.id}`, title: t('cmd.searchEngine', { name: e.label }), run: () => void api.setSettings({ searchEngine: e.id }) })),
+    { id: 'import.chrome', title: t('cmd.importChrome'), run: () => void api.importChrome().then((r: { bookmarks: number; history: number } | null) => toast(r ? t('imp.done', { b: r.bookmarks, h: r.history }) : t('imp.none'))) },
     { id: 'ambient.toggle', title: t(s.settings.ambient === false ? 'cmd.ambOn' : 'cmd.ambOff'), run: () => void api.setSettings({ ambient: s.settings.ambient === false }) },
     { id: 'adblock.toggle', title: t((s.settings.adblock ?? 'ads') === 'off' ? 'cmd.adOn' : 'cmd.adOff'), run: () => void api.setSettings({ adblock: (s.settings.adblock ?? 'ads') === 'off' ? 'ads' : 'off' }) },
     { id: 'adblock.strict', title: t('cmd.adStrict'), run: () => void api.setSettings({ adblock: 'strict' }) },

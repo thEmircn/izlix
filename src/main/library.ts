@@ -45,6 +45,19 @@ export class Library {
     }
     return out
   }
+  /** Disaridan (Chrome) iceri aktarma: yineleneni atlar, gecmisi zamana gore birlestirir. Eklenen sayilari doner. */
+  importData(wsId: string, bookmarks: { url: string; title: string }[], visits: Visit[]): { bookmarks: number; history: number } {
+    const list = this.bookmarks(wsId), have = new Set(list.map((b) => b.url)); let nb = 0
+    for (const b of bookmarks) if (!have.has(b.url)) { have.add(b.url); list.push({ url: b.url, title: b.title, ts: Date.now() }); nb++ }
+    this.data.bookmarks[wsId] = list
+    const key = (v: Visit): string => `${v.url}@${Math.floor(v.ts / 60000)}`
+    const seen = new Set(this.data.history.map(key)); let nh = 0
+    for (const v of visits) if (/^https?:/.test(v.url) && !seen.has(key(v))) { seen.add(key(v)); this.data.history.push({ url: v.url, title: v.title, ts: v.ts }); nh++ }
+    this.data.history.sort((a, b) => a.ts - b.ts)
+    if (this.data.history.length > MAX_HISTORY) this.data.history.splice(0, this.data.history.length - MAX_HISTORY)
+    this.save()
+    return { bookmarks: nb, history: nh }
+  }
   clearHistory(): void { this.data.history = []; this.save() }
 
   bookmarks(wsId: string): Bookmark[] { return this.data.bookmarks[wsId] ?? [] }

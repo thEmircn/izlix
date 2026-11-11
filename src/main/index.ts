@@ -1,3 +1,4 @@
+import { readChromeProfile } from './importer'
 import { isLoopbackHost } from './security'
 import { AMBIENT_SCRIPT } from '../shared/ambient'
 import { AdBlocker } from './adblock'
@@ -195,6 +196,10 @@ function registerIpc(): void {
     if (!origins.length) return favicons.all()
     await Promise.all(origins.map((o) => favicons.ensureLoopback(o)))
     return favicons.pick(origins)
+  })
+  handle(Ch.importChrome, null, () => {
+    const d = readChromeProfile(process.env.DB_CHROME_DIR || undefined); if (!d) return null
+    const r = library.importData(activeWorkspaceId, d.bookmarks, d.visits); pushLibrary(); return r
   })
   handle(Ch.suggestRemote, schemas.suggestRemote, async ({ q }) => {
     const s = settings.get(); if (s.searchSuggest === false) return []

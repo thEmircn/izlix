@@ -1,7 +1,7 @@
 import { ENGINES } from '../shared/search'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
-import { useStore, useT, writePref } from './store'
+import { useStore, useT, writePref, toast } from './store'
 import { Kbd } from './ui'
 
 function Switch({ on, onChange, label }: { on: boolean; onChange(v: boolean): void; label: string }) {
@@ -35,6 +35,9 @@ export function Settings({ onClose }: { onClose(): void }) {
           </Row>
           <Row title={t('set.adblock')} hint={t('set.adblockHint')}>
             <select value={settings.adblock ?? 'ads'} onChange={(e) => void api.setSettings({ adblock: e.target.value })}><option value="off">{t('ad.lvl.off')}</option><option value="ads">{t('ad.lvl.ads')}</option><option value="strict">{t('ad.lvl.strict')}</option></select>
+          </Row>
+          <Row title={t('set.import')} hint={t('set.importHint')}>
+            <button className="btn" onClick={() => void api.importChrome().then((r: { bookmarks: number; history: number } | null) => toast(r ? t('imp.done', { b: r.bookmarks, h: r.history }) : t('imp.none')))}>{t('set.importBtn')}</button>
           </Row>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>

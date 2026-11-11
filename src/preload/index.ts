@@ -25,6 +25,7 @@ export const api = {
   setRules: (wsId: string, cfg: { rules: unknown[]; domains: string[] }) => call(Ch.rulesSet, { wsId, ...cfg }),
   history: () => call(Ch.libHistory),
   favicons: (origins: string[]) => call(Ch.faviconsGet, { origins }) as Promise<Record<string, string>>,
+  importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,
   suggestRemote: (q: string) => call(Ch.suggestRemote, { q }) as Promise<string[]>,
   thumb: (url: string) => call(Ch.thumbGet, { url }) as Promise<string | null>,
   toggleBookmark: (id: string) => call(Ch.bookmarkToggle, { id }),
