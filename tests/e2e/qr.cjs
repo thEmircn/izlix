@@ -7,6 +7,7 @@ module.exports = async ({ tabs, win, sleep, shellEval }) => {
   out.dialog = await shellEval(`!!document.querySelector('[role=dialog][aria-label="QR code"]')`)
   out.svg = await shellEval(`!!document.querySelector('.qrbox svg')`)
   out.cells = await shellEval(`document.querySelectorAll('.qrbox svg rect, .qrbox svg path').length`)
+  await shellEval(`[...document.querySelectorAll('.dialog .seg2 button')].find(b=>b.textContent==='Page address')?.click()`); await sleep(400)
   out.url = await shellEval(`document.querySelector('.dialog .shint')?.textContent`)
   srv.close(); return out
 }

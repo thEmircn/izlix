@@ -61,6 +61,7 @@ export const api = {
   recSave: (code: string, name: string) => call(Ch.recSave, { code, name }) as Promise<string | null>,
   onRec: sub(Ch.recState),
   heapSnapshot: () => call(Ch.heapSnap) as Promise<{ file: string; mb: number } | null>,
+  lanInfo: (id: string) => call(Ch.lanInfo, { id }) as Promise<{ url: string; ip: string; reachable: boolean } | null>,
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,

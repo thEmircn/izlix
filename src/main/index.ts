@@ -1,3 +1,5 @@
+import { networkInterfaces } from 'node:os'
+import { lanUrl, pickLanIp } from '../shared/lan'
 import { editorCommand } from '../shared/editor'
 import { GROUP_COLOR_NAMES } from '../shared/groups'
 import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
@@ -344,6 +346,14 @@ function registerIpc(): void {
     const file = join(dir, `${host}-${Date.now()}.heapsnapshot`)
     writeFileSync(file, data)
     return { file, mb: Math.round((data.length / 1048576) * 10) / 10 }
+  })
+  // Yerel ag adresi: localhost dev sunucusunu telefonda acmak icin (sunucu 0.0.0.0'a baglanmissa erisilebilir)
+  handle(Ch.lanInfo, schemas.lanInfo, async ({ id }) => {
+    const e = tabs.get(id); if (!e) return null
+    const ip = process.env.DB_LAN_IP || pickLanIp(networkInterfaces() as never); if (!ip) return null
+    const url = lanUrl(e.view.webContents.getURL(), ip); if (!url) return null
+    const reachable = await net.fetch(url, { signal: AbortSignal.timeout(1500), method: 'HEAD' }).then(() => true, () => false)
+    return { url, ip, reachable }
   })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {

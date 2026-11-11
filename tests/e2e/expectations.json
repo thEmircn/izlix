@@ -3969,5 +3969,27 @@
       "eq",
       "AbortError"
     ]
+  ],
+  "lanqr": [
+    [
+      "tabs",
+      "eq",
+      2
+    ],
+    [
+      "shownUrl",
+      "contains",
+      ":5531/yol?x=1"
+    ],
+    [
+      "okMsg",
+      "eq",
+      true
+    ],
+    [
+      "warnMsg",
+      "eq",
+      true
+    ]
   ]
 }
