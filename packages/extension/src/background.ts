@@ -48,15 +48,9 @@ chrome.debugger.onDetach.addListener((src) => { if (src.tabId != null) { attache
 chrome.tabs.onUpdated.addListener((tabId, info) => { const a = attached.get(tabId); if (a && info.url) { tabUrls.set(tabId, info.url); a.interceptor.setPageUrl(info.url); void a.interceptor.refresh() } }) // kullanici seridi kapatti / sekme gitti
 chrome.tabs.onRemoved.addListener((tabId) => release(tabId))
 
-// Arac cubugu dugmesi: bu sekme icin paneli ac ve izlemeyi baslat
-chrome.action.onClicked.addListener(async (tab) => {
-  if (tab.id == null) return
-  await chrome.sidePanel.setOptions({ tabId: tab.id, path: `panel.html?tabId=${tab.id}`, enabled: true })
-  await chrome.sidePanel.open({ tabId: tab.id })
-  await ensureAttached(tab.id)
-})
+// Arac cubugu dugmesi: Chrome paneli kendisi acar (kullanici hareketi gerektiren sidePanel.open'a gerek kalmaz); izleme panel acilinca baslar
+void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {})
 
-// Panel <-> arka plan: olaylar canli akar, baglaninca gecmis gonderilir
 /** Panelden gelen cagrilar (preload API'sinin eklentide gereken kismi) */
 async function rpc(name: string, args: any[]): Promise<unknown> {
   await rulesReady
@@ -94,9 +88,13 @@ chrome.runtime.onConnect.addListener((port) => {
   ports.add(port)
   port.onMessage.addListener((m: any) => {
     if (m.t === 'hello') {
+      // panel bir sekmeyi izlemek ister: gerekirse izlemeyi baslat, gecmisi gonder, canli olaylara abone ol (onceki abonelik kapanir)
+      off()
       const key = tabKey(m.tabId)
-      port.postMessage({ t: 'events', events: bus.snapshot(key) })
-      off = bus.subscribe((e, change) => { if (e.tabId === key) port.postMessage({ t: 'ev', change, e }) })
+      void ensureAttached(m.tabId).then(() => {
+        port.postMessage({ t: 'events', tabId: m.tabId, events: bus.snapshot(key) })
+        off = bus.subscribe((e, change) => { if (e.tabId === key) port.postMessage({ t: 'ev', change, e }) })
+      }).catch((err) => port.postMessage({ t: 'attach-error', tabId: m.tabId, message: String(err?.message ?? err) }))
     } else if (m.t === 'rpc') void rpc(m.name, m.args).then((value) => port.postMessage({ t: 'rpc', id: m.id, value }))
   })
   port.onDisconnect.addListener(() => { off(); ports.delete(port) })

@@ -9,8 +9,9 @@ import { Timeline } from '../../../src/renderer/Timeline'
 // test/tanilama: yakalanmamis hatalari say
 const errs: string[] = []; (window as any).__izlixErrors = errs
 addEventListener('error', (e) => errs.push(String(e.message))); addEventListener('unhandledrejection', (e) => errs.push(String((e as PromiseRejectionEvent).reason)))
-const tabId = Number(new URLSearchParams(location.search).get('tabId'))
-const KEY = `tab-${tabId}`
+const fixedTab = Number(new URLSearchParams(location.search).get('tabId')) || null
+let tabId = fixedTab ?? 0
+let KEY = `tab-${tabId}`
 const port = chrome.runtime.connect({ name: 'izlix-panel' })
 const evSubs = new Set<(e: BusEvent) => void>()
 let snapshotResolve: ((l: BusEvent[]) => void) | null = null
@@ -18,12 +19,24 @@ let snapshotCache: BusEvent[] | null = null
 const pending = new Map<number, (v: unknown) => void>(); let rpcSeq = 0
 const rpc = (name: string, ...args: unknown[]): Promise<any> => new Promise((res) => { const id = ++rpcSeq; pending.set(id, res); port.postMessage({ t: 'rpc', id, name, args }) })
 port.onMessage.addListener((m: any) => {
-  if (m.t === 'events') { snapshotCache = m.events; snapshotResolve?.(m.events); snapshotResolve = null }
+  if (m.t === 'events') { snapshotCache = m.events; snapshotResolve?.(m.events); snapshotResolve = null; if (m.tabId === tabId) useStore.getState().reset(m.events) }
+  else if (m.t === 'attach-error') useStore.setState({ attachError: m.message } as any)
   else if (m.t === 'ev') evSubs.forEach((fn) => fn(m.e))
   else if (m.t === 'rules') useStore.setState((s) => ({ rules: { ...s.rules, default: m.cfg } }))
   else if (m.t === 'rpc') { pending.get(m.id)?.(m.value); pending.delete(m.id) }
 })
-port.postMessage({ t: 'hello', tabId })
+/** izlenecek sekmeyi sec: sabit (?tabId=) ya da gercek kenar panelinde etkin sekme (sekme degisince takip eder) */
+function follow(id: number): void {
+  if (!id || id === tabId && snapshotCache) return
+  tabId = id; KEY = `tab-${id}`; snapshotCache = null
+  useStore.setState({ activeTabId: KEY, tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any] })
+  port.postMessage({ t: 'hello', tabId: id })
+}
+if (fixedTab) follow(fixedTab)
+else {
+  void chrome.tabs.query({ active: true, currentWindow: true }).then(([t]) => { if (t?.id) follow(t.id) })
+  chrome.tabs.onActivated.addListener((a) => follow(a.tabId))
+}
 
 const lang = navigator.language.toLowerCase().startsWith('tr') ? 'tr' : 'en'
 const real: Record<string, (...a: any[]) => any> = {

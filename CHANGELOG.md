@@ -10,6 +10,7 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Third-party notices (`THIRD_PARTY_NOTICES.md`) generated from the dependency tree.
 
 ### Changed
+- Chrome extension: the toolbar button now opens the side panel natively and tracing starts when the panel opens; the panel follows the active tab.
 - Design tokens and motion preferences moved into one file; "reduce motion" is respected.
 - Every legacy button now uses the new button look and press behavior.
 
