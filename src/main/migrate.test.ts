@@ -6,15 +6,15 @@ import { migrateLegacyData } from './migrate'
 
 describe('migrateLegacyData', () => {
   it('eski klasoru ve veritabani dosyalarini yeni ada tasir', () => {
-    const base = mkdtempSync(join(tmpdir(), 'mig-')); mkdirSync(join(base, 'izlix'))
-    for (const s of ['', '-wal', '-shm']) writeFileSync(join(base, 'izlix', `izlix.db${s}`), 'x')
+    const base = mkdtempSync(join(tmpdir(), 'mig-')); mkdirSync(join(base, 'devbrowser'))
+    for (const s of ['', '-wal', '-shm']) writeFileSync(join(base, 'devbrowser', `devbrowser.db${s}`), 'x')
     expect(migrateLegacyData(base)).toBe('moved')
     expect(existsSync(join(base, 'izlix', 'izlix.db'))).toBe(true); expect(existsSync(join(base, 'izlix', 'izlix.db-wal'))).toBe(true)
-    expect(existsSync(join(base, 'izlix'))).toBe(false)
+    expect(existsSync(join(base, 'devbrowser'))).toBe(false)
   })
   it('yeni klasor varsa veya eski yoksa dokunmaz', () => {
-    const a = mkdtempSync(join(tmpdir(), 'mig-')); mkdirSync(join(a, 'izlix')); mkdirSync(join(a, 'izlix'))
-    expect(migrateLegacyData(a)).toBe('none'); expect(existsSync(join(a, 'izlix'))).toBe(true)
+    const a = mkdtempSync(join(tmpdir(), 'mig-')); mkdirSync(join(a, 'devbrowser')); mkdirSync(join(a, 'izlix'))
+    expect(migrateLegacyData(a)).toBe('none'); expect(existsSync(join(a, 'devbrowser'))).toBe(true)
     expect(migrateLegacyData(mkdtempSync(join(tmpdir(), 'mig-')))).toBe('none')
   })
 })
