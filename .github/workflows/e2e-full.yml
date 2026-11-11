@@ -1,0 +1,30 @@
+name: Full end-to-end suite
+
+on:
+  push: { branches: [main] }
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-linux:
+    name: Full desktop suite (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - name: Install and start the test apps (React 19 on 5173, React 18 on 5174)
+        run: |
+          for app in vite-react19 vite-react18; do (cd tests/testapps/$app && npm install --no-audit --no-fund --silent); done
+          (cd tests/testapps/vite-react19 && nohup npx vite --port 5173 --strictPort > /tmp/v19.log 2>&1 &)
+          (cd tests/testapps/vite-react18 && nohup npx vite --port 5174 --strictPort > /tmp/v18.log 2>&1 &)
+          for p in 5173 5174; do for i in $(seq 1 40); do curl -sf "http://localhost:$p" >/dev/null && break; sleep 1; done; done
+      - name: Run the suite under a virtual display
+        run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 E2E_SKIP="$(cat tests/e2e/linux-skip.txt | tr '\n' ',')" python3 tests/e2e/suite.py

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """E2E regresyon paketi: her betigi calistirir, expectations.json'a gore gecti/kaldi verir.
-Onkosul: `npx electron-vite build` ve localhost:5173'te test uygulamasi (spike/testapps/vite-react19: npx vite).
+Onkosul: `npx electron-vite build` ve localhost:5173te test uygulamasi (tests/testapps/vite-react19: npx vite --port 5173).
 Kullanim: python3 tests/e2e/suite.py [betik ...]"""
 import json, os, re, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.dirname(os.path.dirname(ROOT))
 # Test uygulamasi (Vite + React 19): DB_TESTAPP ile degistirilebilir; varsayilan depo disindaki spike klasoru
-TESTAPP = os.environ.get('DB_TESTAPP') or os.path.abspath(os.path.join(APP, '..', 'spike', 'testapps', 'vite-react19'))
+TESTAPP = os.environ.get('DB_TESTAPP') or os.path.join(APP, 'tests', 'testapps', 'vite-react19')
 TMPD = os.environ.get('DB_E2E_TMP') or os.path.join(tempfile.gettempdir(), 'izlix-e2e')
 os.makedirs(TMPD, exist_ok=True)
 
@@ -66,7 +66,8 @@ def run(name):
     if not os.path.exists(out): return None
     return json.load(open(out))['result']
 
-names = sys.argv[1:] or list(EXP)
+SKIP = set(filter(None, os.environ.get('E2E_SKIP', '').split(',')))  # bilinen platform/ag bagimli betikleri (CI)
+names = [n for n in (sys.argv[1:] or list(EXP)) if n not in SKIP]
 failed = 0
 for name in names:
     res = run(name)
