@@ -33,7 +33,7 @@ jobs:
         run: |
           dir=$(ls -d work/ungoogled-chromium-*/ | head -n1); dir=${dir%/}
           cp -R packages/extension/dist "$dir/izlix-extension"
-          cp LICENSE "$dir/IZLIX-LICENSE"
+          cp LICENSE "$dir/IZLIX-LICENSE"; cp THIRD_PARTY_NOTICES.md "$dir/IZLIX-THIRD-PARTY-NOTICES.md"
           cat > "$dir/izlix" <<'SH'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
@@ -72,7 +72,7 @@ jobs:
         run: |
           dir=$(ls -d work/ungoogled-chromium*/ | head -n1); dir=${dir%/}
           cp -R packages/extension/dist "$dir/izlix-extension"
-          cp LICENSE "$dir/IZLIX-LICENSE"
+          cp LICENSE "$dir/IZLIX-LICENSE"; cp THIRD_PARTY_NOTICES.md "$dir/IZLIX-THIRD-PARTY-NOTICES.md"
           printf '@echo off\r\nstart "" "%%~dp0chrome.exe" --load-extension="%%~dp0izlix-extension" --silent-debugger-extension-api --user-data-dir="%%LOCALAPPDATA%%\\Izlix\\profile" %%*\r\n' > "$dir/Izlix.bat"
           echo "BUNDLE_DIR=$dir" >> "$GITHUB_ENV"
       - name: Smoke test
@@ -105,7 +105,7 @@ jobs:
           app=$(ls -d work/*.app | head -n1)
           exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
           cp -R packages/extension/dist "$app/Contents/Resources/izlix-extension"
-          cp LICENSE "$app/Contents/Resources/IZLIX-LICENSE"
+          cp LICENSE "$app/Contents/Resources/IZLIX-LICENSE"; cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/IZLIX-THIRD-PARTY-NOTICES.md"
           mv "$app/Contents/MacOS/$exe" "$app/Contents/MacOS/$exe-real"
           cat > "$app/Contents/MacOS/$exe" <<SH
           #!/bin/sh

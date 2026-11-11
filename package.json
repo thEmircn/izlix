@@ -1,6 +1,6 @@
 {
   "name": "izlix",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "description": "React-aware development browser",
   "main": "out/main/index.js",
@@ -19,7 +19,8 @@
     "typecheck:ext": "tsc --noEmit -p packages/extension",
     "zip:ext": "npm run build:ext && cd packages/extension/dist && rm -f ../izlix-for-chrome.zip && zip -qr ../izlix-for-chrome.zip . && echo packages/extension/izlix-for-chrome.zip",
     "typecheck:ui": "tsc --noEmit -p packages/ui",
-    "build:ui": "node packages/ui/build.mjs"
+    "build:ui": "node packages/ui/build.mjs",
+    "notices": "node tools/notices.mjs > THIRD_PARTY_NOTICES.md"
   },
   "dependencies": {
     "react": "^19.3.1",
