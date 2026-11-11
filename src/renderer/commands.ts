@@ -43,6 +43,8 @@ export function buildCommands(): Command[] {
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
     ...ENGINES.filter((e) => e.id !== (s.settings.searchEngine ?? 'duckduckgo')).map((e) => ({ id: `search.${e.id}`, title: t('cmd.searchEngine', { name: e.label }), run: () => void api.setSettings({ searchEngine: e.id }) })),
+    { id: 'adblock.toggle', title: t((s.settings.adblock ?? 'ads') === 'off' ? 'cmd.adOn' : 'cmd.adOff'), run: () => void api.setSettings({ adblock: (s.settings.adblock ?? 'ads') === 'off' ? 'ads' : 'off' }) },
+    { id: 'adblock.strict', title: t('cmd.adStrict'), run: () => void api.setSettings({ adblock: 'strict' }) },
     { id: 'lang.switch', title: t('cmd.language', { lang: lang === 'en' ? 'Türkçe' : 'English' }), run: () => void api.setSettings({ language: lang === 'en' ? 'tr' : 'en' }) },
     s.settings.telemetry === 'granted'
       ? { id: 'telemetry.off', title: t('cmd.telemetryOff'), run: () => void api.setSettings({ telemetry: 'denied' }) }

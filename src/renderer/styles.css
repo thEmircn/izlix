@@ -891,3 +891,8 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .sug-main b { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sug-main small { color: var(--dim, #999); font: 11.5px ui-monospace, Menlo, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sug-tag { font: normal 10px ui-monospace, Menlo, monospace; text-transform: uppercase; letter-spacing: .06em; color: var(--dim, #999); flex: none; }
+
+/* v9: engelleyici rozeti */
+.chip.shield { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; color: var(--ok, #6ee7a8); }
+.chip.shield b { font: 600 11px ui-monospace, Menlo, monospace; color: var(--fg, #eee); }
+.chip.shield.off { color: var(--dim, #888); opacity: .7; }

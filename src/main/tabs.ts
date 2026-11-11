@@ -56,7 +56,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
   }
 
@@ -115,8 +115,10 @@ export class TabManager {
       })
       this.onChange()
     }
+    wc.on('dom-ready', () => this.hooks.onDomReady?.(wc))
     wc.on('did-start-navigation', (d: any) => {
       if (!d.isMainFrame || d.isSameDocument) return
+      if (e.info.blocked) { e.info.blocked = 0; this.onChange() }
       e.interceptor?.setPageUrl(d.url); void e.interceptor?.refresh()
     })
     wc.on('did-navigate', () => { e.interceptor?.setPageUrl(null); void e.interceptor?.refresh() })
@@ -144,6 +146,14 @@ export class TabManager {
     wc.on('found-in-page', (_ev, r) => this.hooks.onFound?.(e.info.id, r.activeMatchOrdinal, r.matches))
     wc.on('will-navigate', guard)
     wc.on('will-redirect', guard)
+  }
+
+  /** Engellenen istek sayaci (sayfa basina); arayuz en fazla ~3 kez/sn guncellenir */
+  private blockTimer: NodeJS.Timeout | null = null
+  noteBlocked(webContentsId: number | undefined): void {
+    if (webContentsId === undefined) return
+    for (const e of this.tabs.values()) if (e.view.webContents.id === webContentsId) { e.info.blocked = (e.info.blocked ?? 0) + 1; break }
+    this.blockTimer ??= setTimeout(() => { this.blockTimer = null; this.onChange() }, 350)
   }
 
   /** Sayfa yuklenince (kullanici gorurken) kucuk bir onizleme goruntusu al; gizli sekme, hata sayfasi ve overlay acikken alinmaz */

@@ -1,6 +1,8 @@
 import { originKey } from '../shared/favicon'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Sug } from '../shared/suggest'
+import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
+import { IcShield } from './icons'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -46,6 +48,17 @@ export function App() {
   const active = s.tabs.find((t) => t.id === s.activeTabId)
   const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId)
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
+  const pageHost = (() => { try { return new URL(active?.url ?? '').hostname.toLowerCase() } catch { return '' } })()
+  const adLevel = s.settings.adblock ?? 'ads'
+  const shieldShown = adLevel !== 'off' && /^https?:/.test(active?.url ?? '') && !isLoopbackHost(pageHost) && !active?.private
+  const siteAllowed = inSet(pageHost, new Set(s.settings.adblockAllow ?? []))
+  const toggleSite = (): void => {
+    if (!active || !pageHost) return
+    const cur = s.settings.adblockAllow ?? []
+    const next = siteAllowed ? cur.filter((x) => !(pageHost === x || pageHost.endsWith('.' + x))) : [...cur, siteOf(pageHost)]
+    void api.setSettings({ adblockAllow: next }).then(() => api.reload(active.id))
+    toast(t(siteAllowed ? 'ad.on' : 'ad.off', { h: siteOf(pageHost) }))
+  }
   const pickSug = (x: Sug): void => { setTyped(null); if (x.kind === 'tab' && x.tabId) void api.activateTab(x.tabId); else if (active) void api.go(active.id, x.url); else void api.createTab(x.url); addrRef.current?.blur() }
   const bookmarked = !!active && (s.bookmarks[s.activeWorkspaceId] ?? []).some((b) => b.url === active.url)
   const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
@@ -181,6 +194,9 @@ export function App() {
             <button type="button" className="rule-badge nodrag" title={t('rules.badge.title')} onClick={() => s.set({ overlay: 'rules' })}>{t('rules.badge', { n: nActive })}</button>
           )}
         </form>
+        {shieldShown && active && (
+          <button type="button" className={`chip shield nodrag ${siteAllowed ? 'off' : ''}`} title={t(siteAllowed ? 'ad.tipOff' : 'ad.tipOn', { n: active.blocked ?? 0 })} onClick={toggleSite}><IcShield />{!siteAllowed && (active.blocked ?? 0) > 0 && <b>{active.blocked}</b>}</button>
+        )}
         {emuActive(active?.emu) && active && (
           <button type="button" className="chip emu" title={t('emu.resetTip')} onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null, ua: null, touch: null, vision: null, contrast: null, forcedColors: null, print: null })}>
             {[networkPreset(active.emu?.network)?.label, active.emu?.cpu ? `CPU ${active.emu.cpu}×` : '', geoPreset(active.emu?.geo)?.label, uaPreset(active.emu?.ua)?.label, active.emu?.touch ? 'touch' : '', active.emu?.vision ? t(`vis.${active.emu.vision}` as any) : '', active.emu?.contrast ? `contrast ${active.emu.contrast}` : '', active.emu?.forcedColors ? 'forced-colors' : '', active.emu?.print ? 'print' : ''].filter(Boolean).join(' · ')}<Close />

@@ -2660,5 +2660,42 @@
       "eq",
       true
     ]
+  ],
+  "adblock": [
+    [
+      "devUntouched",
+      "eq",
+      0
+    ],
+    [
+      "adsBlocked",
+      "eq",
+      2
+    ],
+    [
+      "adHidden",
+      "eq",
+      "none"
+    ],
+    [
+      "contentVisible",
+      "eq",
+      "block"
+    ],
+    [
+      "strictBlocked",
+      "eq",
+      3
+    ],
+    [
+      "allowedBlocked",
+      "eq",
+      0
+    ],
+    [
+      "offBlocked",
+      "eq",
+      0
+    ]
   ]
 }

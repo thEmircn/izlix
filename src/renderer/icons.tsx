@@ -47,3 +47,4 @@ export const IcLayers = ic('M8 2.5 13.5 5.5 8 8.5 2.5 5.5zM2.5 8.2 8 11.2l5.5-3M
 export const IcSearch = ic('M7 2.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM10.4 10.4 13.5 13.5')
 export const IcArrow = ic('M3 8h9.5M8.5 4 12.5 8l-4 4')
 export const IcGlobe = ic('M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM2.5 8h11M8 2.5c1.7 1.6 2.5 3.4 2.5 5.5S9.7 11.900 8 13.500C6.300 11.900 5.500 10.100 5.500 8S6.300 4.100 8 2.500z')
+export const IcShield = ic('M8 2 3 4v4c0 3 2.200 5 5 6 2.800-1 5-3 5-6V4zM5.800 8l1.600 1.600L10.400 6.600')

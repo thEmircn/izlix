@@ -37,6 +37,8 @@ export interface TabInfo {
   /** Ag/CPU kisitlama ve konum emulasyonu */
   /** Network.setCacheDisabled */
   noCache?: boolean
+  /** bu sayfada engellenen istek sayisi */
+  blocked?: number
   emu?: { network?: string; cpu?: number; geo?: string; ua?: string; touch?: boolean; vision?: string; contrast?: 'more' | 'less'; forcedColors?: boolean; print?: boolean }
   media?: { colorScheme?: 'light' | 'dark'; reducedMotion?: boolean }
 }
@@ -53,4 +55,4 @@ export type Editor = 'vscode' | 'cursor' | 'webstorm'
 export type DevToolsDock = 'right' | 'bottom' | 'off'
 
 export type Language = 'en' | 'tr'
-export interface Settings { /** adres cubugu arama motoru kimligi (shared/search.ts) */ searchEngine?: string; /** yazarken arama motorundan canli oneri al (varsayilan acik; yazilan metin motora gider) */ searchSuggest?: boolean; telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string; /** Workspace'e ait yeni dev sunucusu baslayinca sekme ac */ autoOpen: boolean }
+export interface Settings { /** adres cubugu arama motoru kimligi (shared/search.ts) */ searchEngine?: string; /** yazarken arama motorundan canli oneri al (varsayilan acik; yazilan metin motora gider) */ searchSuggest?: boolean; /** reklam/izleyici engelleme duzeyi (varsayilan ads) */ adblock?: 'off' | 'ads' | 'strict'; /** engelleyicinin kapali oldugu siteler */ adblockAllow?: string[]; /** gelistirme (localhost) sayfalarinda da engelle */ adblockDev?: boolean; telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string; /** Workspace'e ait yeni dev sunucusu baslayinca sekme ac */ autoOpen: boolean }
