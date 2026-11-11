@@ -6,8 +6,10 @@ import { PW_BINDING, PW_SCRIPT, fillScript, type LoginMeta } from '../shared/pas
 
 export interface Cipher { available(): boolean; encrypt(s: string): string; decrypt(s: string): string }
 /** Uretim: macOS Keychain'deki anahtarla (Electron safeStorage) sifreleme. */
+/** Linux'ta anahtarlik (libsecret/kwallet) yoksa Electron "basic_text" kullanir: anahtar duz metin kadar korumasizdir. Bu durumda sifre SAKLANMAZ. */
+export const weakKeystore = (): boolean => process.platform === 'linux' && typeof safeStorage.getSelectedStorageBackend === 'function' && safeStorage.getSelectedStorageBackend() === 'basic_text'
 export const keychainCipher: Cipher = {
-  available: () => safeStorage.isEncryptionAvailable(),
+  available: () => safeStorage.isEncryptionAvailable() && !weakKeystore(),
   encrypt: (s) => safeStorage.encryptString(s).toString('base64'),
   decrypt: (s) => safeStorage.decryptString(Buffer.from(s, 'base64'))
 }

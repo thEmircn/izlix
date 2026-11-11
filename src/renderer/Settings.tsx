@@ -21,7 +21,7 @@ export function Settings({ onClose }: { onClose(): void }) {
   const set = useStore((s) => s.set)
   const api = window.izlix
   const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
-  const [pw, setPw] = useState<{ logins: { origin: string; username: string; ts: number }[]; never: string[] }>({ logins: [], never: [] })
+  const [pw, setPw] = useState<{ logins: { origin: string; username: string; ts: number }[]; never: string[]; available?: boolean }>({ logins: [], never: [] })
   const [scText, setScText] = useState((settings.shortcuts ?? []).map((x) => `${x.key} ${x.url}`).join('\n'))
   const saveShortcuts = (): void => { const list = scText.split('\n').map((l) => l.trim().split(/\s+/)).filter((p) => p.length >= 2).map(([key, url]) => ({ key, url })); void api.setSettings({ shortcuts: list }).then(() => toast(t('site.saved'))) }
   const [gen, setGen] = useState(() => generatePassword({ length: 20 }))
@@ -82,6 +82,7 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.consent')} hint={t('set.consentHint')}><Switch on={settings.cookieBanners !== false} label={t('set.consent')} onChange={(v) => void api.setSettings({ cookieBanners: v })} /></Row>
           <div className="srow" style={{ display: 'block' }}>
             <div className="stitle">{t('pw.title')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('pw.hint')}</div>
+            {pw.available === false && <div className="shint" role="alert" data-testid="pw-nokeyring" style={{ color: 'var(--warn, #f5b94a)' }}>{t('pw.noKeyring')}</div>}
             {pw.logins.length === 0 && <div className="shint">{t('pw.none')}</div>}
             {pw.logins.map((l) => (
               <div className="pwrow" key={l.origin + l.username}><div className="pwo"><b>{l.username || t('pw.noUser')}</b><small>{l.origin}</small></div>

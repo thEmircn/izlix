@@ -371,7 +371,7 @@ function registerIpc(): void {
   handle(Ch.zoom, schemas.zoom, ({ id, dir }) => { const s = siteOfTab(id); if (!s) return 1; const z = stepZoom(sites.get(s.host).zoom ?? 1, dir); sites.set(s.host, { ...sites.get(s.host), zoom: z }); applyHost(s.host); return z })
   handle(Ch.siteClear, schemas.siteClear, async ({ id }) => { const s = siteOfTab(id); if (!s) return false; await s.wc.session.clearStorageData({ origin: new URL(s.wc.getURL()).origin }); s.wc.reload(); return true })
   // Sifre yoneticisi (sifreler arayuze gonderilmez; panoya kopyalama yalnizca kabuktan istenir)
-  handle(Ch.pwList, null, () => ({ logins: passwords.list(), never: passwords.never() }))
+  handle(Ch.pwList, null, () => ({ logins: passwords.list(), never: passwords.never(), available: process.env.DB_SCRIPT ? true : keychainCipher.available() }))
   handle(Ch.pwDelete, schemas.pwDelete, ({ origin, username }) => passwords.remove(origin, username))
   handle(Ch.pwCopy, schemas.pwDelete, ({ origin, username }) => passwords.copy(origin, username))
   handle(Ch.pwNeverRemove, schemas.pwNever, ({ origin }) => passwords.removeNever(origin))

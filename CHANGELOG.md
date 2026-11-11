@@ -28,5 +28,6 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Continuous integration on macOS, Windows and Linux, CodeQL scanning, security policy.
 
 ### Security
+- Linux: passwords are no longer saved when only a weak keystore (plain-text backend) is available; Settings explains how to enable a system keyring.
 - Sign-in requests are no longer recorded on the timeline.
 - "Open in editor" accepts only known, absolute source paths from local development pages.
