@@ -955,7 +955,7 @@ async function openInEditor(file: string, line: number, column: number, editor: 
 let lastEditorOpen: { file: string; line: number; column: number; editor: string; args?: string[] } | null = null
 const EDITOR_LABEL: Record<string, string> = { vscode: 'VS Code', cursor: 'Cursor', webstorm: 'WebStorm' }
 
-/** Ekran paylasimi (getDisplayMedia: Meet/Zoom/Teams): macOS sistem secicisi; yoksa kendi kaynak menumuz. Test modunda DB_DISPLAY_PICK=none ile reddedilir. */
+/** Ekran paylasimi (getDisplayMedia: Meet/Zoom/Teams): kendi kaynak menumuz (macOS sistem secicisi SCContentSharingPicker secim aninda yerel istisnayla uygulamayi dusuruyordu: kapali). Test modunda DB_DISPLAY_PICK=none ile reddedilir. */
 let displayRequests = 0
 function handleDisplayMedia(ses: Electron.Session): void {
   ses.setDisplayMediaRequestHandler((_request, callback) => {
@@ -967,7 +967,7 @@ function handleDisplayMedia(ses: Electron.Session): void {
       const items: Electron.MenuItemConstructorOptions[] = sources.slice(0, 30).map((s) => ({ label: (s.id.startsWith('screen') ? '🖥 ' : '') + (s.name || s.id).slice(0, 70), click: () => { done = true; callback({ video: s }) } }))
       Menu.buildFromTemplate([{ label: tr('share.pick'), enabled: false }, { type: 'separator' }, ...items]).popup({ window: BrowserWindow.getFocusedWindow() ?? win, callback: () => { if (!done) callback({} as Electron.Streams) } })
     }).catch(() => callback({} as Electron.Streams))
-  }, { useSystemPicker: true })
+  }, { useSystemPicker: false })
 }
 
 const speaker = new Speaker((on) => send(Ch.speakState, on))
