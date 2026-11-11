@@ -11,6 +11,7 @@ import { Seg, Roll } from './ui'
 import { JwtList } from './Jwt'
 import { findJwts } from '../shared/jwt'
 import { toast, useStore, useT, writePref, tNow } from './store'
+import { NETWORK_PRESETS } from '../shared/emulation'
 
 const FILTERS: ('all' | NetType)[] = ['all', 'xhr', 'ws', 'js', 'css', 'img', 'doc', 'font', 'other']
 
@@ -26,6 +27,7 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
   const tabId = useStore((s) => s.activeTabId)
   const preserve = useStore((s) => s.preserveLog)
   const noCache = useStore((s) => !!s.tabs.find((x) => x.id === s.activeTabId)?.noCache)
+  const netThrottle = useStore((s) => s.tabs.find((x) => x.id === s.activeTabId)?.emu?.network ?? '')
   const set = useStore((s) => s.set)
   const [now, setNow] = useState(Date.now())
   const listRef = useRef<HTMLDivElement>(null)
@@ -61,6 +63,9 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         </div>
         <input className="search" placeholder={t('net.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
+        <select className="net-throttle" aria-label={t('net.throttle')} title={t('net.throttle')} value={netThrottle} onChange={(e) => tabId && void window.izlix.setEmulation(tabId, { network: e.target.value || null })}>
+          <option value="">{t('net.noThrottle')}</option>{NETWORK_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
         <label className="tgl"><input type="checkbox" checked={noCache} onChange={(e) => tabId && void window.izlix.setCacheDisabled(tabId, e.target.checked)} />{t('net.noCache')}</label>
         <button className="btn" onClick={() => tabId && void window.izlix.saveHar(tabId).then((p: string | null) => p && toast(t('toast.har', { p: p.split('/').pop() ?? '' })))}>HAR</button>
         <button className="btn" onClick={() => { setClearedAt(Date.now()); set({ selectedEventId: null }) }}>{t('net.clear')}</button>
