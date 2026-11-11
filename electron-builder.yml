@@ -5,7 +5,7 @@ files: ['out/**', 'package.json']
 extraResources: [{ from: samples, to: samples }, { from: extension, to: extension }, { from: bin, to: bin }]
 asar: true
 afterPack: scripts/after-pack.cjs
-protocols: [{ name: Izlix, schemes: [izlix] }]
+protocols: [{ name: Izlix, schemes: [izlix] }, { name: Web site, schemes: [http, https] }]
 mac:
   icon: build/icon.icns
   category: public.app-category.developer-tools

@@ -76,6 +76,19 @@ export function decide(url: string, resourceType: string, pageUrl: string | unde
 const safePath = (u: string): string => { try { return new URL(u).pathname } catch { return '' } }
 const safeSearch = (u: string): string => { try { return new URL(u).search } catch { return '' } }
 
+/** CDP Fetch kalip listesi: yalnizca bilinen reklam/izleyici alan adlari ve yol kaliplari duraklatilir (diger istekler hic kesilmez). */
+export function adPatterns(level: BlockLevel): { urlPattern: string; requestStage: 'Request' }[] {
+  if (level === 'off') return []
+  const hosts = level === 'strict' ? [...AD_DOMAINS, ...TRACKER_DOMAINS] : [...AD_DOMAINS]
+  const pats = new Set<string>()
+  for (const h of hosts) { pats.add(`*://${h}/*`); pats.add(`*://*.${h}/*`) }
+  for (const p of ['*://*/pagead/*', '*://*/adserver/*', '*://*/gampad/ads*', '*://*.youtube.com/api/stats/ads*', '*://*.youtube.com/ptracking*', '*://*.youtube.com/youtubei/v1/player/ad_break*', '*://*.youtube.com/get_midroll_*']) pats.add(p)
+  return [...pats].map((urlPattern) => ({ urlPattern, requestStage: 'Request' as const }))
+}
+/** CDP kaynak turu -> decide() turu */
+export const cdpType = (t: string | undefined, isMainNav: boolean): string =>
+  t === 'Document' ? (isMainNav ? 'mainFrame' : 'subFrame') : t === 'Script' ? 'script' : t === 'Image' ? 'image' : t === 'XHR' || t === 'Fetch' ? 'xhr' : t === 'Stylesheet' ? 'stylesheet' : 'other'
+
 /** Sayfaya eklenen genel "gorunumu gizle" CSS (reklam kutulari); yalnizca engelleme aciksa */
 export const COSMETIC_CSS = `
 ins.adsbygoogle, .adsbygoogle, [id^="google_ads_iframe"], [id^="div-gpt-ad"], iframe[src*="doubleclick.net"], iframe[src*="googlesyndication.com"],

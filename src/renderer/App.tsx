@@ -10,7 +10,7 @@ import { DashboardView } from './DashboardView'
 import { IcDockB, IcDockL, IcOverview, IcPanel } from './icons'
 import { SessionPrompt } from './SessionPrompt'
 import type { DevToolsDock } from '../shared/events'
-import { useStore, writePref, useT, toast, PANEL_TABS, wsName, useTween } from './store'
+import { useStore, writePref, useT, toast, tNow, PANEL_TABS, wsName, useTween } from './store'
 import { Welcome } from './Welcome'
 import { Toasts } from './Toasts'
 import { Settings } from './Settings'
@@ -104,6 +104,7 @@ export function App() {
           case 'tab.reopen': void api.reopenTab(); break
           case 'tab.new': void api.createTab(); break
           case 'tab.newPrivate': void api.createTab(undefined, 'incognito')
+          case 'reader.toggle': void api.reader().then((r: string) => { if (r === 'none') toast(tNow('reader.none')) }); break
           case 'tab.newTor': void api.createTab(undefined, 'tor'); break
           case 'tab.close': if (act) void api.closeTab(act.id); break
           case 'nav.reload': if (act) void api.reload(act.id); break
@@ -160,7 +161,7 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} draggable className={`tab nodrag ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable className={`tab nodrag ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}

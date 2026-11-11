@@ -13,6 +13,9 @@ export function parseLaunch(args: string[], cwd = process.cwd()): Launch | null 
       if (!p) continue
       return { type: 'dir', dir: isAbsolute(p) ? resolve(p) : resolve(cwd, p), ...(args.includes('--run') ? { run: true } : {}) }
     }
+    if (/^https?:\/\//i.test(a)) { // varsayilan tarayici: sistemden gelen baglanti
+      try { new URL(a); return { type: 'url', url: a } } catch { continue }
+    }
     if (a.startsWith('izlix://')) {
       try {
         const u = new URL(a)

@@ -1,6 +1,7 @@
 import type { WebContents } from 'electron'
 import type { EventBus } from './bus'
 import { MockServer } from './mockserver'
+import { adPatterns, cdpType, decide, inSet, isLoopbackHost, type BlockLevel } from '../shared/adblock'
 import { evaluate, hostAllowed, needsResponseStage, activeRules, type Decision, type RulesConfig } from '../shared/rules'
 
 const mockServer = new MockServer()
@@ -10,6 +11,8 @@ const isCrossOriginWrite = (url: string, origin: string | undefined, method: str
 }
 
 type Mode = 'off' | 'request' | 'both'
+/** Reklam engelleme ayarlari (Interceptor ayni Fetch alanini kullanir: webRequest dinleyicisi yanit-asamasi kurallarini bozuyordu) */
+export interface AdHook { cfg: () => { level: BlockLevel; allow: string[]; blockOnDev: boolean }; onBlocked: () => void }
 
 const hdr = (o: Record<string, string>): { name: string; value: string }[] => Object.entries(o).map(([name, value]) => ({ name, value }))
 
@@ -19,6 +22,7 @@ const hdr = (o: Record<string, string>): { name: string; value: string }[] => Ob
  */
 export class Interceptor {
   private mode: Mode = 'off'
+  private sig = ''
   /** networkId -> uygulanan karar; Timeline'daki istek olayına rozet olarak yazılır */
   private pendingBadges = new Map<string, Decision>()
   private unsub: () => void
@@ -26,7 +30,7 @@ export class Interceptor {
   /** gezinme basladiginda hedef adres (getURL() commit'e kadar eskisini verir) */
   private pageUrl: string | null = null
 
-  constructor(private wc: WebContents, private tabId: string, private bus: EventBus, private config: () => RulesConfig) {
+  constructor(private wc: WebContents, private tabId: string, private bus: EventBus, private config: () => RulesConfig, private ad?: AdHook) {
     wc.debugger.on('message', this.onMessage)
     this.unsub = bus.subscribe((ev, change) => {
       if (change !== 'new' || ev.tabId !== tabId || ev.kind !== 'request') return
@@ -48,12 +52,23 @@ export class Interceptor {
     if (this.dead || this.wc.isDestroyed()) return
     const cfg = this.config()
     const rules = activeRules(cfg)
-    const next: Mode = rules.length && hostAllowed(this.currentUrl(), cfg.domains) ? (needsResponseStage(rules) ? 'both' : 'request') : 'off'
-    if (next === this.mode) return
-    this.mode = next
-    if (next === 'off') { await this.send('Fetch.disable'); return }
-    const patterns = [{ urlPattern: '*', requestStage: 'Request' }, ...(next === 'both' ? [{ urlPattern: '*', requestStage: 'Response' }] : [])]
+    const rmode: Mode = rules.length && hostAllowed(this.currentUrl(), cfg.domains) ? (needsResponseStage(rules) ? 'both' : 'request') : 'off'
+    const ad = this.adActive()
+    const sig = `${rmode}|${ad ?? ''}`
+    if (sig === this.sig) return
+    this.sig = sig; this.mode = rmode
+    if (rmode === 'off' && !ad) { await this.send('Fetch.disable'); return }
+    // kurallar '*' ile her istegi zaten duraklatir; yalniz reklam varsa sadece reklam kaliplari
+    const patterns = rmode === 'off' ? adPatterns(ad!) : [{ urlPattern: '*', requestStage: 'Request' }, ...(rmode === 'both' ? [{ urlPattern: '*', requestStage: 'Response' }] : [])]
     await this.send('Fetch.enable', { patterns })
+  }
+
+  /** Bu sayfada reklam engelleme aktifse duzeyi, degilse null (kapali, izinli site, yerel dev sayfasi) */
+  private adActive(): BlockLevel | null {
+    const c = this.ad?.cfg(); if (!c || c.level === 'off') return null
+    let host = ''; try { host = new URL(this.currentUrl()).hostname.toLowerCase() } catch { return null }
+    if (!host || (isLoopbackHost(host) && !c.blockOnDev) || inSet(host, new Set(c.allow))) return null
+    return c.level
   }
 
   private badge(eventId: number, d: Decision): void {
@@ -96,6 +111,10 @@ export class Interceptor {
     }
 
     // ---- istek aşaması ----
+    const c = this.ad?.cfg()
+    if (c && this.adActive() && decide(req.url, cdpType(p.resourceType, req.url === this.currentUrl()), this.currentUrl(), { level: c.level, allow: c.allow, blockOnDev: c.blockOnDev })) {
+      this.ad!.onBlocked(); await this.send('Fetch.failRequest', { requestId: id, errorReason: 'BlockedByClient' }); return
+    }
     if (!allowed) { await this.send('Fetch.continueRequest', { requestId: id }); return }
     const origin = req.headers?.Origin ?? req.headers?.origin
     const cors = (extra: Record<string, string> = {}): { name: string; value: string }[] => hdr({

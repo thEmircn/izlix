@@ -20,6 +20,8 @@ export interface BusEvent {
 
 export interface SessionInfo { id: string; name: string; ts: number; tabs: { url: string; title: string }[]; active: number; split: [number, number] | null }
 export interface TabInfo {
+  /** Uyuyan sekme: sayfa sureci kapatildi (bellek), secilince ayni adresle yeniden yuklenir */
+  sleeping?: boolean
   /** Sabitlenmis sekme: seridin basinda, dar; oturumla geri gelir */
   pinned?: boolean
   /** Gizli sekme: kalici olmayan, izole oturum; gecmis/oturum kaydi yok */
@@ -57,4 +59,4 @@ export type Editor = 'vscode' | 'cursor' | 'webstorm'
 export type DevToolsDock = 'right' | 'bottom' | 'off'
 
 export type Language = 'en' | 'tr'
-export interface Settings { /** adres cubugu arama motoru kimligi (shared/search.ts) */ searchEngine?: string; /** yazarken arama motorundan canli oneri al (varsayilan acik; yazilan metin motora gider) */ searchSuggest?: boolean; /** reklam/izleyici engelleme duzeyi (varsayilan ads) */ adblock?: 'off' | 'ads' | 'strict'; /** engelleyicinin kapali oldugu siteler */ adblockAllow?: string[]; /** gelistirme (localhost) sayfalarinda da engelle */ adblockDev?: boolean; /** video ambient isigi (varsayilan acik) */ ambient?: boolean; /** gelistirme sayfalarinda da ambient (test) */ ambientDev?: boolean; telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string; /** Workspace'e ait yeni dev sunucusu baslayinca sekme ac */ autoOpen: boolean }
+export interface Settings { /** adres cubugu arama motoru kimligi (shared/search.ts) */ searchEngine?: string; /** yazarken arama motorundan canli oneri al (varsayilan acik; yazilan metin motora gider) */ searchSuggest?: boolean; /** reklam/izleyici engelleme duzeyi (varsayilan ads) */ adblock?: 'off' | 'ads' | 'strict'; /** engelleyicinin kapali oldugu siteler */ adblockAllow?: string[]; /** gelistirme (localhost) sayfalarinda da engelle */ adblockDev?: boolean; /** video ambient isigi (varsayilan acik) */ ambient?: boolean; /** hareketsiz sekmeleri bu kadar dakika sonra uyut (0 = kapali, varsayilan 30) */ sleepMinutes?: number; /** gelistirme sayfalarinda da ambient (test) */ ambientDev?: boolean; telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string; /** Workspace'e ait yeni dev sunucusu baslayinca sekme ac */ autoOpen: boolean }

@@ -26,6 +26,8 @@ async function wipeIncognito(part: string): Promise<void> {
 }
 
 interface Entry {
+  /** son aktif olma zamani (otomatik uyutma icin) */
+  lastActive: number
   info: TabInfo
   view: WebContentsView
   cdp?: Tab
@@ -56,8 +58,9 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
+    setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
 
   list(): { tabs: TabInfo[]; activeId: string | null } {
@@ -82,7 +85,7 @@ export class TabManager {
     { const ua = ses.getUserAgent(), clean = ua.replace(/\s+Electron\/[\d.]+/, '').replace(/\s+izlix\/[\w.\-]+/i, ''); if (clean !== ua) ses.setUserAgent(clean) }
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
-    const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}) } }
+    const entry: Entry = { lastActive: Date.now(), view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}) } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
     // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
@@ -99,7 +102,7 @@ export class TabManager {
       const u = wc.getURL()
       return this.rootFor(/^https?:/.test(u) ? u : entry.lastHttpUrl ?? u, opts.workspaceId)
     })
-    entry.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(opts.workspaceId))
+    entry.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(opts.workspaceId), this.adHook(wc))
     await entry.interceptor.refresh()
     if (target !== 'about:blank') void wc.loadURL(target).catch(() => {})
     this.persist()
@@ -109,6 +112,7 @@ export class TabManager {
   private wire(e: Entry): void {
     const wc = e.view.webContents
     const sync = (): void => {
+      if (wc.isDestroyed() || e.view.webContents !== wc) return // uyutulmus/degistirilmis gorunumun gec olaylari
       if (/^https?:/.test(wc.getURL())) e.lastHttpUrl = wc.getURL()
       Object.assign(e.info, {
         title: wc.getURL() === 'about:blank' ? 'New Tab' : wc.getTitle() || e.info.title, url: wc.getURL() === 'about:blank' ? '' : wc.getURL(), loading: wc.isLoading(),
@@ -149,6 +153,9 @@ export class TabManager {
     wc.on('will-redirect', guard)
   }
 
+  private adHook(wc: Electron.WebContents): { cfg: NonNullable<ConstructorParameters<typeof Interceptor>[4]>['cfg']; onBlocked: () => void } | undefined {
+    const cfg = this.hooks.adCfg; return cfg ? { cfg, onBlocked: () => this.noteBlocked(wc.id) } : undefined
+  }
   /** Engellenen istek sayaci (sayfa basina); arayuz en fazla ~3 kez/sn guncellenir */
   private blockTimer: NodeJS.Timeout | null = null
   noteBlocked(webContentsId: number | undefined): void {
@@ -171,6 +178,8 @@ export class TabManager {
   activate(id: string): void {
     if (!this.tabs.has(id)) return
     if (id === this.activeId) return // zaten aktif: DevTools'u yok edip yeniden kurma
+    const waking = this.tabs.get(id)!; if (waking.info.sleeping) this.wake(waking)
+    waking.lastActive = Date.now(); const before = this.active(); if (before) before.lastActive = Date.now()
     const prev = this.active()
     // bolunmus ciftin icindeki sekmeye gecis: gorunumler yerinde kalir, yalnizca odak (aktif sekme) degisir
     if (prev && this.split && (id === this.split.a || id === this.split.b)) {
@@ -387,6 +396,61 @@ export class TabManager {
     return true
   }
 
+  // ---- sekme uyutma: sayfa sureci kapanir (bellek), sekme seritte kalir; secilince ayni adresle yeniden yuklenir ----
+  private canSleep(e: Entry, manual: boolean): boolean {
+    const id = e.info.id
+    if (e.info.sleeping || id === this.activeId || e.info.private || e.lab || (this.split && (id === this.split.a || id === this.split.b))) return false
+    if (!manual && e.info.pinned) return false
+    const wc = e.view.webContents; if (wc.isDestroyed()) return false
+    const url = wc.getURL()
+    if (!/^https?:/.test(url) || wc.isLoading() || wc.isCurrentlyAudible()) return false
+    if (!manual) { try { if (isLoopbackHost(new URL(url).hostname)) return false } catch { return false } } // dev sunucusu durumunu (React state) otomatik uyutmayla kaybetme
+    return true
+  }
+  sleep(id: string, manual = true): boolean {
+    const e = this.tabs.get(id); if (!e || !this.canSleep(e, manual)) return false
+    const old = e.view
+    e.info.url = old.webContents.getURL(); e.info.title = old.webContents.getTitle() || e.info.title
+    if (e.retryTimer) { clearTimeout(e.retryTimer); e.retryTimer = undefined }
+    e.interceptor?.detach(); e.cdp?.detach(); e.interceptor = undefined; e.cdp = undefined
+    this.bus.dropTab(id)
+    e.view = new WebContentsView() // yer tutucu (renderer'i yuklenmemis, gorunmez)
+    try { this.win.contentView.removeChildView(old) } catch { /* zaten cocuk degil */ }
+    old.webContents.close()
+    e.info.sleeping = true; e.info.loading = false; e.info.canGoBack = false; e.info.canGoForward = false
+    this.onChange()
+    return true
+  }
+  /** Aktif disindaki uygun tum sekmeleri uyutur; sayisini doner */
+  sleepOthers(): number { let n = 0; for (const id of [...this.order]) if (this.sleep(id, true)) n++; return n }
+  private sweep(): void {
+    const mins = this.hooks.sleepMinutes?.() ?? 0; if (!mins) return
+    const cutoff = Date.now() - mins * 60_000
+    for (const e of [...this.tabs.values()]) if (e.lastActive < cutoff) this.sleep(e.info.id, false)
+  }
+  private wake(e: Entry, url?: string): void {
+    if (!e.info.sleeping) return
+    const target = url ?? e.info.url, id = e.info.id
+    delete e.info.sleeping
+    const ses = session.fromPartition(partitionFor(e.info.workspaceId))
+    const placeholder = e.view
+    const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    e.view = view
+    try { placeholder.webContents.close() } catch { /* yok */ }
+    this.wire(e)
+    view.webContents.on('focus', () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activate(id) })
+    void (async () => {
+      const wc = view.webContents
+      await wc.loadURL('about:blank')
+      if (/^https?:/.test(target)) e.lastHttpUrl = target
+      e.cdp = await attachCdp(wc, id, this.bus, () => { const u = wc.getURL(); return this.rootFor(/^https?:/.test(u) ? u : e.lastHttpUrl ?? u, e.info.workspaceId) })
+      e.interceptor = new Interceptor(wc, id, this.bus, () => this.rulesFor(e.info.workspaceId), this.adHook(wc))
+      await e.interceptor.refresh()
+      void wc.loadURL(target).catch(() => {})
+    })()
+    this.onChange()
+  }
+
   /** Sabitlenmis sekmeler her zaman basta (goreli sira korunur) */
   private normalizePins(): void {
     const pin = this.order.filter((i) => this.tabs.get(i)?.info.pinned), rest = this.order.filter((i) => !this.tabs.get(i)?.info.pinned)
@@ -419,10 +483,10 @@ export class TabManager {
     return null
   }
 
-  go(id: string, input: string): void { const t = this.tabs.get(id); if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input, this.hooks.searchEngine?.())).catch(() => {}) }
+  go(id: string, input: string): void { const t = this.tabs.get(id); if (t?.info.sleeping) this.wake(t, resolveInput(input, this.hooks.searchEngine?.())); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input, this.hooks.searchEngine?.())).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }
   forward(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goForward() }
-  reload(id: string): void { this.tabs.get(id)?.view.webContents.reload() }
+  reload(id: string): void { const t = this.tabs.get(id); if (t?.info.sleeping) { this.wake(t); return } t?.view.webContents.reload() }
 
   // ---- oturum kaydi: cokme veya yeniden baslatma sonrasi sekmeler geri gelir ----
   private persist(): void {

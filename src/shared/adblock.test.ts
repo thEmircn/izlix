@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decide, inSet, siteOf, AD_DOMAINS } from './adblock'
+import { decide, inSet, siteOf, adPatterns, cdpType, AD_DOMAINS } from './adblock'
 
 const o = (level: 'off' | 'ads' | 'strict' = 'ads', extra = {}) => ({ level, allow: [] as string[], ...extra })
 const P = 'https://news.example.com/article'
@@ -39,5 +39,19 @@ describe('yardimcilar', () => {
   it('inSet ust alan adlarini dener, siteOf ikinci duzey eki taniyor', () => {
     expect(inSet('a.b.criteo.com', AD_DOMAINS)).toBe(true); expect(inSet('notcriteo.com', AD_DOMAINS)).toBe(false)
     expect(siteOf('www.hepsiburada.com')).toBe('hepsiburada.com'); expect(siteOf('shop.example.com.tr')).toBe('example.com.tr')
+  })
+})
+
+describe('adPatterns / cdpType', () => {
+  it('kapali modda kalip yok; ads yalniz reklam, strict izleyici de icerir; her alan adi iki kalip', () => {
+    expect(adPatterns('off')).toEqual([])
+    const ads = adPatterns('ads').map((x) => x.urlPattern), strict = adPatterns('strict').map((x) => x.urlPattern)
+    expect(ads).toContain('*://*.doubleclick.net/*'); expect(ads).toContain('*://doubleclick.net/*'); expect(ads).not.toContain('*://*.google-analytics.com/*')
+    expect(strict).toContain('*://*.google-analytics.com/*'); expect(ads).toContain('*://*.youtube.com/api/stats/ads*')
+    expect(ads.length).toBeLessThan(600)
+  })
+  it('CDP turlerini cevirir', () => {
+    expect(cdpType('Script', false)).toBe('script'); expect(cdpType('Fetch', false)).toBe('xhr')
+    expect(cdpType('Document', true)).toBe('mainFrame'); expect(cdpType('Document', false)).toBe('subFrame')
   })
 })

@@ -39,6 +39,15 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.import')} hint={t('set.importHint')}>
             <button className="btn" onClick={() => void api.importChrome().then((r: { bookmarks: number; history: number } | null) => toast(r ? t('imp.done', { b: r.bookmarks, h: r.history }) : t('imp.none')))}>{t('set.importBtn')}</button>
           </Row>
+          <Row title={t('set.safari')} hint={t('set.safariHint')}>
+            <button className="btn" onClick={() => void api.importSafari().then((r: any) => toast(r === 'denied' ? t('imp.denied') : r ? t('imp.done', { b: r.bookmarks, h: r.history }) : t('imp.none')))}>{t('set.importBtn')}</button>
+          </Row>
+          <Row title={t('set.default')} hint={t('set.defaultHint')}>
+            <button className="btn" onClick={() => void api.defaultBrowser(true).then((ok: boolean) => toast(t(ok ? 'def.ok' : 'def.ask')))}>{t('set.defaultBtn')}</button>
+          </Row>
+          <Row title={t('set.sleep')} hint={t('set.sleepHint')}>
+            <select value={settings.sleepMinutes ?? 30} onChange={(e) => void api.setSettings({ sleepMinutes: Number(e.target.value) })}>{[0, 10, 30, 60, 180].map((m) => <option key={m} value={m}>{m === 0 ? t('ad.lvl.off') : t('set.sleepMin', { n: m })}</option>)}</select>
+          </Row>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>

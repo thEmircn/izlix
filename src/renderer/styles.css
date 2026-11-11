@@ -902,3 +902,6 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .tab.pinned span.t { font-size: 0; }
 .tab.pinned .tab-fav { margin-right: 0; width: 16px; height: 16px; }
 .tab.pinned span.t::first-letter { font-size: 12px; }
+
+/* v9: uyuyan sekme */
+.tab.sleeping { opacity: .55; } .tab.sleeping .tab-fav { filter: grayscale(1); } .tab.sleeping:hover { opacity: .85; }
