@@ -7,3 +7,4 @@ dist/
 packages/extension/dist
 packages/extension/*.zip
 packages/ui/gallery/dist
+_site

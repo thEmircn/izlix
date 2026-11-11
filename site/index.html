@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Izlix: follow the trace from click to render</title>
+<meta name="description" content="Izlix is a React-aware development browser and Chrome extension. See why your app broke on one timeline with cause arrows, and open the source in your editor.">
+<meta property="og:title" content="Izlix"><meta property="og:description" content="Follow the trace, from click to render."><meta property="og:image" content="screenshots/timeline.png">
+<style>
+:root { color-scheme: dark; --bg:#0a0a0b; --fg:#ededee; --dim:#8b8b92; --ac:#ff6a2b; --line:rgba(255,255,255,.09); --mono: ui-monospace,'SF Mono',Menlo,Consolas,monospace; --spring: cubic-bezier(.34,1.56,.64,1); }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin:0; background: radial-gradient(900px 520px at 85% -5%, rgba(255,106,43,.10), transparent 60%), var(--bg); color: var(--fg); font: 16px/1.6 -apple-system,'SF Pro Text','Segoe UI',system-ui,sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+nav { display:flex; align-items:center; gap:22px; padding: 22px 0; }
+nav b { font-size: 18px; letter-spacing: -.02em; margin-right:auto; }
+nav a { text-decoration:none; color: var(--dim); font-size: 14px; transition: color .15s; } nav a:hover { color: var(--fg); }
+.hero { padding: 40px 0 56px; text-align: center; }
+.hero img.h { width: 100%; max-width: 920px; border-radius: 24px; }
+.hero h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.08; letter-spacing: -.035em; margin: 34px 0 14px; }
+.hero p { color: var(--dim); max-width: 620px; margin: 0 auto 28px; font-size: 18px; }
+.cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.btn { display:inline-flex; align-items:center; height:44px; padding: 0 22px; border-radius: 13px; border:1px solid var(--line); background: rgba(255,255,255,.05); text-decoration:none; font-weight:500; transition: transform .2s var(--spring), background .15s, border-color .15s; }
+.btn:hover { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.2); transform: translateY(-2px); }
+.btn:active { transform: scale(.96); }
+.btn.p { background: var(--ac); border-color: var(--ac); color:#14110f; font-weight:650; box-shadow: 0 10px 30px rgba(255,106,43,.35); }
+.btn.p:hover { background:#ff7d45; }
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+h2 { font-size: 30px; letter-spacing: -.025em; margin: 0 0 8px; }
+.sub { color: var(--dim); margin: 0 0 28px; max-width: 640px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 14px; }
+.card { padding: 22px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.03); transition: transform .25s var(--spring), border-color .2s, background .2s; }
+.card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.05); }
+.card .k { font: 600 11px var(--mono); letter-spacing:.09em; text-transform: uppercase; color: var(--ac); }
+.card h3 { margin: 8px 0 6px; font-size: 19px; letter-spacing:-.01em; }
+.card p { margin: 0; color: var(--dim); font-size: 15px; }
+.shots { display:grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 16px; }
+.shots img { width:100%; border-radius: 16px; border:1px solid var(--line); display:block; }
+.dl { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; }
+.dl a { display:block; padding: 18px 20px; border-radius: 14px; border:1px solid var(--line); background: rgba(255,255,255,.03); text-decoration:none; transition: transform .2s var(--spring), border-color .2s; }
+.dl a:hover { transform: translateY(-3px); border-color: rgba(255,106,43,.5); }
+.dl b { display:block; } .dl span { color: var(--dim); font-size: 13px; }
+.note { margin-top:18px; font-size:14px; color: var(--dim); max-width: 720px; }
+footer { padding: 36px 0 60px; color: var(--dim); font-size: 14px; border-top: 1px solid var(--line); display:flex; gap:18px; flex-wrap:wrap; }
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s var(--spring); } .reveal.in { opacity:1; transform:none; }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } .reveal { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><b>Izlix</b><a href="#features">Features</a><a href="#download">Download</a><a href="ui/">UI kit</a><a href="https://github.com/thEmircn/izlix">GitHub</a></nav>
+  <header class="hero">
+    <img class="h" src="assets/hero.svg" alt="Izlix: a click becomes a request, a response and a render on one timeline">
+    <h1>See why your React app broke.</h1>
+    <p>One timeline from the click to the render, with cause arrows. Click anything to open its source in your editor. Change requests without touching the backend.</p>
+    <div class="cta"><a class="btn p" href="#download">Download</a><a class="btn" href="https://github.com/thEmircn/izlix">View on GitHub</a></div>
+  </header>
+
+  <section id="features">
+    <h2>See. Find. Change.</h2><p class="sub">Built around one question: what caused this?</p>
+    <div class="grid">
+      <div class="card reveal"><div class="k">See</div><h3>Unified timeline</h3><p>Input, request, response, render and error on one axis. Every link is marked exact or estimated.</p></div>
+      <div class="card reveal"><div class="k">Find</div><h3>Click to source</h3><p>Components, renders, errors and requests open <code>file:line</code> in VS Code, Cursor or WebStorm.</p></div>
+      <div class="card reveal"><div class="k">Change</div><h3>Request rules</h3><p>Mock a response, add latency, change a status code or redirect, and see the change badged on the timeline.</p></div>
+      <div class="card reveal"><div class="k">Everywhere</div><h3>Three ways to run</h3><p>Desktop app, Chrome extension, or a ready-made browser bundle where Google sign-in works.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A closer look</h2><p class="sub">Real screenshots from the test suite.</p>
+    <div class="shots reveal"><img src="screenshots/timeline.png" alt="Timeline with a cause chain"><img src="screenshots/palette.png" alt="Command palette"><img src="screenshots/hub.png" alt="Apps hub"></div>
+  </section>
+
+  <section id="download">
+    <h2>Download</h2><p class="sub">Alpha builds. Not code-signed yet, so your OS will ask you to confirm the first launch.</p>
+    <div class="dl">
+      <a href="https://github.com/thEmircn/izlix/releases"><b>Izlix Browser</b><span>macOS (Apple Silicon), Windows, Linux</span></a>
+      <a href="https://github.com/thEmircn/izlix/releases"><b>Izlix for Chrome</b><span>Extension zip: Load unpacked</span></a>
+      <a href="https://github.com/thEmircn/izlix#run-it"><b>Desktop app</b><span>Run from source on any OS</span></a>
+    </div>
+    <p class="note">Verify the SHA-256 files next to each download. On macOS, right-click &gt; Open the first time. On Windows, choose "More info &gt; Run anyway" in SmartScreen.</p>
+  </section>
+
+  <footer><span>Izlix is open source under Apache-2.0.</span><a href="https://github.com/thEmircn/izlix">Source</a><a href="https://github.com/thEmircn/izlix/security">Security</a><a href="ui/">UI kit</a></footer>
+</div>
+<script>
+const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } }), { threshold: .15 });
+document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+</script>
+</body>
+</html>
