@@ -17,7 +17,7 @@
   <img src="docs/assets/demo.gif" alt="A click becomes a request, a response and a render on the timeline" width="62%">
 </p>
 
-> **Status: alpha.** macOS only, not signed, no auto-update. Please read [Limitations](#limitations) before using it as your main browser.
+> **Status: alpha.** Not signed, no auto-update. Please read [Limitations](#limitations) before using it as your main browser.
 
 ---
 
@@ -65,6 +65,16 @@ Tabs and groups · vertical tabs · bookmarks and history · download manager ·
 <p align="center">
   <img src="docs/screenshots/hub.png" alt="Apps hub" width="70%">
 </p>
+
+## Platform support
+
+| | macOS | Windows | Linux |
+|---|---|---|---|
+| Desktop app (Electron) | tested in CI | tested in CI (subset) | tested in CI (broader suite) |
+| Chrome extension | works | works | tested in CI |
+| Izlix Browser bundle | built in CI, smoke-tested | built in CI, smoke-tested | built in CI, smoke-tested |
+
+"Tested in CI" means the automated suite runs on GitHub-hosted runners for every change. Some features rely on platform services (macOS Keychain, iCloud Drive, `say`) and are macOS-only for now; Windows and Linux use the platform keystore where available.
 
 ## Run it
 
