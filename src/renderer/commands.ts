@@ -113,6 +113,8 @@ export function buildCommands(): Command[] {
   for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId)) {
     cmds.push({ id: `tab:${tb.id}`, title: t('cmd.tab', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.activateTab(tb.id) })
   }
+  for (const sd of ['left', 'bottom', 'right'] as const) cmds.push({ id: `panel.side.${sd}`, title: t('cmd.panelSide', { p: t(`panel.side.${sd}` as any) }), hint: s.panelSide === sd ? 'active' : '', run: () => s.set({ panelSide: sd, panelOpen: true, dashboard: false }) })
+  cmds.push({ id: 'panel.expand', title: t('panel.expand'), run: () => { const r = s.panelRatio > 0.6 ? 0.4 : 0.8; writePref('panelRatio', String(r)); s.set({ panelRatio: r, panelOpen: true }) } })
   cmds.push({ id: 'panel.toggle', title: t('cmd.panelToggle'), hint: '⌥⌘B', run: () => s.set({ panelOpen: !s.panelOpen, dashboard: false }) })
   cmds.push({ id: 'dashboard.toggle', title: t('cmd.dashToggle'), hint: '⌥⌘D', run: () => s.set({ dashboard: !s.dashboard }) })
   // Oturumlar

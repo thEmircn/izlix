@@ -741,3 +741,30 @@ body { background: radial-gradient(1100px 650px at 100% 100%, rgba(255,106,43,.0
 .tl-live { padding: 0 16px; } .minimap { margin: 4px 16px 8px; width: calc(100% - 32px); border-top: 0; padding-top: 0; border-radius: 10px; }
 
 .net .net-bar { flex-wrap: wrap; gap: 8px; } .net .net-bar .chips { flex: 1 1 auto; } .net .net-bar .search { flex: 1 1 140px; min-width: 120px; } .net .net-bar .tgl { font-size: 11px; color: var(--dim); white-space: nowrap; }
+
+
+/* ===== konum + hareket (panel v6) ===== */
+.ptitle { align-items: center; } .pctl { margin-left: auto; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(0,0,0,.2); border: 1px solid var(--g-brd); }
+.pctl-b { display: grid; place-items: center; width: 28px; height: 26px; border: 0; border-radius: 9px; background: none; color: var(--dim); cursor: pointer; transition: background .2s, color .2s, transform .3s var(--spring); } .pctl-b svg { width: 14px; height: 14px; }
+.pctl-b:hover:not(:disabled) { background: var(--g2); color: var(--fg); transform: translateY(-1px); } .pctl-b:active:not(:disabled) { transform: scale(.88); } .pctl-b:disabled { opacity: .3; cursor: default; }
+.pctl-b.on { background: var(--ac-soft); color: var(--ac); box-shadow: inset 0 0 0 1px rgba(255,106,43,.32), 0 0 14px rgba(255,106,43,.18); }
+.pctl-sep { width: 1px; height: 14px; background: var(--g-brd2); margin: 0 3px; }
+/* konuma gore giris yonu */
+.panel.side-left { animation-name: panelinL; } @keyframes panelinL { from { opacity: 0; transform: translateX(-18px) scale(.99); } }
+.panel.side-bottom { animation-name: panelinB; } @keyframes panelinB { from { opacity: 0; transform: translateY(22px) scale(.99); } }
+/* sekme gecisi: yone gore kayma */
+.pmain[data-dir="1"] > :not(.phead) { animation: slideR .34s var(--spring) both; } .pmain[data-dir="-1"] > :not(.phead) { animation: slideL .34s var(--spring) both; }
+@keyframes slideR { from { opacity: 0; transform: translateX(22px); } } @keyframes slideL { from { opacity: 0; transform: translateX(-22px); } }
+/* dock: komsu buyume (macOS dock hissi) */
+.rail.dock button:hover svg { transform: scale(1.28) translateY(-1px); } .rail.dock button:hover + button svg, .rail.dock button:has(+ button:hover) svg { transform: scale(1.1); }
+.rail.dock button:active svg { transform: scale(.9); }
+.rail.dock button.on svg { animation: iconpop .5s var(--spring); } @keyframes iconpop { 0% { transform: scale(.6); } 100% { transform: scale(1); } }
+.panel.side-bottom .rail.dock { bottom: 12px; }
+.resizer-v:hover, .resizer-h:hover { background: linear-gradient(var(--ac), var(--ac)); opacity: .35; border-radius: 3px; transition: opacity .2s; }
+
+.phead { flex: none; } .pmain { padding-bottom: 78px; }
+.tl-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; } .tl-body > * { flex: none; } .tl-body > div:last-child { flex: 1 0 auto; min-height: 120px; }
+/* alt konumda: baslik, alt sekmeler ve filtreler tek satir (dikey yer kazanilir) */
+.panel.side-bottom .phead { display: flex; align-items: center; gap: 18px; padding: 12px 18px 6px; flex-wrap: wrap; }
+.panel.side-bottom .ptitle { margin: 0; flex: none; } .panel.side-bottom .ptitle h3 { font-size: 17px; } .panel.side-bottom .psub { flex: 1; min-width: 0; } .panel.side-bottom .pctl { order: 3; }
+.panel.side-bottom .pmain { padding-bottom: 66px; }

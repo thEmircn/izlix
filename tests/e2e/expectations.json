@@ -2350,6 +2350,26 @@
       "dashPanelGone",
       "eq",
       true
+    ],
+    [
+      "leftPanelBeforePage",
+      "eq",
+      true
+    ],
+    [
+      "bottomShorter",
+      "eq",
+      true
+    ],
+    [
+      "rightRestored",
+      "eq",
+      true
+    ],
+    [
+      "sidePersisted",
+      "eq",
+      "right"
     ]
   ]
 }

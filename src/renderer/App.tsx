@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { computeLayout, padRect } from '../shared/layout'
+import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { Home } from './Home'
 import { DashboardView } from './DashboardView'
-import { IcOverview, IcPanel } from './icons'
+import { IcDockB, IcDockL, IcOverview, IcPanel } from './icons'
 import { SessionPrompt } from './SessionPrompt'
 import type { DevToolsDock } from '../shared/events'
 import { useStore, writePref, useT, toast, PANEL_TABS, wsName, useTween } from './store'
@@ -63,6 +63,7 @@ export function App() {
           case 'shortcuts.open': st.set({ overlay: st.overlay === 'shortcuts' ? null : 'shortcuts' }); break
           case 'settings.open': st.set({ overlay: 'settings' }); break
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
+          case 'panel.side.left': case 'panel.side.right': case 'panel.side.bottom': st.set({ panelSide: cmd.slice(11) as PanelSide, panelOpen: true, dashboard: false }); break
           case 'panel.toggle': st.set({ panelOpen: !st.panelOpen, dashboard: false }); break
           case 'dashboard.toggle': st.set({ dashboard: !st.dashboard }); break
           case 'devtools.toggle': { const d = st.dock === 'off' ? 'right' : 'off'; writePref('dock', d); st.set({ dock: d }); break }
@@ -99,20 +100,22 @@ export function App() {
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
+  const side: PanelSide = s.dock === 'off' ? s.panelSide : 'right' // Chrome DevTools aciksa panel her zaman sagda
   const targetRatio = s.panelOpen && !s.dashboard ? s.panelRatio : 0 // panel kapaliyken sayfa tam genislik
   const ratio = useTween(targetRatio, 240) // yumusak acilip kapanma
   const panelVisible = (s.panelOpen && !s.dashboard) || ratio > 0.005
-  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split }) }, [s.dock, ratio, s.split, chromeH])
+  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side }) }, [s.dock, ratio, s.split, chromeH, side])
 
-  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split })
+  const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }
   const api = window.izlix
   // Panel boyutlandirma: surukleme sirasinda native gorunumler gizlenir (aksi halde fare olaylarini yutarlar)
-  const startDrag = (axis: 'x' | 'y') => (e: React.PointerEvent): void => {
+  const startDrag = (axis: 'x' | 'y' | 'b') => (e: React.PointerEvent): void => {
     e.preventDefault(); setDragging(true); void api.setOverlay(true)
     const bodyH = size.h - chromeH
     const move = (ev: PointerEvent): void => {
-      if (axis === 'x') s.set({ panelRatio: Math.min(0.8, Math.max(0.2, 1 - ev.clientX / size.w)) })
+      if (axis === 'x') s.set({ panelRatio: Math.min(0.8, Math.max(0.2, side === 'left' ? ev.clientX / size.w : 1 - ev.clientX / size.w)) })
+      else if (axis === 'b') s.set({ panelRatio: Math.min(0.8, Math.max(0.2, 1 - (ev.clientY - chromeH) / bodyH)) })
       else s.set({ split: Math.min(0.8, Math.max(0.2, (ev.clientY - chromeH) / bodyH)) })
     }
     const up = (): void => {
@@ -185,7 +188,7 @@ export function App() {
         )}
         <span className="tb-sep" />
         <button className={`tb-btn dash-btn ${s.dashboard ? 'on' : ''}`} aria-pressed={s.dashboard} title={`${t('dash.title')}  ⌥⌘D`} aria-label={t('dash.title')} onClick={() => s.set({ dashboard: !s.dashboard })}><IcOverview /></button>
-        <button className={`tb-btn panel-toggle ${s.panelOpen && !s.dashboard ? 'on' : ''}`} aria-pressed={s.panelOpen && !s.dashboard} title={`${t('panel.toggle')}  ⌥⌘B`} aria-label={t('panel.toggle')} onClick={() => s.set({ panelOpen: !s.panelOpen, dashboard: false })}><IcPanel /></button>
+        <button className={`tb-btn panel-toggle ${s.panelOpen && !s.dashboard ? 'on' : ''}`} aria-pressed={s.panelOpen && !s.dashboard} title={`${t('panel.toggle')}  ⌥⌘B`} aria-label={t('panel.toggle')} onClick={() => s.set({ panelOpen: !s.panelOpen, dashboard: false })}>{side === 'left' ? <IcDockL /> : side === 'bottom' ? <IcDockB /> : <IcPanel />}</button>
       </div>
 
       {active?.loading && <div className="load-bar" aria-hidden><i /></div>}
@@ -201,11 +204,12 @@ export function App() {
         </div>
       )}
       {!active && <Home style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
-      {panelVisible && <div className="panel" style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
+      {panelVisible && <div className={`panel side-${side}`} style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
         <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />
       </div>}
       {s.panelOpen && !s.dashboard && s.dock === 'right' && <div className="resizer-h nodrag" onPointerDown={startDrag('y')} style={{ left: layout.timeline.x, width: layout.timeline.width, top: layout.timeline.y + layout.timeline.height - 3 }} />}
-      {s.panelOpen && !s.dashboard && <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />}
+      {s.panelOpen && !s.dashboard && side !== 'bottom' && <div className="resizer-v nodrag" onPointerDown={startDrag('x')} style={{ left: side === 'left' ? layout.timeline.x + layout.timeline.width - 3 : layout.timeline.x - 3, top: chromeH, height: layout.timeline.height }} />}
+      {s.panelOpen && !s.dashboard && side === 'bottom' && <div className="resizer-h nodrag" onPointerDown={startDrag('b')} style={{ left: 0, width: size.w, top: layout.timeline.y - 3 }} />}
       {dragging && <div style={{ position: 'fixed', inset: 0, zIndex: 40, cursor: 'grabbing' }} />}
       {s.dashboard && <DashboardView top={chromeH} />}
       <Toasts />

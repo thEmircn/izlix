@@ -31,4 +31,21 @@ describe('computeLayout', () => {
     expect(l.devtools!.y).toBe(l.timeline.y + l.timeline.height)
     expect(l.timeline.height + l.devtools!.height).toBe(h)
   })
+  it('panel konumu: sol ve alt (DevTools kapaliyken) bolgeleri cakismaz ve pencereyi doldurur', () => {
+    for (const side of ['left', 'bottom'] as const) {
+      const l = computeLayout(W, H, { dock: 'off', panelRatio, chromeHeight, side })
+      expect(overlap(l.page, l.timeline)).toBe(false); expect(l.devtools).toBeNull()
+      expect(l.page.width * l.page.height + l.timeline.width * l.timeline.height).toBe(W * (H - chromeHeight))
+    }
+    const left = computeLayout(W, H, { dock: 'off', panelRatio, chromeHeight, side: 'left' })
+    expect(left.timeline.x).toBe(0); expect(left.page.x).toBe(left.timeline.width)
+    const bottom = computeLayout(W, H, { dock: 'off', panelRatio, chromeHeight, side: 'bottom' })
+    expect(bottom.timeline.y).toBeGreaterThan(bottom.page.y); expect(bottom.timeline.width).toBe(W); expect(bottom.timeline.height).toBe(Math.round((H - chromeHeight) * panelRatio))
+  })
+  it('oran 0 iken (panel kapali) her konumda sayfa tum alani kaplar; DevTools aciksa konum yok sayilir (sag)', () => {
+    for (const side of ['right', 'left', 'bottom'] as const) {
+      const l = computeLayout(W, H, { dock: 'off', panelRatio: 0, chromeHeight, side }); expect(l.page).toEqual({ x: 0, y: chromeHeight, width: W, height: H - chromeHeight })
+    }
+    const dt = computeLayout(W, H, { dock: 'right', panelRatio, chromeHeight, side: 'left' }); expect(dt.timeline.x).toBeGreaterThan(0)
+  })
 })

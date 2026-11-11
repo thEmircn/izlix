@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { RulesConfig } from '../shared/rules'
 import type { SessionInfo, BusEvent, DevToolsDock, Editor, Language, Settings, TabInfo, WorkspaceInfo } from '../shared/events'
 import { translate, type Key } from '../shared/i18n'
+import type { PanelSide } from '../shared/layout'
 
 export type PanelTab = 'stylelab' | 'overview' | 'timeline' | 'network' | 'console' | 'elements' | 'sources' | 'storage' | 'perf' | 'coverage' | 'a11y' | 'profiler' | 'seo' | 'server' | 'components' | 'renders' | 'raw'
 export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elements', 'sources', 'storage', 'perf', 'coverage', 'a11y', 'profiler', 'seo', 'server', 'components', 'renders', 'raw', 'overview', 'stylelab']
@@ -20,7 +21,7 @@ interface State {
   downloads: { id: string; name: string; received: number; total: number; state: string }[]
   panelTab: PanelTab
   /** Sag panel acik mi / tam ekran dashboard acik mi */
-  panelOpen: boolean; dashboard: boolean
+  panelOpen: boolean; dashboard: boolean; panelSide: PanelSide
   flash: boolean
   /** Debugger: kesme noktalari (sekme bazli) ve duraklama durumu */
   bps: { tabId: string; kind: 'file' | 'url'; target: string; line: number; condition?: string; bpId?: string }[]
@@ -50,9 +51,9 @@ export const useStore = create<State>((set) => ({
   tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
-  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) && read('panelTab', 'timeline') !== 'overview' ? read('panelTab', 'timeline') : 'timeline') as PanelTab, panelOpen: read('panelOpen', '0') === '1', dashboard: false, flash: false, bps: [], evBps: [], xhrBps: [], sessions: {}, paused: null, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'tr', installId: '', autoOpen: false },
+  rules: {}, bookmarks: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) && read('panelTab', 'timeline') !== 'overview' ? read('panelTab', 'timeline') : 'timeline') as PanelTab, panelOpen: read('panelOpen', '0') === '1', dashboard: false, panelSide: (['right', 'left', 'bottom'].includes(read('panelSide', 'right')) ? read('panelSide', 'right') : 'right') as PanelSide, flash: false, bps: [], evBps: [], xhrBps: [], sessions: {}, paused: null, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'tr', installId: '', autoOpen: false },
   // bir panel secildiginde (ornegin Overview'dan bir olaya tiklayinca) panel acilir ve dashboard kapanir
-  set: (p) => { if (p.panelTab) { writePref('panelTab', p.panelTab); p = { panelOpen: true, dashboard: false, ...p }; writePref('panelOpen', '1') } if (p.panelOpen !== undefined) writePref('panelOpen', p.panelOpen ? '1' : '0'); set(p) },
+  set: (p) => { if (p.panelTab) { writePref('panelTab', p.panelTab); p = { panelOpen: true, dashboard: false, ...p }; writePref('panelOpen', '1') } if (p.panelOpen !== undefined) writePref('panelOpen', p.panelOpen ? '1' : '0'); if (p.panelSide) writePref('panelSide', p.panelSide); set(p) },
   ingest: (batch) => set((s) => {
     const next = new Map(s.events)
     for (const e of batch) next.set(e.id, e)

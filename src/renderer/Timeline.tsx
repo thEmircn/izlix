@@ -11,7 +11,8 @@ import { A11y } from './A11y'
 import { Coverage } from './Coverage'
 import { Overview } from './Overview'
 import { LiveTraffic } from './LiveTraffic'
-import { Rail, SubNav, groupOf } from './Rail'
+import { Rail, SubNav, groupOf, RAIL_GROUPS } from './Rail'
+import { Close, IcDockB, IcDockL, IcExpand, IcPanel } from './icons'
 import { LANES, LANE_COLOR as COLOR, eventLabel, shortUrl, type Lane } from '../shared/label'
 import { translate } from '../shared/i18n'
 import { Profiler } from './Profiler'
@@ -96,14 +97,23 @@ export function Timeline({ width, height }: { width: number; height: number }) {
 
   const labels = { overview: t('tl.overview'), timeline: t('tl.timeline'), network: t('tl.network'), console: t('tl.console'), elements: t('tl.elements'), sources: t('tl.sources'), storage: t('tl.storage'), perf: t('tl.perf'), coverage: t('tl.coverage'), a11y: t('tl.a11y'), profiler: t('tl.profiler'), seo: t('tl.seo'), server: t('tl.server'), components: t('tl.components'), renders: t('tl.renders'), raw: `${t('tl.raw')} (${all.length})`, stylelab: t('tl.stylelab') } as Record<PanelTab, string>
 
+  const panelSide = useStore((x) => x.panelSide), dockOn = useStore((x) => x.dock !== 'off')
+  // sekmeler arasi gecis yonu: yeni sekme ilerideyse sagdan, gerideyse soldan kayar
+  const gi = RAIL_GROUPS.findIndex((g) => g.tabs.includes(tab)); const prevGi = useRef(gi); const dir = gi === prevGi.current ? 0 : gi > prevGi.current ? 1 : -1; const lastDir = useRef(1); if (dir) lastDir.current = dir; prevGi.current = gi
   const groupTitle = ({ timeline: t('tl.timeline'), network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server } as Record<string, string>)[groupOf(tab)?.label ?? 'timeline'] ?? labels[tab]
 
   return (
     <div className="pbody">
       <Rail value={tab} onChange={setTab} labels={labels} groupLabels={{ timeline: labels.timeline, network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server }} />
-      <div className="pmain" ref={mainRef}>
+      <div className="pmain" ref={mainRef} data-dir={lastDir.current}>
       <div className="phead">
-        <div className="ptitle"><h3 key={tab}>{groupTitle}</h3>{tab === 'timeline' || tab === 'raw' ? <span className="pcount">{t('tl.eventsCount', { n: all.length })}</span> : null}</div>
+        <div className="ptitle"><h3 key={tab}>{groupTitle}</h3>{tab === 'timeline' || tab === 'raw' ? <span className="pcount">{t('tl.eventsCount', { n: all.length })}</span> : null}
+          <div className="pctl">
+            {(['left', 'bottom', 'right'] as const).map((sd) => <button key={sd} className={`pctl-b ${panelSide === sd ? 'on' : ''}`} title={t(`panel.side.${sd}` as any)} aria-label={t(`panel.side.${sd}` as any)} aria-pressed={panelSide === sd} disabled={dockOn} onClick={() => set({ panelSide: sd })}>{sd === 'left' ? <IcDockL /> : sd === 'bottom' ? <IcDockB /> : <IcPanel />}</button>)}
+            <span className="pctl-sep" />
+            <button className="pctl-b" title={t('panel.expand')} aria-label={t('panel.expand')} onClick={() => { const r = useStore.getState().panelRatio > 0.6 ? 0.4 : 0.8; writePref('panelRatio', String(r)); set({ panelRatio: r }) }}><IcExpand /></button>
+            <button className="pctl-b" title={t('panel.close')} aria-label={t('panel.close')} onClick={() => set({ panelOpen: false })}><Close /></button>
+          </div></div>
         <div className="psub">
         <SubNav value={tab} onChange={setTab} labels={labels} />
         {tab === 'timeline' && <>
@@ -120,12 +130,12 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       <ErrorBoundary label={tab}>
       {tab === 'timeline' && all.length === 0 && <div className="empty-hint">{t('tl.empty')}</div>}
       {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'stylelab' ? <Elements startTab="lab" /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
-        <>
+        <div className="tl-body">
           <div className="tl-live"><LiveTraffic events={all} compact mode="activity" height={88} /></div>
           <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} />
           <Minimap all={all} from={from} to={to} live={!range} width={mainW} onRange={setRange} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
-        </>
+        </div>
       )}
       </ErrorBoundary>
       </div>
@@ -182,7 +192,7 @@ function Lanes(props: {
 
   const step = [100, 250, 500, 1000, 2000, 5000, 10000, 30000].find((s) => span / s <= 10) ?? 60000
   const ticks: number[] = []
-  for (let t = Math.ceil(from / step) * step; t <= to; t += step) ticks.push(t)
+  for (let t = Math.ceil(from / step) * step; t <= to; t += step) if (x(t) < W - 44) ticks.push(t)
   const H = lanes.length * LANE_H + AXIS_H
   const mouse = (ev: React.MouseEvent): number => ev.clientX - (ref.current?.getBoundingClientRect().left ?? 0)
   const bodyH = lanes.length * LANE_H
