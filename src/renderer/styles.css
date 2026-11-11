@@ -896,3 +896,9 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .chip.shield { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; color: var(--ok, #6ee7a8); }
 .chip.shield b { font: 600 11px ui-monospace, Menlo, monospace; color: var(--fg, #eee); }
 .chip.shield.off { color: var(--dim, #888); opacity: .7; }
+
+/* v9: sabitlenmis sekme */
+.tab.pinned { min-width: 38px; max-width: 38px; padding: 0 0 0 11px; }
+.tab.pinned span.t { font-size: 0; }
+.tab.pinned .tab-fav { margin-right: 0; width: 16px; height: 16px; }
+.tab.pinned span.t::first-letter { font-size: 12px; }

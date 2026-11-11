@@ -67,7 +67,7 @@ export class TabManager {
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 
-  async create(opts: { url?: string; workspaceId: string; activate?: boolean; private?: 'incognito' | 'tor' }): Promise<string> {
+  async create(opts: { url?: string; workspaceId: string; activate?: boolean; pinned?: boolean; private?: 'incognito' | 'tor' }): Promise<string> {
     const id = `tab-${++this.seq}`
     // gizli sekmeler tek ortak, bellek ici (persist: yok) oturumu paylasir; son gizli sekme kapaninca temizlenir
     const ses = session.fromPartition(opts.private === 'tor' ? TOR_PARTITION : opts.private ? INCOGNITO_PARTITION : partitionFor(opts.workspaceId))
@@ -82,7 +82,7 @@ export class TabManager {
     { const ua = ses.getUserAgent(), clean = ua.replace(/\s+Electron\/[\d.]+/, '').replace(/\s+izlix\/[\w.\-]+/i, ''); if (clean !== ua) ses.setUserAgent(clean) }
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
-    const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}) } }
+    const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}) } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
     // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
@@ -382,8 +382,21 @@ export class TabManager {
     const to = Math.max(0, Math.min(this.order.length - 1, toIndex))
     if (from === to) return false
     this.order.splice(from, 1); this.order.splice(to, 0, id)
+    this.normalizePins()
     this.onChange(); this.persist()
     return true
+  }
+
+  /** Sabitlenmis sekmeler her zaman basta (goreli sira korunur) */
+  private normalizePins(): void {
+    const pin = this.order.filter((i) => this.tabs.get(i)?.info.pinned), rest = this.order.filter((i) => !this.tabs.get(i)?.info.pinned)
+    this.order = [...pin, ...rest]
+  }
+  setPinned(id: string, on: boolean): void {
+    const e = this.tabs.get(id); if (!e) return
+    if (on) e.info.pinned = true; else delete e.info.pinned
+    if (on) { this.order = this.order.filter((i) => i !== id); const n = this.order.filter((i) => this.tabs.get(i)?.info.pinned).length; this.order.splice(n, 0, id) }
+    this.normalizePins(); this.onChange(); this.persist()
   }
 
   /** Sekmeyi cogaltir (ayni URL, ayni Workspace) */
@@ -414,13 +427,13 @@ export class TabManager {
   // ---- oturum kaydi: cokme veya yeniden baslatma sonrasi sekmeler geri gelir ----
   private persist(): void {
     try {
-      const tabs = this.order.map((id) => this.tabs.get(id)!.info).filter((t) => t.url && !t.private).map((t) => ({ url: t.url, workspaceId: t.workspaceId }))
+      const tabs = this.order.map((id) => this.tabs.get(id)!.info).filter((t) => t.url && !t.private).map((t) => ({ url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}) }))
       saveDoc(app.getPath('userData'), 'session', { tabs, active: Math.max(0, this.order.findIndex((i) => i === this.activeId)) })
     } catch { /* disk hatasi oturumu durdurmaz */ }
   }
 
   async restore(): Promise<boolean> {
-    let saved: { tabs: { url: string; workspaceId: string }[]; active: number }
+    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean }[]; active: number }
     const doc = loadDoc<typeof saved>(app.getPath('userData'), 'session'); if (!doc) return false
     saved = doc
     const valid = saved.tabs.filter((t) => this.workspaces.get(t.workspaceId))

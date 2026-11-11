@@ -44,6 +44,7 @@ export function buildCommands(): Command[] {
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
     ...ENGINES.filter((e) => e.id !== (s.settings.searchEngine ?? 'duckduckgo')).map((e) => ({ id: `search.${e.id}`, title: t('cmd.searchEngine', { name: e.label }), run: () => void api.setSettings({ searchEngine: e.id }) })),
     { id: 'import.chrome', title: t('cmd.importChrome'), run: () => void api.importChrome().then((r: { bookmarks: number; history: number } | null) => toast(r ? t('imp.done', { b: r.bookmarks, h: r.history }) : t('imp.none'))) },
+    { id: 'media.pip', title: t('cmd.pip'), run: () => void api.pip().then((r: string) => { if (r === 'none') toast(t('pip.none')); else if (r === 'error') toast(t('pip.error')) }) },
     { id: 'ambient.toggle', title: t(s.settings.ambient === false ? 'cmd.ambOn' : 'cmd.ambOff'), run: () => void api.setSettings({ ambient: s.settings.ambient === false }) },
     { id: 'adblock.toggle', title: t((s.settings.adblock ?? 'ads') === 'off' ? 'cmd.adOn' : 'cmd.adOff'), run: () => void api.setSettings({ adblock: (s.settings.adblock ?? 'ads') === 'off' ? 'ads' : 'off' }) },
     { id: 'adblock.strict', title: t('cmd.adStrict'), run: () => void api.setSettings({ adblock: 'strict' }) },
@@ -134,6 +135,7 @@ export function buildCommands(): Command[] {
   }
   // Bolunmus gorunum (Split View)
   const act = s.tabs.find((x) => x.id === s.activeTabId)
+  if (act) cmds.push({ id: 'tab.pin', title: t(act.pinned ? 'cmd.unpin' : 'cmd.pin'), run: () => void api.pinTab(act.id, !act.pinned) })
   if (act && !act.lab) {
     for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId && x.id !== act.id && !x.lab && x.split !== (act.split === 'left' ? 'right' : 'left'))) {
       cmds.push({ id: `split:${tb.id}`, title: t('cmd.splitWith', { t: !tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title }), hint: tb.url, run: () => void api.splitTab(tb.id) })

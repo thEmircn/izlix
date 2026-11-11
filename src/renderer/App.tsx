@@ -160,13 +160,13 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} draggable className={`tab nodrag ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable className={`tab nodrag ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
             <span className="t">{!tb.private && s.favicons[originKey(tb.url) ?? ''] && <img className="tab-fav" alt="" src={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
-            <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
+            {!tb.pinned && <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>}
           </div>
         ))}
         <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus /></button>

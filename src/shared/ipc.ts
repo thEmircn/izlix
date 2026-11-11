@@ -5,6 +5,7 @@ export { Ch } from './channels'
 
 export const schemas = {
   faviconsGet: z.object({ origins: z.array(z.string().max(300)).max(200) }),
+  tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),
   tabsCreate: z.object({ url: z.string().max(4096).optional(), private: z.enum(['incognito', 'tor']).optional() }),

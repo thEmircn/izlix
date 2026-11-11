@@ -2729,5 +2729,37 @@
       "lt",
       0.1
     ]
+  ],
+  "daily": [
+    [
+      "pinnedFirst",
+      "eq",
+      true
+    ],
+    [
+      "twoPinned",
+      "eq",
+      true
+    ],
+    [
+      "pinnedClass",
+      "eq",
+      2
+    ],
+    [
+      "pinnedNoClose",
+      "eq",
+      true
+    ],
+    [
+      "unpinned",
+      "eq",
+      true
+    ],
+    [
+      "pipNone",
+      "eq",
+      "none"
+    ]
   ]
 }

@@ -197,6 +197,13 @@ function registerIpc(): void {
     await Promise.all(origins.map((o) => favicons.ensureLoopback(o)))
     return favicons.pick(origins)
   })
+  handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
+  handle(Ch.pip, null, async () => {
+    const e = tabs.active(); if (!e) return 'none'
+    return e.view.webContents.executeJavaScript(`(async()=>{try{if(document.pictureInPictureElement){await document.exitPictureInPicture();return 'exit'}
+      const v=[...document.querySelectorAll('video')].filter(x=>x.readyState>=2&&!x.disablePictureInPicture).sort((a,b)=>b.videoWidth*b.videoHeight-a.videoWidth*a.videoHeight)[0]
+      if(!v) return 'none'; await v.requestPictureInPicture(); return 'ok'}catch(e){return 'error'}})()`, true).catch(() => 'error')
+  })
   handle(Ch.importChrome, null, () => {
     const d = readChromeProfile(process.env.DB_CHROME_DIR || undefined); if (!d) return null
     const r = library.importData(activeWorkspaceId, d.bookmarks, d.visits); pushLibrary(); return r
@@ -311,6 +318,7 @@ function registerIpc(): void {
     const e = tabs.get(id); if (!e) return
     const url = e.view.webContents.getURL()
     Menu.buildFromTemplate([
+      { label: tr(e.info.pinned ? 'ctx.unpin' : 'ctx.pin'), click: () => tabs.setPinned(id, !e.info.pinned) },
       { label: tr('ctx.reload'), click: () => tabs.reload(id) },
       { label: tr('ctx.duplicate'), click: () => void tabs.duplicate(id) },
       ...(tabs.active() && tabs.active()!.info.id !== id ? [{ label: tabs.splitIds.includes(id) ? tr('ctx.unsplit') : tr('ctx.split'), click: () => { if (tabs.splitIds.includes(id)) tabs.setSplit(null); else tabs.setSplit(id) } }] : []),
