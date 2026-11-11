@@ -65,6 +65,7 @@ export function Settings({ onClose }: { onClose(): void }) {
             {pw.never.map((o) => <div className="pwrow" key={o}><div className="pwo"><b>{o}</b><small>{t('pw.neverNote')}</small></div><button className="btn" onClick={() => void api.pwNeverRemove(o).then(loadPw)}>{t('pw.del')}</button></div>)}
           </div>
           <Row title={t('set.spell')} hint={t('set.spellHint')}><Switch on={settings.spellcheck !== false} label={t('set.spell')} onChange={(v) => void api.setSettings({ spellcheck: v })} /></Row>
+          <Row title={t('set.https')} hint={t('set.httpsHint')}><Switch on={settings.httpsOnly !== false} label={t('set.https')} onChange={(v) => void api.setSettings({ httpsOnly: v })} /></Row>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.tabLayout')} hint={t('set.tabLayoutHint')}>

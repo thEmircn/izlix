@@ -7,6 +7,7 @@ import { computeLayout, padRect, CARD_RADIUS, GAP, type LayoutParams, type Rect 
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { cleanTrackingParams } from '../shared/tracking'
 import { translateUrl } from '../shared/translate'
+import { upgradeToHttps } from '../shared/https'
 import { GROUP_COLOR_NAMES, normalizeOrder, type TabGroup } from '../shared/groups'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
@@ -49,6 +50,10 @@ interface Entry {
   failedUrl?: string
   /** ceviri sayfasinda bulunuldu mu (translatedFrom temizligi icin) */
   sawTranslate?: boolean
+  /** HTTPS'e yukseltilen http adresi (yukseltme basarisizsa buna donulur) ve bu sekmede yukseltilmeyecek alan adlari */
+  upgradedFrom?: string
+  upgradedTo?: string
+  noUpgrade?: Set<string>
 }
 
 /** Sekme yoneticisi: her sekme ayri WebContentsView; oturum Workspace basina ayri bolum (cerez/depolama izolasyonu). */
@@ -79,7 +84,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; httpsOnly?: () => boolean; onContextMenu?: (tabId: string, params: Electron.ContextMenuParams) => void; loginCount?: (url: string) => number; onAttached?: (wc: Electron.WebContents) => Promise<void> | void; siteInfo?: (url: string) => { zoom?: number; dark?: boolean } | undefined; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
@@ -167,7 +172,7 @@ export class TabManager {
     if (opts.private === 'tor') wc.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')
     // CDP: ilk sayfa yuklenmeden komutlar yanit vermez -> about:blank, kurulum, asil sayfa
     await wc.loadURL('about:blank')
-    const target = this.tidy(resolveInput(opts.url ?? '', this.hooks.searchEngine?.()))
+    const target = this.upgrade(entry, this.tidy(resolveInput(opts.url ?? '', this.hooks.searchEngine?.())))
     if (/^https?:/.test(target)) entry.lastHttpUrl = target
     entry.cdp = await attachCdp(wc, id, this.bus, () => {
       const u = wc.getURL()
@@ -219,6 +224,11 @@ export class TabManager {
     // Yukleme hatasi: aciklayici sayfa; loopback adreslerinde sunucu acilana kadar otomatik yeniden dene
     wc.on('did-fail-load', (_ev, code, desc, url, isMain) => {
       if (!isMain || code === -3 || wc.isDestroyed()) return // -3: kullanici iptali / yeni gezinme
+      // HTTPS-only: yukseltilen adres acilamadiysa (https yok/sertifika sorunu) http'ye don; bu sekmede o alan adi bir daha yukseltilmez
+      if (e.upgradedFrom && e.upgradedTo === url && code !== -105) {
+        const orig = e.upgradedFrom; e.upgradedFrom = undefined; e.upgradedTo = undefined
+        ;(e.noUpgrade ??= new Set()).add(new URL(orig).hostname); void wc.loadURL(orig).catch(() => {}); return
+      }
       e.failedUrl = url
       const retry = shouldRetry(url, isLoopbackHost)
       void wc.executeJavaScript(`document.documentElement.innerHTML = ${JSON.stringify(errorPageHtml(url, code, desc, this.hooks.detectedPorts?.() ?? [], this.hooks.language?.() ?? 'en', retry))}`).catch(() => {})
@@ -230,8 +240,8 @@ export class TabManager {
     wc.on('found-in-page', (_ev, r) => this.hooks.onFound?.(e.info.id, r.activeMatchOrdinal, r.matches))
     // izleme parametrelerini (utm_, fbclid...) temizleyip ayni adrese temiz haliyle gec (ana belge gezinmeleri)
     const clean = (event: Electron.Event, url: string): void => {
-      const st = this.hooks.stripTracking?.(); if (!st?.on) return
-      const c = cleanTrackingParams(url, st.dev)
+      const st = this.hooks.stripTracking?.()
+      const c = this.upgrade(e, st?.on ? cleanTrackingParams(url, st.dev) : url)
       if (c !== url) { event.preventDefault(); void wc.loadURL(c).catch(() => {}) }
     }
     wc.on('will-navigate', (ev, url) => { guard(ev, url); if (!ev.defaultPrevented) clean(ev, url) })
@@ -638,7 +648,14 @@ export class TabManager {
     this.onChange()
   }
   private tidy(url: string): string { const st = this.hooks.stripTracking?.(); return st?.on ? cleanTrackingParams(url, st.dev) : url }
-  go(id: string, input: string): void { const url = this.tidy(resolveInput(input, this.hooks.searchEngine?.())); const t = this.tabs.get(id); if (t?.info.sleeping) this.wake(t, url); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {}) }
+  /** HTTPS-only: http adresi yukseltilebiliyorsa yukseltilir (Tor sekmesi ve bu sekmede hata verip dusurulen alan adlari haric) */
+  private upgrade(e: Entry | undefined, url: string): string {
+    if (!this.hooks.httpsOnly?.() || e?.info.private === 'tor') return url
+    const u = upgradeToHttps(url); if (!u) return url
+    if (e) { const h = new URL(url).hostname; if (e.noUpgrade?.has(h)) return url; e.upgradedFrom = url; e.upgradedTo = u }
+    return u
+  }
+  go(id: string, input: string): void { const t = this.tabs.get(id); const url = this.upgrade(t, this.tidy(resolveInput(input, this.hooks.searchEngine?.()))); if (t?.info.sleeping) this.wake(t, url); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }
   forward(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goForward() }
   reload(id: string): void { const t = this.tabs.get(id); if (t?.info.sleeping) { this.wake(t); return } t?.view.webContents.reload() }

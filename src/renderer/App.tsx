@@ -58,6 +58,7 @@ export function App() {
   const active = s.tabs.find((t) => t.id === s.activeTabId)
   const myTabs = s.tabs.filter((t) => t.workspaceId === s.activeWorkspaceId)
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
+  const insecure = /^http:/.test(active?.url ?? '') && !isLoopbackHost(((): string => { try { return new URL(active?.url ?? '').hostname } catch { return '' } })()) && !/\.onion$/.test(active?.url ?? '')
   const pageHost = (() => { try { return new URL(active?.url ?? '').hostname.toLowerCase() } catch { return '' } })()
   const adLevel = s.settings.adblock ?? 'ads'
   const shieldShown = /^https?:/.test(active?.url ?? '') && !isLoopbackHost(pageHost) && !active?.private
@@ -253,6 +254,7 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {insecure && <span className="chip insecure nodrag" title={t('sec.insecureTip')}>{t('sec.insecure')}</span>}
             {active.translatedFrom
               ? <button type="button" className="chip transchip on nodrag" title={t('tr.showOriginal')} onClick={() => void api.translateTab(active.id, true)}>{t('tr.original')}</button>
               : active.lang && active.lang !== s.settings.language && <button type="button" className="chip transchip nodrag" title={t('tr.translate')} onClick={() => void api.translateTab(active.id)}>{t('tr.translate')}</button>}

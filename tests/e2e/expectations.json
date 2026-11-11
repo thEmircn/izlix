@@ -3617,5 +3617,27 @@
       "eq",
       true
     ]
+  ],
+  "https2": [
+    [
+      "upgraded",
+      "eq",
+      true
+    ],
+    [
+      "fellBack",
+      "eq",
+      true
+    ],
+    [
+      "noUpgradeRemembered",
+      "eq",
+      true
+    ],
+    [
+      "offStaysHttp",
+      "eq",
+      true
+    ]
   ]
 }
