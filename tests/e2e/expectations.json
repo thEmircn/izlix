@@ -3661,5 +3661,27 @@
       "eq",
       true
     ]
+  ],
+  "qr": [
+    [
+      "dialog",
+      "eq",
+      true
+    ],
+    [
+      "svg",
+      "eq",
+      true
+    ],
+    [
+      "cells",
+      "gte",
+      1
+    ],
+    [
+      "url",
+      "eq",
+      "http://localhost:5461/qrtest?a=1"
+    ]
   ]
 }

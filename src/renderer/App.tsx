@@ -5,6 +5,7 @@ import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
 import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune, IcKey } from './icons'
 import { SiteSettings } from './SiteSettings'
 import { HistoryPage } from './HistoryPage'
+import { QrDialog } from './QrDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
 import { GROUP_COLORS } from '../shared/groups'
@@ -113,6 +114,7 @@ export function App() {
           case 'pw.fill': if (act && act.logins) void api.pwFill(act.id); break
           case 'bm.open': st.set({ overlay: 'bookmarks' }); break
           case 'bmbar.toggle': { const v = !st.bmBar; writePref('bmBar', v ? '1' : '0'); st.set({ bmBar: v }); break }
+          case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'history.open': st.set({ overlay: 'history' }); break
           case 'site.open': st.set({ overlay: 'site' }); break
           case 'page.print': void api.printPage('print'); break
@@ -331,6 +333,7 @@ export function App() {
       {s.overlay === 'marker' && <MarkerPrompt onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'shortcuts' && <Shortcuts onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'qr' && active && <QrDialog tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'bookmarks' && <BookmarkManager onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'history' && <HistoryPage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'settings' && <Settings onClose={() => s.set({ overlay: null })} />}
