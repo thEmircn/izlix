@@ -4,7 +4,7 @@ import { z } from 'zod'
 export { Ch } from './channels'
 
 export const schemas = {
-  tabsCreate: z.object({ url: z.string().max(4096).optional() }),
+  tabsCreate: z.object({ url: z.string().max(4096).optional(), private: z.boolean().optional() }),
   tabId: z.object({ id: z.string().max(64) }),
   navGo: z.object({ id: z.string().max(64), input: z.string().max(4096) }),
   sourceOpen: z.object({

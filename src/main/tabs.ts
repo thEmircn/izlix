@@ -16,6 +16,14 @@ import { deviceById, type Device } from '../shared/lab'
 import type { RulesConfig } from '../shared/rules'
 import { emulationCommands, geoPreset, mediaFeatures, uaPreset, VISION, type Contrast, type Emu } from '../shared/emulation'
 
+export const INCOGNITO_PARTITION = 'incog-main'
+
+/** son gizli sekme kapaninca cerez, depolama ve onbellek silinir */
+async function wipeIncognito(): Promise<void> {
+  const ses = session.fromPartition(INCOGNITO_PARTITION)
+  await ses.clearStorageData().catch(() => {}); await ses.clearCache().catch(() => {}); await ses.clearAuthCache().catch(() => {})
+}
+
 interface Entry {
   info: TabInfo
   view: WebContentsView
@@ -56,15 +64,16 @@ export class TabManager {
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 
-  async create(opts: { url?: string; workspaceId: string; activate?: boolean }): Promise<string> {
+  async create(opts: { url?: string; workspaceId: string; activate?: boolean; private?: 'incognito' }): Promise<string> {
     const id = `tab-${++this.seq}`
-    const ses = session.fromPartition(partitionFor(opts.workspaceId))
+    // gizli sekmeler tek ortak, bellek ici (persist: yok) oturumu paylasir; son gizli sekme kapaninca temizlenir
+    const ses = session.fromPartition(opts.private ? INCOGNITO_PARTITION : partitionFor(opts.workspaceId))
     this.hooks.onSession?.(ses)
     // Varsayilan UA'dan "Electron/.." ve uygulama adi cikarilir: bircok site bunlari ayri/engelli davranisa sokar (gercek tarayici gibi gorunsun)
     { const ua = ses.getUserAgent(), clean = ua.replace(/\s+Electron\/[\d.]+/, '').replace(/\s+izlix\/[\w.\-]+/i, ''); if (clean !== ua) ses.setUserAgent(clean) }
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
-    const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false } }
+    const entry: Entry = { view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}) } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
     // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
@@ -103,12 +112,12 @@ export class TabManager {
     })
     wc.on('did-navigate', () => { e.interceptor?.setPageUrl(null); void e.interceptor?.refresh() })
     for (const ev of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'] as const) wc.on(ev as any, sync)
-    wc.on('did-stop-loading', () => { this.persist(); this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
-    wc.on('page-title-updated', () => this.hooks.onVisit?.(wc.getURL(), wc.getTitle()))
+    wc.on('did-stop-loading', () => { this.persist(); if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
+    wc.on('page-title-updated', () => { if (!e.info.private) this.hooks.onVisit?.(wc.getURL(), wc.getTitle()) })
     // Cokme sonrasi kurtarma: render sureci olurse sekme yeniden yuklenir
     wc.on('render-process-gone', (_ev, d) => { if (d.reason !== 'clean-exit') setTimeout(() => { if (!wc.isDestroyed()) wc.reload() }, 300) })
     // target=_blank ve window.open: yeni sekmede ac (ayni Workspace)
-    wc.setWindowOpenHandler(({ url }) => { if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId }); return { action: 'deny' } })
+    wc.setWindowOpenHandler(({ url }) => { if (isAllowedPageNavigation(url)) void this.create({ url, workspaceId: e.info.workspaceId, private: e.info.private }); return { action: 'deny' } })
     // sayfa kaynakli gezinmeler de http(s) ile sinirli (file://, izlix://, vscode:// vb. engellenir)
     const guard = (event: Electron.Event, url: string): void => { if (!isAllowedPageNavigation(url)) event.preventDefault() }
     // Yukleme hatasi: aciklayici sayfa; loopback adreslerinde sunucu acilana kadar otomatik yeniden dene
@@ -208,7 +217,7 @@ export class TabManager {
     const e = this.tabs.get(id)
     if (!e) return
     const idx = this.order.indexOf(id)
-    if (e.info.url) { this.closed.push({ url: e.info.url, workspaceId: e.info.workspaceId }); if (this.closed.length > 20) this.closed.shift() }
+    if (e.info.url && !e.info.private) { this.closed.push({ url: e.info.url, workspaceId: e.info.workspaceId }); if (this.closed.length > 20) this.closed.shift() }
     if (this.split && (id === this.split.a || id === this.split.b)) {
       const partner = this.tabs.get(id === this.split.a ? this.split.b : this.split.a)
       this.split = null; this.syncSplitInfo()
@@ -222,6 +231,7 @@ export class TabManager {
     this.bus.dropTab(id)
     e.view.webContents.close()
     this.tabs.delete(id); this.order.splice(idx, 1)
+    if (e.info.private && ![...this.tabs.values()].some((t) => t.info.private)) void wipeIncognito()
     if (this.activeId === id) {
       this.activeId = null
       const next = this.order[Math.min(idx, this.order.length - 1)]
@@ -371,7 +381,7 @@ export class TabManager {
   // ---- oturum kaydi: cokme veya yeniden baslatma sonrasi sekmeler geri gelir ----
   private persist(): void {
     try {
-      const tabs = this.order.map((id) => this.tabs.get(id)!.info).filter((t) => t.url).map((t) => ({ url: t.url, workspaceId: t.workspaceId }))
+      const tabs = this.order.map((id) => this.tabs.get(id)!.info).filter((t) => t.url && !t.private).map((t) => ({ url: t.url, workspaceId: t.workspaceId }))
       saveDoc(app.getPath('userData'), 'session', { tabs, active: Math.max(0, this.order.findIndex((i) => i === this.activeId)) })
     } catch { /* disk hatasi oturumu durdurmaz */ }
   }

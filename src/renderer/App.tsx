@@ -78,6 +78,7 @@ export function App() {
           }
           case 'tab.reopen': void api.reopenTab(); break
           case 'tab.new': void api.createTab(); break
+          case 'tab.newPrivate': void api.createTab(undefined, true); break
           case 'tab.close': if (act) void api.closeTab(act.id); break
           case 'nav.reload': if (act) void api.reload(act.id); break
           case 'addr.focus': (document.querySelector('.addr') as HTMLInputElement | null)?.focus(); break
@@ -133,12 +134,12 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} draggable className={`tab nodrag ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable className={`tab nodrag ${tb.private ? 'private' : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
-            <span className="t">{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
+            <span className="t">{tb.private && <i className="priv-dot" title={t('tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
             <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>
           </div>
         ))}

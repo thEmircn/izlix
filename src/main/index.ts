@@ -106,10 +106,10 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-async function newTab(url?: string): Promise<string> { return tabs.create({ url, workspaceId: activeWorkspaceId }) }
+async function newTab(url?: string, priv?: boolean): Promise<string> { return tabs.create({ url, workspaceId: activeWorkspaceId, ...(priv ? { private: 'incognito' as const } : {}) }) }
 
 function registerIpc(): void {
-  handle(Ch.tabsCreate, schemas.tabsCreate, ({ url }) => newTab(url))
+  handle(Ch.tabsCreate, schemas.tabsCreate, ({ url, private: priv }) => newTab(url, priv))
   handle(Ch.tabsClose, schemas.tabId, ({ id }) => { proxy.drop(id); dbg.drop(id); tabs.close(id) })
   handle(Ch.tabsActivate, schemas.tabId, ({ id }) => tabs.activate(id))
   handle(Ch.navGo, schemas.navGo, ({ id, input }) => tabs.go(id, input))

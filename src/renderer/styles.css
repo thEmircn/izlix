@@ -857,3 +857,9 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .hub-act { height: 28px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--g-brd); background: var(--g1); color: var(--fg); font-size: 12px; flex: none; transition: background .2s, transform .25s var(--spring); } .hub-act:hover { background: var(--g2); transform: translateY(-1px); } .hub-act.bad:hover { background: rgba(255,92,92,.16); color: var(--bad); }
 .hub-tools { margin: 4px 0 12px; } .hub-empty { margin-top: 20px; padding: 36px 24px; text-align: center; color: var(--dim); line-height: 1.7; border: 1px dashed var(--g-brd2); border-radius: 16px; background: var(--g1); }
 @media (max-width: 900px) { .start.hub { grid-template-columns: 200px minmax(0, 1fr); } }
+
+/* v9: gizli sekme gostergesi */
+.tab.private { box-shadow: inset 0 -2px 0 rgba(180, 140, 255, 0.0); }
+.tab.private .t { font-style: italic; }
+.priv-dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: transparent; border: 1.5px solid var(--dim, #9a9a9a); vertical-align: 0; }
+.tab.private.active .priv-dot { border-color: var(--fg, #fff); background: var(--fg, #fff); }

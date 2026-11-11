@@ -2507,5 +2507,27 @@
       "contains",
       "/api/x"
     ]
+  ],
+  "private": [
+    [
+      "isPrivate",
+      "eq",
+      true
+    ],
+    [
+      "cookieInPrivate",
+      "eq",
+      "sec=1"
+    ],
+    [
+      "notInHistory",
+      "eq",
+      true
+    ],
+    [
+      "normalPrivate",
+      "eq",
+      null
+    ]
   ]
 }

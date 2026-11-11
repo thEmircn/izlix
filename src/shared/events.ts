@@ -20,6 +20,8 @@ export interface BusEvent {
 
 export interface SessionInfo { id: string; name: string; ts: number; tabs: { url: string; title: string }[]; active: number; split: [number, number] | null }
 export interface TabInfo {
+  /** Gizli sekme: kalici olmayan, izole oturum; gecmis/oturum kaydi yok */
+  private?: 'incognito'
   /** Bolunmus gorunumde sekmenin tarafi */
   split?: 'left' | 'right'
   id: string
