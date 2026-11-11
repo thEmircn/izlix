@@ -263,6 +263,11 @@ function registerIpc(): void {
   handle(Ch.pwDelete, schemas.pwDelete, ({ origin, username }) => passwords.remove(origin, username))
   handle(Ch.pwCopy, schemas.pwDelete, ({ origin, username }) => passwords.copy(origin, username))
   handle(Ch.pwNeverRemove, schemas.pwNever, ({ origin }) => passwords.removeNever(origin))
+  handle(Ch.pwAudit, schemas.pwAudit, ({ check }) => passwords.audit(check ? async (prefix) => {
+    if (process.env.DB_PWNED_RANGE) return process.env.DB_PWNED_RANGE // testlerde ag yok
+    const r = await net.fetch(`https://api.pwnedpasswords.com/range/${prefix}`, { headers: { 'Add-Padding': 'true' }, signal: AbortSignal.timeout(8000) })
+    return r.ok ? r.text() : null
+  } : null))
   handle(Ch.pwFill, schemas.pwFill, async ({ id }) => { const e = tabs.get(id); return e ? passwords.fill(e.view.webContents) : false })
   // Sayfa gorunumu gizlenmeden once anlik goruntusu: kabuk bunu gosterir, boylece sayfa kararmaz (surukleme, palet, ayarlar)
   handle(Ch.snapPage, null, async () => {

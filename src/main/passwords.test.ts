@@ -68,4 +68,22 @@ describe('PasswordService', () => {
     const s = fillScript('a"; alert(1); "', "p'\n</script>")
     expect(s).toContain(JSON.stringify('a"; alert(1); "')); expect(() => new Function(s)).not.toThrow()
   })
+  it('guvenlik denetimi: zayif, tekrar kullanilan ve (HIBP aralik yanitiyla) sizmis; parola donmez; ag yoksa pwned null', async () => {
+    const { createHash } = await import('node:crypto')
+    const { svc } = mk()
+    const w1 = fakeWc('https://a.com/'), w2 = fakeWc('https://b.com/'), w3 = fakeWc('https://c.com/')
+    for (const w of [w1, w2, w3]) await svc.attach(w.wc)
+    w1.call({ t: 'save', u: 'ali', p: '123456' }); await tick(); await new Promise((r) => setTimeout(r, 2100))
+    w2.call({ t: 'save', u: 'veli', p: '123456' }); await tick(); await new Promise((r) => setTimeout(r, 2100))
+    w3.call({ t: 'save', u: 'can', p: 'Xk9#mQ2$vL7!pR4&zT' }); await tick()
+    const local = await svc.audit(null)
+    expect(local).toHaveLength(3); expect(local.find((r) => r.username === 'ali')).toMatchObject({ weak: true, reused: 1, pwned: null }); expect(local.find((r) => r.username === 'can')).toMatchObject({ weak: false, reused: 0 })
+    expect(JSON.stringify(local)).not.toContain('123456')
+    const h = createHash('sha1').update('123456').digest('hex').toUpperCase()
+    const seen: string[] = []
+    const net = await svc.audit(async (prefix) => { seen.push(prefix); return prefix === h.slice(0, 5) ? `${h.slice(5)}:9999\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:1` : '' })
+    expect(net.find((r) => r.username === 'ali')!.pwned).toBe(9999); expect(net.find((r) => r.username === 'can')!.pwned).toBe(0)
+    expect(seen.every((p) => p.length === 5)).toBe(true); expect(new Set(seen).size).toBe(seen.length) // yalniz 5 karakterlik onek, tekrar yok
+    const down = await svc.audit(async () => { throw new Error('ag yok') }); expect(down.every((r) => r.pwned === null)).toBe(true)
+  })
 })

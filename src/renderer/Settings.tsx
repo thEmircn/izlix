@@ -1,4 +1,5 @@
 import { ENGINES } from '../shared/search'
+import { generatePassword } from '../shared/pwgen'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
 import { useStore, useT, writePref, toast } from './store'
@@ -21,6 +22,9 @@ export function Settings({ onClose }: { onClose(): void }) {
   const [pw, setPw] = useState<{ logins: { origin: string; username: string; ts: number }[]; never: string[] }>({ logins: [], never: [] })
   const [scText, setScText] = useState((settings.shortcuts ?? []).map((x) => `${x.key} ${x.url}`).join('\n'))
   const saveShortcuts = (): void => { const list = scText.split('\n').map((l) => l.trim().split(/\s+/)).filter((p) => p.length >= 2).map(([key, url]) => ({ key, url })); void api.setSettings({ shortcuts: list }).then(() => toast(t('site.saved'))) }
+  const [gen, setGen] = useState(() => generatePassword({ length: 20 }))
+  const [genLen, setGenLen] = useState(20)
+  const [audit, setAudit] = useState<{ origin: string; username: string; weak: boolean; reused: number; pwned: number | null }[] | null>(null)
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
   const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
@@ -64,6 +68,20 @@ export function Settings({ onClose }: { onClose(): void }) {
                 <button className="btn" onClick={() => void api.pwCopy(l.origin, l.username).then(() => toast(t('pw.copied')))}>{t('pw.copy')}</button>
                 <button className="btn" onClick={() => void api.pwDelete(l.origin, l.username).then(loadPw)}>{t('pw.del')}</button></div>
             ))}
+            <div className="pwrow"><div className="pwo"><b style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5 }}>{gen}</b><small>{t('pw.gen')}</small></div>
+              <input type="range" min={8} max={48} value={genLen} onChange={(e) => { const n = Number(e.target.value); setGenLen(n); setGen(generatePassword({ length: n })) }} style={{ width: 90 }} aria-label={t('pw.length')} />
+              <button className="btn" onClick={() => setGen(generatePassword({ length: genLen }))}>{t('pw.regen')}</button>
+              <button className="btn" onClick={() => void navigator.clipboard.writeText(gen).then(() => toast(t('qr.copied')))}>{t('pw.copyGen')}</button></div>
+            <div className="pwrow"><div className="pwo"><b>{t('pw.audit')}</b><small>{t('pw.auditHint')}</small></div>
+              <button className="btn" onClick={() => void api.pwAudit(false).then(setAudit)}>{t('pw.auditLocal')}</button>
+              <button className="btn" onClick={() => void api.pwAudit(true).then(setAudit)}>{t('pw.auditBreach')}</button></div>
+            {audit && (audit.length === 0 ? <div className="shint">{t('pw.none')}</div> : audit.map((a) => (
+              <div className="pwrow" key={a.origin + a.username}><div className="pwo"><b>{a.username || t('pw.noUser')}</b><small>{a.origin}</small></div>
+                {a.pwned ? <span className="chip" style={{ color: 'var(--bad, #ff6b6b)' }}>{t('pw.pwned', { n: a.pwned })}</span> : a.pwned === 0 ? <span className="chip" style={{ color: 'var(--ok, #6ee7a8)' }}>{t('pw.notPwned')}</span> : null}
+                {a.weak && <span className="chip" style={{ color: 'var(--warn, #f5b94a)' }}>{t('pw.weak')}</span>}
+                {a.reused > 0 && <span className="chip" style={{ color: 'var(--warn, #f5b94a)' }}>{t('pw.reused', { n: a.reused })}</span>}
+                {!a.weak && !a.reused && !a.pwned && <span className="chip" style={{ color: 'var(--ok, #6ee7a8)' }}>{t('pw.ok')}</span>}</div>
+            )))}
             {pw.never.map((o) => <div className="pwrow" key={o}><div className="pwo"><b>{o}</b><small>{t('pw.neverNote')}</small></div><button className="btn" onClick={() => void api.pwNeverRemove(o).then(loadPw)}>{t('pw.del')}</button></div>)}
           </div>
           <Row title={t('set.spell')} hint={t('set.spellHint')}><Switch on={settings.spellcheck !== false} label={t('set.spell')} onChange={(v) => void api.setSettings({ spellcheck: v })} /></Row>

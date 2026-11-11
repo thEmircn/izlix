@@ -4132,5 +4132,27 @@
       "eq",
       true
     ]
+  ],
+  "pwaudit": [
+    [
+      "genLen",
+      "eq",
+      20
+    ],
+    [
+      "localBadges",
+      "contains",
+      "Weak"
+    ],
+    [
+      "localBadges",
+      "contains",
+      "Reused (1)"
+    ],
+    [
+      "breachBadges",
+      "contains",
+      "Leaked 777×"
+    ]
   ]
 }

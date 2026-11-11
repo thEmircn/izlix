@@ -1,4 +1,5 @@
 import { ENGINES } from '../shared/search'
+import { generatePassword } from '../shared/pwgen'
 import { PANEL_TABS, wsName, useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
 import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS, UA_PRESETS, VISION } from '../shared/emulation'
@@ -20,6 +21,7 @@ export function buildCommands(): Command[] {
     ...(s.rec.steps.length && !s.rec.recording ? [{ id: 'rec.open', title: t('rec.last'), run: () => s.set({ overlay: 'recorder' }) }] : []),
     { id: 'tabsearch.open', title: t('menu.findAllTabs'), hint: '⇧⌘F', run: () => s.set({ overlay: 'tabsearch' }) },
     { id: 'downloads.open', title: t('menu.downloads'), hint: '⇧⌘J', run: () => s.set({ overlay: 'downloads' }) },
+    { id: 'pw.generate', title: t('pw.cmdGen'), run: () => { const p = generatePassword({ length: 20 }); void navigator.clipboard.writeText(p).then(() => toast(t('pw.genCopied'))) } },
     { id: 'history.open', title: t('menu.history'), hint: '⌘Y', run: () => s.set({ overlay: 'history' }) },
     { id: 'win.new', title: t('cmd.newWindow'), hint: '⌘N', run: () => void api.newWindow() },
     { id: 'tab.newPrivate', title: t('cmd.newPrivate'), hint: '⇧⌘N', run: () => void api.createTab(undefined, 'incognito') },

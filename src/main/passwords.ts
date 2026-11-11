@@ -1,5 +1,7 @@
 import { app, safeStorage, clipboard, type WebContents } from 'electron'
 import { loadDoc, saveDoc } from './docdb'
+import { createHash } from 'node:crypto'
+import { isWeak, parseRange } from '../shared/pwgen'
 import { PW_BINDING, PW_SCRIPT, fillScript, type LoginMeta } from '../shared/passwords'
 
 export interface Cipher { available(): boolean; encrypt(s: string): string; decrypt(s: string): string }
@@ -13,6 +15,7 @@ export const keychainCipher: Cipher = {
 export const plainCipher: Cipher = { available: () => true, encrypt: (s) => Buffer.from(s).toString('base64'), decrypt: (s) => Buffer.from(s, 'base64').toString() }
 
 interface Doc { logins: Record<string, { u: string; p: string; ts: number }[]>; never: string[] }
+export interface AuditRow { origin: string; username: string; weak: boolean; /** ayni parolayi kullanan DIGER kayit sayisi */ reused: number; /** sizinti sayisi; null: denetlenmedi/ulasilamadi */ pwned: number | null }
 export type SaveAnswer = 'save' | 'never' | 'later'
 export type PwHooks = {
   ask: (wc: WebContents, origin: string, username: string, update: boolean) => Promise<SaveAnswer>
@@ -51,6 +54,22 @@ export class PasswordService {
   }
   /** test/duzenleme: bu kaynak icin kayitli (kullanici, parola) */
   getFor(origin: string): { u: string; p: string }[] { return (this.doc.logins[origin] ?? []).map((x) => ({ u: x.u, p: this.cipher.decrypt(x.p) })) }
+
+  /** Guvenlik denetimi: zayif / tekrar kullanilan (yerel) ve sizmis (HIBP k-anonymity: yalniz SHA-1'in ilk 5 karakteri gider). Parola donmez. */
+  async audit(fetchRange: ((prefix: string) => Promise<string | null>) | null): Promise<AuditRow[]> {
+    const rows = Object.entries(this.doc.logins).flatMap(([origin, l]) => l.map((x) => ({ origin, username: x.u, pw: this.cipher.decrypt(x.p) })))
+    const counts = new Map<string, number>(); for (const r of rows) counts.set(r.pw, (counts.get(r.pw) ?? 0) + 1)
+    const sha = (s: string): string => createHash('sha1').update(s).digest('hex').toUpperCase()
+    const ranges = new Map<string, string | null>()
+    if (fetchRange) {
+      const prefixes = [...new Set(rows.map((r) => sha(r.pw).slice(0, 5)))]
+      for (let i = 0; i < prefixes.length; i += 4) await Promise.all(prefixes.slice(i, i + 4).map(async (p) => { ranges.set(p, await fetchRange(p).catch(() => null)) }))
+    }
+    return rows.map((r) => {
+      const h = sha(r.pw), txt = ranges.get(h.slice(0, 5))
+      return { origin: r.origin, username: r.username, weak: isWeak(r.pw), reused: (counts.get(r.pw) ?? 1) - 1, pwned: fetchRange ? (txt == null ? null : parseRange(txt, h.slice(5))) : null }
+    })
+  }
 
   /** Sekmeye bagla: binding + belge-basi betik; sayfadan gelen cagrilari dinle */
   async attach(wc: WebContents): Promise<void> {
