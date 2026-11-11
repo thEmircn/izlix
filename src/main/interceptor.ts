@@ -1,7 +1,7 @@
 import type { WebContents } from 'electron'
 import type { EventBus } from './bus'
 import { MockServer } from './mockserver'
-import { adPatterns, cdpType, decide, inSet, isLoopbackHost, type BlockLevel } from '../shared/adblock'
+import { adPatterns, cdpType, decide, inSet, isLoopbackHost, YOUTUBE_DOC_SCRIPT, type BlockLevel } from '../shared/adblock'
 import { evaluate, hostAllowed, needsResponseStage, activeRules, type Decision, type RulesConfig } from '../shared/rules'
 
 const mockServer = new MockServer()
@@ -23,6 +23,8 @@ const hdr = (o: Record<string, string>): { name: string; value: string }[] => Ob
 export class Interceptor {
   private mode: Mode = 'off'
   private sig = ''
+  /** YouTube belge-baslangic betiginin Page.addScript... kimligi (acik ise) */
+  private docScriptId: string | null = null
   /** networkId -> uygulanan karar; Timeline'daki istek olayına rozet olarak yazılır */
   private pendingBadges = new Map<string, Decision>()
   private unsub: () => void
@@ -54,6 +56,7 @@ export class Interceptor {
     const rules = activeRules(cfg)
     const rmode: Mode = rules.length && hostAllowed(this.currentUrl(), cfg.domains) ? (needsResponseStage(rules) ? 'both' : 'request') : 'off'
     const ad = this.adActive()
+    await this.syncYoutubeDoc(!!ad && /(^|\.)youtube\.com$/.test(this.hostNow()))
     const sig = `${rmode}|${ad ?? ''}`
     if (sig === this.sig) return
     this.sig = sig; this.mode = rmode
@@ -69,6 +72,19 @@ export class Interceptor {
     let host = ''; try { host = new URL(this.currentUrl()).hostname.toLowerCase() } catch { return null }
     if (!host || (isLoopbackHost(host) && !c.blockOnDev) || inSet(host, new Set(c.allow))) return null
     return c.level
+  }
+
+  private hostNow(): string { try { return new URL(this.currentUrl()).hostname.toLowerCase() } catch { return '' } }
+  /** YouTube sayfasina gidilirken (reklam engelleme aciksa) reklam verisini silen betik belge baslangicina eklenir; baska sayfada kaldirilir */
+  private async syncYoutubeDoc(want: boolean): Promise<void> {
+    if (want && !this.docScriptId) {
+      await this.send('Page.enable')
+      const r = await this.send('Page.addScriptToEvaluateOnNewDocument', { source: YOUTUBE_DOC_SCRIPT })
+      this.docScriptId = r?.identifier ?? null
+    } else if (!want && this.docScriptId) {
+      const id = this.docScriptId; this.docScriptId = null
+      await this.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: id })
+    }
   }
 
   private badge(eventId: number, d: Decision): void {

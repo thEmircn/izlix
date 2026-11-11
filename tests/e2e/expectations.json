@@ -2970,5 +2970,17 @@
       "eq",
       true
     ]
+  ],
+  "ytads": [
+    [
+      "ok",
+      "eq",
+      true
+    ],
+    [
+      "adShowing",
+      "eq",
+      false
+    ]
   ]
 }

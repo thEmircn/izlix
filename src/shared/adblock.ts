@@ -98,6 +98,27 @@ ytd-player-legacy-desktop-watch-ads-renderer, .ytp-ad-overlay-container, .ytp-ad
 { display: none !important; }
 `
 
+/** YouTube: reklam VERISINI kaynaginda sil. Belge baslangicinda (sayfa betiklerinden once) enjekte edilir: ilk yukleme JSON'u (ytInitialPlayerResponse)
+ *  ve sonraki player/next yanitlarindaki adPlacements/playerAds/adSlots alanlari atilir; oynatici hic reklam planlamaz. */
+export const YOUTUBE_DOC_SCRIPT = `(() => {
+  if (!/(^|\\.)youtube\\.com$/.test(location.hostname) || window.__dbYtDoc) return
+  window.__dbYtDoc = true
+  const KEYS = ['adPlacements', 'playerAds', 'adSlots', 'adBreakHeartbeatParams']
+  const strip = (o, d) => {
+    if (!o || typeof o !== 'object' || (d || 0) > 6) return o
+    if (Array.isArray(o)) { for (const x of o) strip(x, (d || 0) + 1); return o }
+    for (const k of KEYS) if (k in o) { try { delete o[k] } catch (e) {} }
+    for (const k in o) { const v = o[k]; if (v && typeof v === 'object') strip(v, (d || 0) + 1) }
+    return o
+  }
+  let ipr
+  try { Object.defineProperty(window, 'ytInitialPlayerResponse', { configurable: true, get() { return ipr }, set(v) { ipr = strip(v, 0) } }) } catch (e) {}
+  const oj = Response.prototype.json
+  Response.prototype.json = function () { const u = this.url; return oj.call(this).then((j) => (/\\/youtubei\\/v1\\/(player|next|get_watch)/.test(u) ? strip(j, 0) : j)) }
+  const op = JSON.parse
+  JSON.parse = function (t, r) { const v = op.call(this, t, r); return typeof t === 'string' && t.length > 1000 && (t.indexOf('"adPlacements"') >= 0 || t.indexOf('"playerAds"') >= 0) ? strip(v, 0) : v }
+})()`
+
 /** YouTube: reklam gorununce atla / hizlandir. Sayfa dunyasinda calisir; yalnizca youtube.com'da enjekte edilir. */
 export const YOUTUBE_SCRIPT = `(() => {
   if (window.__dbYtAd) return; window.__dbYtAd = true

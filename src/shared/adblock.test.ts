@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decide, inSet, siteOf, adPatterns, cdpType, AD_DOMAINS } from './adblock'
+import { decide, inSet, siteOf, adPatterns, cdpType, AD_DOMAINS, YOUTUBE_DOC_SCRIPT } from './adblock'
 
 const o = (level: 'off' | 'ads' | 'strict' = 'ads', extra = {}) => ({ level, allow: [] as string[], ...extra })
 const P = 'https://news.example.com/article'
@@ -53,5 +53,35 @@ describe('adPatterns / cdpType', () => {
   it('CDP turlerini cevirir', () => {
     expect(cdpType('Script', false)).toBe('script'); expect(cdpType('Fetch', false)).toBe('xhr')
     expect(cdpType('Document', true)).toBe('mainFrame'); expect(cdpType('Document', false)).toBe('subFrame')
+  })
+})
+
+describe('YOUTUBE_DOC_SCRIPT', () => {
+  const run = (host: string) => {
+    const win: Record<string, unknown> = {}
+    const Resp = function () {} as unknown as { prototype: { json: () => Promise<unknown>; url?: string } }
+    Resp.prototype.json = function () { return Promise.resolve({ adPlacements: [1], playerAds: [2], videoDetails: { a: 1 }, nested: { adSlots: [3], keep: 1 } }) }
+    const J = { parse: (t: string) => JSON.parse(t) }
+    new Function('window', 'location', 'Response', 'JSON', YOUTUBE_DOC_SCRIPT)(win, { hostname: host }, Resp, J)
+    return { win, Resp, J }
+  }
+  it('ilk yukleme JSON atamasindaki reklam alanlarini siler, digerlerini korur', () => {
+    const { win } = run('www.youtube.com')
+    win.ytInitialPlayerResponse = { adPlacements: [{ x: 1 }], playerAds: [1], videoDetails: { title: 't' }, streamingData: { adaptiveFormats: [] } }
+    const v = win.ytInitialPlayerResponse as Record<string, unknown>
+    expect(v.adPlacements).toBeUndefined(); expect(v.playerAds).toBeUndefined(); expect(v.videoDetails).toEqual({ title: 't' }); expect(v.streamingData).toBeDefined()
+  })
+  it('player yanitlarinin json() ve buyuk JSON.parse sonucunu temizler; diger url dokunulmaz', async () => {
+    const { Resp, J } = run('m.youtube.com')
+    const r = new (Resp as unknown as new () => { url: string; json: () => Promise<any> })(); r.url = 'https://www.youtube.com/youtubei/v1/player?key=1'
+    const j = await r.json(); expect(j.adPlacements).toBeUndefined(); expect(j.nested.adSlots).toBeUndefined(); expect(j.nested.keep).toBe(1)
+    const r2 = new (Resp as unknown as new () => { url: string; json: () => Promise<any> })(); r2.url = 'https://www.youtube.com/youtubei/v1/browse'
+    expect((await r2.json()).adPlacements).toBeDefined()
+    const big = JSON.stringify({ adPlacements: [1], pad: 'x'.repeat(1200), ok: 1 })
+    const p = J.parse(big) as Record<string, unknown>; expect(p.adPlacements).toBeUndefined(); expect(p.ok).toBe(1)
+  })
+  it('YouTube disinda hicbir sey yapmaz', () => {
+    const { win } = run('example.com'); win.ytInitialPlayerResponse = { adPlacements: [1] }
+    expect((win.ytInitialPlayerResponse as Record<string, unknown>).adPlacements).toBeDefined()
   })
 })
