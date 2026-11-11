@@ -4,4 +4,3 @@ dist
 *.log
 dist/
 .DS_Store
-
