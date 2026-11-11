@@ -251,6 +251,15 @@ function registerIpc(): void {
   handle(Ch.pwCopy, schemas.pwDelete, ({ origin, username }) => passwords.copy(origin, username))
   handle(Ch.pwNeverRemove, schemas.pwNever, ({ origin }) => passwords.removeNever(origin))
   handle(Ch.pwFill, schemas.pwFill, async ({ id }) => { const e = tabs.get(id); return e ? passwords.fill(e.view.webContents) : false })
+  // Sayfa gorunumu gizlenmeden once anlik goruntusu: kabuk bunu gosterir, boylece sayfa kararmaz (surukleme, palet, ayarlar)
+  handle(Ch.snapPage, null, async () => {
+    const e = tabs.active(); const wc = e?.view.webContents
+    if (!e || !wc || wc.isDestroyed() || e.lab || !/^https?:/.test(wc.getURL())) return null
+    const img = await Promise.race([wc.capturePage(), new Promise<null>((r) => setTimeout(() => r(null), 400))]).catch(() => null)
+    if (!img || img.isEmpty()) return null
+    const sz = img.getSize(), scale = screen.getDisplayMatching((curWin ?? win).getBounds()).scaleFactor || 1
+    return { url: `data:image/jpeg;base64,${img.toJPEG(72).toString('base64')}`, w: Math.round(sz.width / scale), h: Math.round(sz.height / scale) }
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'

@@ -42,6 +42,7 @@ export const api = {
   pwCopy: (origin: string, username: string) => call(Ch.pwCopy, { origin, username }) as Promise<boolean>,
   pwFill: (id: string) => call(Ch.pwFill, { id }) as Promise<boolean>,
   pwNeverRemove: (origin: string) => call(Ch.pwNeverRemove, { origin }),
+  snapPage: () => call(Ch.snapPage) as Promise<{ url: string; w: number; h: number } | null>,
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,

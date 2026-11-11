@@ -18,7 +18,7 @@ module.exports = async ({ tabs, win, sleep, shellEval }) => {
   await shellEval(`[...document.querySelectorAll('.vside .tab')].find(t=>t.textContent.includes('t/a')).click()`); await sleep(500)
   out.clickActivates = tabs.list().activeId === a
   // daralt
-  await shellEval(`document.querySelector('.vcollapse').click()`); await sleep(700)
+  await shellEval(`document.querySelector('.vcollapse').click()`); await sleep(1200)
   out.collapsedWidth = await shellEval(`Math.round(document.querySelector('.vside').getBoundingClientRect().width)`)
   out.collapsedShift = act().view.getBounds().x >= 56 && act().view.getBounds().x < 100
   await shellEval(`document.querySelector('.vcollapse').click()`); await sleep(500)

@@ -36,6 +36,8 @@ export function App() {
   const s = useStore()
   const t = useT()
   const [dragging, setDragging] = useState(false)
+  /** sayfa gorunumu gizlenirken kabukte gosterilen donmus goruntu */
+  const [frozen, setFrozen] = useState<{ url: string; w: number; h: number } | null>(null)
   const [dragTab, setDragTab] = useState<string | null>(null)
   const [overTab, setOverTab] = useState<string | null>(null)
   const [findText, setFindText] = useState('')
@@ -130,7 +132,15 @@ export function App() {
   // yeni sekme sayfasi: URL'si olmayan (bos) sekmede (veya hic sekme yokken) shell DOM'undaki baslangic sayfasi gorunur
   const startVisible = !s.dashboard && (!active || (!active.url && !active.lab && !active.split))
   // overlay acikken sayfa gorunumleri (native katman) gizlenir, aksi halde shell'in ustunde kalirlardi
-  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0 || s.dashboard || startVisible || sugOpen) }, [s.overlay, s.permPrompts.length, s.dashboard, startVisible, sugOpen])
+  const hidePages = s.overlay !== null || s.permPrompts.length > 0 || s.dashboard || startVisible || sugOpen || dragging
+  const hideSeq = useRef(0)
+  useEffect(() => {
+    const api = window.izlix, seq = ++hideSeq.current
+    if (!hidePages) { void api.setOverlay(false); const h = setTimeout(() => { if (hideSeq.current === seq) setFrozen(null) }, 160); return () => clearTimeout(h) }
+    // dashboard/baslangic sayfasinda gosterilecek sayfa yok; digerlerinde once anlik goruntu alinip sonra gorunum gizlenir (sayfa kararmaz)
+    if (s.dashboard || startVisible) { void api.setOverlay(true); setFrozen(null); return }
+    void api.snapPage().catch(() => null).then((snap) => { if (hideSeq.current !== seq) return; setFrozen(snap); void api.setOverlay(true) })
+  }, [hidePages, s.dashboard, startVisible])
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
@@ -145,7 +155,7 @@ export function App() {
   const api = window.izlix
   // Panel boyutlandirma: surukleme sirasinda native gorunumler gizlenir (aksi halde fare olaylarini yutarlar)
   const startDrag = (axis: 'x' | 'y' | 'b') => (e: React.PointerEvent): void => {
-    e.preventDefault(); setDragging(true); void api.setOverlay(true)
+    e.preventDefault(); setDragging(true)
     const bodyH = size.h - chromeH
     const move = (ev: PointerEvent): void => {
       if (axis === 'x') s.set({ panelRatio: Math.min(0.8, Math.max(0.2, side === 'left' ? ev.clientX / size.w : 1 - ev.clientX / size.w)) })
@@ -155,7 +165,7 @@ export function App() {
     const up = (): void => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up)
       const st = useStore.getState(); writePref('panelRatio', String(+st.panelRatio.toFixed(3))); writePref('split', String(+st.split.toFixed(3)))
-      setDragging(false); void api.setOverlay(useStore.getState().overlay !== null)
+      setDragging(false)
     }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
   }
@@ -271,6 +281,7 @@ export function App() {
         </div>
       )}
       {sugOpen && <SuggestList items={sg.items} idx={sg.idx} anchor={addrRef.current} query={typed ?? ''} onPick={pickSug} onHover={sg.setIdx} />}
+      {frozen && !s.dashboard && !startVisible && (() => { const r = padRect(layout.page); return <div className="freeze" style={{ left: r.x, top: r.y, width: r.width, height: r.height }}><img alt="" draggable={false} src={frozen.url} style={{ width: frozen.w, height: frozen.h }} /></div> })()}
       {startVisible && <StartPage tabId={active?.id ?? null} style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
       {panelVisible && <div className={`panel side-${side}`} style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
         <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />
