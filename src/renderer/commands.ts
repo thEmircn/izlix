@@ -150,6 +150,7 @@ export function buildCommands(): Command[] {
   }
   cmds.push({ id: 'tabs.layout', title: t(s.tabLayout === 'side' ? 'cmd.tabsTop' : 'cmd.tabsSide'), run: () => { const v = s.tabLayout === 'side' ? 'top' : 'side'; writePref('tabLayout', v); s.set({ tabLayout: v }) } })
   if (act?.logins) cmds.push({ id: 'pw.fill', title: t('pw.fill'), hint: '⌘⇧L', run: () => void api.pwFill(act.id) })
+  if (act && !act.pinned) cmds.push({ id: 'tab.group', title: t(act.group ? 'grp.remove' : 'grp.new'), run: () => void api.setTabGroup(act.id, act.group ? null : 'new') })
   if (act) cmds.push({ id: 'tab.mute', title: t(act.muted ? 'ctx.unmute' : 'ctx.mute'), run: () => void api.muteTab(act.id, !act.muted) })
   if (act) cmds.push({ id: 'tab.hop', title: t('cmd.hopTab'), hint: '⌥⌘M', run: () => void api.hopTab(act.id) })
   if (act) cmds.push({ id: 'tab.pin', title: t(act.pinned ? 'cmd.unpin' : 'cmd.pin'), run: () => void api.pinTab(act.id, !act.pinned) })

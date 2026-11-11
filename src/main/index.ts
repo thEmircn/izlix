@@ -1,3 +1,4 @@
+import { GROUP_COLOR_NAMES } from '../shared/groups'
 import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
 import { translateUrl } from '../shared/translate'
 import { MockServer } from './mockserver'
@@ -299,6 +300,15 @@ function registerIpc(): void {
     const items = library.bookmarks(ws).filter((b) => (folder ? b.folder === folder : !b.folder))
     Menu.buildFromTemplate(items.length ? items.map((b) => ({ label: (b.title || b.url).slice(0, 60), click: () => go(b.url, false) })) : [{ label: tr('bm.empty'), enabled: false }]).popup({ window: curWin ?? win })
   })
+  // Sekme gruplari: 'new' degil, gercek grup kimligi ya da null; yeni grup icin tabGroup ile 'new' gonderilir
+  handle(Ch.tabGroup, schemas.tabGroup, ({ id, group }) => tabs.setGroup(id, group === 'new' ? tabs.createGroup() : group))
+  handle(Ch.groupUpdate, schemas.groupUpdate, ({ id, ...p }) => tabs.updateGroup(id, p))
+  handle(Ch.groupMenu, schemas.groupMenu, ({ id }) => {
+    Menu.buildFromTemplate([
+      ...GROUP_COLOR_NAMES.map((c) => ({ label: tr(`gc.${c}` as Key), type: 'radio' as const, checked: tabs.list().groups.find((g) => g.id === id)?.color === c, click: () => tabs.updateGroup(id, { color: c }) })),
+      { type: 'separator' }, { label: tr('grp.ungroup'), click: () => tabs.ungroup(id) }, { label: tr('grp.close'), click: () => tabs.closeGroup(id) }
+    ]).popup({ window: curWin ?? win })
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -429,6 +439,11 @@ function registerIpc(): void {
     const e = tabs.get(id); if (!e) return
     const url = e.view.webContents.getURL()
     Menu.buildFromTemplate([
+      ...(e.info.pinned ? [] : [{ label: tr('grp.addTo'), submenu: [
+        { label: tr('grp.new'), click: () => { tabs.setGroup(id, tabs.createGroup()) } },
+        ...tabs.list().groups.map((g) => ({ label: g.name || tr(`gc.${g.color}` as Key), click: () => { tabs.setGroup(id, g.id) } })),
+        ...(e.info.group ? [{ type: 'separator' as const }, { label: tr('grp.remove'), click: () => { tabs.setGroup(id, null) } }] : [])
+      ] }]),
       { label: tr(e.info.muted ? 'ctx.unmute' : 'ctx.mute'), click: () => tabs.setMuted(id, !e.info.muted) },
       { label: tr(e.info.pinned ? 'ctx.unpin' : 'ctx.pin'), click: () => tabs.setPinned(id, !e.info.pinned) },
       { label: tr('ctx.reload'), click: () => tabs.reload(id) },

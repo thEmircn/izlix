@@ -7,6 +7,8 @@ import { SiteSettings } from './SiteSettings'
 import { HistoryPage } from './HistoryPage'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
 import { Roll } from './ui'
+import { GROUP_COLORS } from '../shared/groups'
+import { GroupChip } from './GroupChip'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -74,7 +76,7 @@ export function App() {
     const queue: any[] = []
     void api.favicons([]).then((f) => useStore.setState((st) => ({ favicons: { ...f, ...st.favicons } }))).catch(() => {})
     const offs = [
-      api.onTabs((p: any) => s.set({ tabs: p.tabs, activeTabId: p.activeId, winId: p.win ?? 0, wins: p.wins ?? 1 })),
+      api.onTabs((p: any) => s.set({ tabs: p.tabs, activeTabId: p.activeId, winId: p.win ?? 0, wins: p.wins ?? 1, groups: p.groups ?? [] })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
@@ -180,7 +182,7 @@ export function App() {
   const nav = (fn: (id: string) => unknown) => (): void => { if (active) void fn(active.id) }
 
   const tabEl = (tb: (typeof s.tabs)[number]): React.ReactElement => (
-          <div key={tb.id} draggable className={`tab nodrag ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable style={tb.group ? { ['--gc' as any]: GROUP_COLORS[s.groups.find((g) => g.id === tb.group)?.color ?? 'grey'] } : undefined} className={`tab nodrag ${tb.group ? 'grouped' : ''} ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
@@ -191,11 +193,23 @@ export function App() {
             {!tb.pinned && <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>}
           </div>
   )
+  const renderTabs = (): React.ReactNode[] => {
+    const out: React.ReactNode[] = []
+    let prev: string | undefined
+    for (const tb of myTabs) {
+      const g = tb.group ? s.groups.find((x) => x.id === tb.group) : undefined
+      if (g && tb.group !== prev) out.push(<GroupChip key={`g-${g.id}`} g={g} count={myTabs.filter((x) => x.group === g.id).length} />)
+      prev = tb.group
+      if (g?.collapsed && tb.id !== s.activeTabId) continue // daraltilmis grup: yalniz aktif sekme gorunur
+      out.push(tabEl(tb))
+    }
+    return out
+  }
   return (
     <>
       {vertical ? (
         <div className={`vside drag ${s.sideCollapsed ? 'collapsed' : ''}`} style={{ width: sideW }}>
-          <div className="vside-list">{myTabs.map(tabEl)}</div>
+          <div className="vside-list">{renderTabs()}</div>
           <div className="vside-foot nodrag">
             <button className="vnew" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus />{!s.sideCollapsed && <span>{t('tab.new')}</span>}</button>
             <button className="vcollapse" aria-label={t('side.collapse')} title={t('side.collapse')} onClick={() => { writePref('sideCollapsed', s.sideCollapsed ? '0' : '1'); s.set({ sideCollapsed: !s.sideCollapsed }) }}><Back style={{ transform: s.sideCollapsed ? 'rotate(180deg)' : undefined }} /></button>
@@ -203,7 +217,7 @@ export function App() {
         </div>
       ) : (
         <div className="tabstrip drag">
-          {myTabs.map(tabEl)}
+          {renderTabs()}
           <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus /></button>
         </div>
       )}

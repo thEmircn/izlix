@@ -6,6 +6,7 @@ import type { TabInfo, DevToolsDock } from '../shared/events'
 import { computeLayout, padRect, CARD_RADIUS, GAP, type LayoutParams, type Rect } from '../shared/layout'
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
 import { cleanTrackingParams } from '../shared/tracking'
+import { GROUP_COLOR_NAMES, normalizeOrder, type TabGroup } from '../shared/groups'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
@@ -66,6 +67,8 @@ export class TabManager {
   private get layoutParams(): LayoutParams { return this.cur.layoutParams }
   private set layoutParams(v: LayoutParams) { this.cur.layoutParams = v }
   private seq = 0
+  private groups = new Map<string, TabGroup>()
+  private gseq = 0
   private closed: { url: string; workspaceId: string }[] = []
 
   constructor(win: BrowserWindow, private bus: EventBus, private workspaces: WorkspaceStore, private onChange: () => void,
@@ -106,9 +109,9 @@ export class TabManager {
   /** `winId` penceresindeki sekmeler (genel sirada) */
   private peers(winId: number): string[] { return this.order.filter((i) => this.tabs.get(i)?.winId === winId) }
   /** Bir pencerenin sekme/gorunum durumu (arayuze gonderilir): tum sekmeler + o pencerenin aktif sekmesi */
-  list(winId?: number): { tabs: TabInfo[]; activeId: string | null; win: number; wins: number; dock: DevToolsDock } {
+  list(winId?: number): { tabs: TabInfo[]; activeId: string | null; win: number; wins: number; dock: DevToolsDock; groups: TabGroup[] } {
     const c = (winId !== undefined && this.ctxs.get(winId)) || this.cur
-    return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: c.activeId, win: c.id, wins: this.ctxs.size, dock: c.layoutParams.dock }
+    return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: c.activeId, win: c.id, wins: this.ctxs.size, dock: c.layoutParams.dock, groups: [...this.groups.values()] }
   }
   /** Sekmeyi baska bir pencereye tasir; hedef pencerede aktif olur, kaynak pencerede komsu sekme aktif olur */
   moveToWindow(id: string, target: number, focus = true): boolean {
@@ -364,6 +367,7 @@ export class TabManager {
       const next = mine.find((i) => this.order.indexOf(i) >= idx) ?? mine[mine.length - 1]
       if (next) this.activateIn(next)
     }
+    this.cleanGroups()
     this.layout(); this.onChange(); this.persist()
   }
 
@@ -543,9 +547,34 @@ export class TabManager {
 
   /** Sabitlenmis sekmeler her zaman basta (goreli sira korunur) */
   private normalizePins(): void {
-    const pin = this.order.filter((i) => this.tabs.get(i)?.info.pinned), rest = this.order.filter((i) => !this.tabs.get(i)?.info.pinned)
-    this.order = [...pin, ...rest]
+    this.order = normalizeOrder(this.order, (i) => this.tabs.get(i)?.info.group, (i) => !!this.tabs.get(i)?.info.pinned)
   }
+  // ---- sekme gruplari ----
+  /** Yeni grup olusturur (adi bos olabilir); kimligini doner */
+  createGroup(name = '', color?: string): string {
+    const id = `g${++this.gseq}`
+    this.groups.set(id, { id, name: name.slice(0, 40), color: color && GROUP_COLOR_NAMES.includes(color) ? color : GROUP_COLOR_NAMES[(this.gseq - 1) % GROUP_COLOR_NAMES.length] })
+    return id
+  }
+  /** Sekmeyi gruba koyar (null: gruptan cikarir); bos kalan grup silinir */
+  setGroup(tabId: string, groupId: string | null): boolean {
+    const e = this.tabs.get(tabId); if (!e || (groupId && !this.groups.has(groupId))) return false
+    if (e.info.pinned) return false
+    if (groupId) e.info.group = groupId; else delete e.info.group
+    this.cleanGroups(); this.normalizePins(); this.onChange(); this.persist(); return true
+  }
+  updateGroup(id: string, p: { name?: string; color?: string; collapsed?: boolean }): boolean {
+    const g = this.groups.get(id); if (!g) return false
+    if (p.name !== undefined) g.name = p.name.slice(0, 40)
+    if (p.color && GROUP_COLOR_NAMES.includes(p.color)) g.color = p.color
+    if (p.collapsed !== undefined) { if (p.collapsed) g.collapsed = true; else delete g.collapsed }
+    this.onChange(); this.persist(); return true
+  }
+  /** Grubu kaldirir (sekmeler kalir) */
+  ungroup(id: string): void { for (const e of this.tabs.values()) if (e.info.group === id) delete e.info.group; this.groups.delete(id); this.normalizePins(); this.onChange(); this.persist() }
+  /** Gruptaki sekmeleri kapatir */
+  closeGroup(id: string): void { for (const tid of [...this.order]) if (this.tabs.get(tid)?.info.group === id) this.close(tid) }
+  private cleanGroups(): void { const used = new Set([...this.tabs.values()].map((t) => t.info.group).filter(Boolean)); for (const id of [...this.groups.keys()]) if (!used.has(id)) this.groups.delete(id) }
   setPinned(id: string, on: boolean): void {
     const e = this.tabs.get(id); if (!e) return
     if (on) e.info.pinned = true; else delete e.info.pinned
@@ -595,22 +624,24 @@ export class TabManager {
     try {
       const primary = [...this.ctxs.keys()][0]
       const keep = this.order.filter((i) => { const t = this.tabs.get(i)!.info; return t.url && !t.private })
-      const tabs = keep.map((i) => { const t = this.tabs.get(i)!.info; return { url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}), ...(t.winId !== primary ? { second: true } : {}) } })
+      const tabs = keep.map((i) => { const t = this.tabs.get(i)!.info; return { url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}), ...(t.group ? { group: t.group } : {}), ...(t.winId !== primary ? { second: true } : {}) } })
       const actives = [...this.ctxs.values()].map((c) => keep.indexOf(c.activeId ?? ''))
-      saveDoc(app.getPath('userData'), 'session', { tabs, active: Math.max(0, actives[0] ?? 0), activeSecond: actives[1] ?? -1 })
+      saveDoc(app.getPath('userData'), 'session', { tabs, groups: [...this.groups.values()], active: Math.max(0, actives[0] ?? 0), activeSecond: actives[1] ?? -1 })
     } catch { /* disk hatasi oturumu durdurmaz */ }
   }
 
   async restore(): Promise<boolean> {
-    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean; second?: boolean }[]; active: number; activeSecond?: number }
+    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean; second?: boolean; group?: string }[]; groups?: TabGroup[]; active: number; activeSecond?: number }
     const doc = loadDoc<typeof saved>(app.getPath('userData'), 'session'); if (!doc) return false
     saved = doc
     const valid = saved.tabs.filter((t) => this.workspaces.get(t.workspaceId))
     if (!valid.length) return false
     const ids: string[] = []
+    for (const g of saved.groups ?? []) { this.groups.set(g.id, g); this.gseq = Math.max(this.gseq, Number(g.id.slice(1)) || 0) }
     // ikinci pencerede sekme varsa o pencere yeniden acilir
     const w2 = valid.some((t) => t.second) ? await this.hooks.openWindow?.() : undefined
-    for (const { second, ...t } of valid) ids.push(await this.create({ ...t, ...(second && w2 !== undefined ? { winId: w2 } : {}), activate: false }))
+    for (const { second, group, ...t } of valid) { const id = await this.create({ ...t, ...(second && w2 !== undefined ? { winId: w2 } : {}), activate: false }); if (group && this.groups.has(group)) this.tabs.get(id)!.info.group = group; ids.push(id) }
+    this.cleanGroups()
     this.activate(ids[Math.min(saved.active, ids.length - 1)])
     if (w2 !== undefined && saved.activeSecond !== undefined && saved.activeSecond >= 0 && ids[saved.activeSecond]) this.activate(ids[saved.activeSecond])
     return true

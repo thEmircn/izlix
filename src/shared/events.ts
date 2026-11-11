@@ -24,6 +24,8 @@ export interface TabInfo {
   logins?: number
   /** Bu sitenin kayitli ayarlari (zoom/karanlik) */
   site?: { zoom?: number; dark?: boolean }
+  /** Sekme grubu kimligi (TabGroup.id) */
+  group?: string
   /** Sekme ses caliyor / sessize alinmis */
   audible?: boolean
   muted?: boolean

@@ -3444,5 +3444,72 @@
       "eq",
       true
     ]
+  ],
+  "groups": [
+    [
+      "created",
+      "eq",
+      true
+    ],
+    [
+      "contiguous",
+      "eq",
+      true
+    ],
+    [
+      "groupCount",
+      "eq",
+      1
+    ],
+    [
+      "chip",
+      "eq",
+      1
+    ],
+    [
+      "groupedTabs",
+      "eq",
+      2
+    ],
+    [
+      "chipText",
+      "eq",
+      "Is"
+    ],
+    [
+      "chipColor",
+      "eq",
+      "#4fd18b"
+    ],
+    [
+      "collapsedTabs",
+      "eq",
+      0
+    ],
+    [
+      "collapsedCount",
+      "eq",
+      "2"
+    ],
+    [
+      "reopened",
+      "eq",
+      2
+    ],
+    [
+      "stillGroup",
+      "eq",
+      1
+    ],
+    [
+      "groupGone",
+      "eq",
+      true
+    ],
+    [
+      "closedClean",
+      "eq",
+      true
+    ]
   ]
 }
