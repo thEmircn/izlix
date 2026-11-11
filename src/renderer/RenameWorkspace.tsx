@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PromptDialog } from '../../packages/ui/src'
 import { useStore, useT } from './store'
 
 export function RenameWorkspace({ onClose }: { onClose(): void }) {
@@ -6,17 +7,5 @@ export function RenameWorkspace({ onClose }: { onClose(): void }) {
   const ws = useStore((s) => s.workspaces.find((w) => w.id === s.activeWorkspaceId))
   const [name, setName] = useState(ws?.name ?? '')
   const ok = async (): Promise<void> => { if (ws && name.trim()) await window.izlix.renameWorkspace(ws.id, name.trim()); onClose() }
-  return (
-    <div className="overlay" onMouseDown={onClose}>
-      <div className="dialog" role="dialog" aria-label={t('ws.rename.title')} style={{ width: 'min(420px, 92vw)', padding: 16, gap: 10 }} onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') onClose(); if (e.key === 'Enter') void ok() }}>
-        <b>{t('ws.rename.title')}</b>
-        <input autoFocus value={name} maxLength={64} onChange={(e) => setName(e.target.value)} />
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn" onClick={onClose}>{t('rr.close')}</button>
-          <button className="btn primary" onClick={() => void ok()}>{t('ws.rename.ok')}</button>
-        </div>
-      </div>
-    </div>
-  )
+  return <PromptDialog title={t('ws.rename.title')} value={name} onChange={setName} maxLength={64} confirmLabel={t('ws.rename.ok')} cancelLabel={t('rr.close')} onConfirm={() => void ok()} onClose={onClose} />
 }
