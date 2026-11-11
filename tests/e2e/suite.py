@@ -60,7 +60,16 @@ def run(name):
         env['DB_EXT_DIR'] = ed
     if name in ('onboarding', 'docshots'): env['DB_ONBOARD'] = '1'
     if name == 'docshots': env['DB_SHOT_DIR'] = os.path.join(APP, 'docs', 'screenshots')
-    subprocess.run(['perl', '-e', 'alarm 150; exec @ARGV', 'npx', 'electron', '.'], cwd=APP, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # platformdan bagimsiz zaman asimi: surec agaci 150 sn sonra oldurulur (perl alarm yalniz POSIX'te calisir)
+    win = os.name == 'nt'
+    proc = subprocess.Popen(['npx', 'electron', '.'], cwd=APP, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=win, start_new_session=not win)
+    try:
+        proc.wait(timeout=150)
+    except subprocess.TimeoutExpired:
+        if win: subprocess.run(['taskkill', '/T', '/F', '/PID', str(proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            import signal; os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        proc.wait()
     # gecici kullanici verisi her kosudan sonra silinir (disk dolmasin)
     import shutil; shutil.rmtree(ud, ignore_errors=True)
     if not os.path.exists(out): return None
