@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent as Ev } from '../shared/events'
-import { useStore, writePref, useT, useThrottled, type PanelTab } from './store'
+import { useStore, writePref, useT, useThrottled, toast, type PanelTab } from './store'
+import { toCurl } from '../shared/network'
 import { Inspector, RenderTracker } from './Inspector'
 import { Network } from './Network'
-import { Seg } from './ui'
+import { ContextMenu, type MenuItem } from './ui'
 import { Elements } from './Elements'
 import { Storage } from './Storage'
 import { Perf } from './Perf'
@@ -66,6 +67,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const [allReq, setAllReq] = useState(false)
   const [tq, setTq] = useState('')
   const [range, setRange] = useState<[number, number] | null>(null)
+  const [menu, setMenu] = useState<{ ev: Ev; x: number; y: number } | null>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const [mainW, setMainW] = useState(width - 52)
   useEffect(() => { const el = mainRef.current; if (!el) return; const ro = new ResizeObserver(() => setMainW(el.clientWidth)); ro.observe(el); setMainW(el.clientWidth); return () => ro.disconnect() }, [])
@@ -102,6 +104,23 @@ export function Timeline({ width, height }: { width: number; height: number }) {
   const gi = RAIL_GROUPS.findIndex((g) => g.tabs.includes(tab)); const prevGi = useRef(gi); const dir = gi === prevGi.current ? 0 : gi > prevGi.current ? 1 : -1; const lastDir = useRef(1); if (dir) lastDir.current = dir; prevGi.current = gi
   // dock rozetleri: konsol hatalari ve basarisiz istekler (panele girmeden sorunu goster)
   const badges = useMemo(() => { let con = 0, net = 0; for (const e of all) { if (e.kind === 'error' || (e.kind === 'console' && e.payload.level === 'error')) con++; else if (e.kind === 'response' && (e.payload.status ?? 0) >= 400) net++ } return { console: con, network: net } }, [all])
+  const menuItems = (e: Ev): MenuItem[] => {
+    const p = e.payload, isNet = e.kind === 'request' || e.kind === 'response'
+    const reqEv = e.kind === 'request' ? e : [...src.values()].find((x) => x.kind === 'request' && x.payload.requestId === p.requestId)
+    const copy = (txt: string): void => { void navigator.clipboard?.writeText(txt); toast(t('toast.copied')) }
+    const items: MenuItem[] = []
+    if (isNet) items.push(
+      { label: t('ctx.tl.showNet'), run: () => set({ panelTab: 'network', selectedEventId: reqEv?.id ?? e.id }) },
+      { label: t('ctx.tl.ruleMock'), run: () => void addRuleFromEvent(e, src, 'mock') }, { label: t('ctx.tl.ruleDelay'), run: () => void addRuleFromEvent(e, src, 'delay') },
+      { label: t('ctx.tl.ruleFail'), run: () => void addRuleFromEvent(e, src, 'fail') }, { label: t('ctx.tl.ruleBlock'), run: () => void addRuleFromEvent(e, src, 'block'), danger: true }, { sep: true },
+      { label: t('ctx.tl.curl'), run: () => copy(toCurl(reqEv?.payload.method ?? p.method ?? 'GET', p.url, reqEv?.payload.headers, reqEv?.payload.postData)) })
+    if (p.origin?.file) items.push({ label: t('ctx.tl.source'), run: () => open(p.origin.file, p.origin.line, p.origin.column) })
+    if (e.kind === 'render' && p.components?.[0]?.file) items.push({ label: t('ctx.tl.source'), run: () => open(p.components[0].file, p.components[0].line) })
+    if (e.kind === 'console' || e.kind === 'error') items.push({ label: t('ctx.tl.showCon'), run: () => set({ panelTab: 'console' }) })
+    if (e.kind === 'render') items.push({ label: t('ctx.tl.showRender'), run: () => set({ panelTab: 'renders' }) })
+    items.push({ sep: true }, { label: t('ctx.tl.zoom'), run: () => setRange([e.ts - 1500, e.ts + 1500]) }, { label: t('ctx.tl.copyEv'), run: () => copy(JSON.stringify({ id: e.id, kind: e.kind, ts: e.ts, source: e.source, payload: e.payload }, null, 2)) })
+    return items
+  }
   const groupTitle = ({ timeline: t('tl.timeline'), network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server } as Record<string, string>)[groupOf(tab)?.label ?? 'timeline'] ?? labels[tab]
 
   return (
@@ -134,22 +153,23 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       {tab === 'network' ? <Network events={preserve ? all : sinceNavigation(all)} byId={src} /> : tab === 'console' ? <Console events={preserve ? all : sinceNavigation(all)} /> : tab === 'overview' ? <Overview events={preserve ? all : sinceNavigation(all)} /> : tab === 'elements' ? <Elements /> : tab === 'stylelab' ? <Elements startTab="lab" /> : tab === 'sources' ? <Sources events={all} /> : tab === 'storage' ? <Storage /> : tab === 'perf' ? <Perf events={all} /> : tab === 'a11y' ? <A11y /> : tab === 'profiler' ? <Profiler /> : tab === 'coverage' ? <Coverage /> : tab === 'seo' ? <Seo /> : tab === 'server' ? <Server /> : tab === 'components' ? <Inspector height={height} /> : tab === 'renders' ? <RenderTracker events={all} range={range} /> : tab === 'raw' ? <RawList events={all} /> : (
         <div className="tl-body">
           <div className="tl-live"><LiveTraffic events={all} compact mode="activity" height={88} /></div>
-          <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} />
+          <Lanes markers={all.filter((e) => e.kind === 'marker' && e.ts >= from && e.ts <= to)} events={visible} from={from} to={to} selected={selected} onSelect={select} onRange={setRange} allReq={allReq} hidden={hidden} width={mainW} onMenu={(e, x, y) => setMenu({ ev: e, x, y })} />
           <Minimap all={all} from={from} to={to} live={!range} width={mainW} onRange={setRange} />
           <Detail ev={sel} byId={src} onOpen={open} onSelect={select} />
         </div>
       )}
       </ErrorBoundary>
       </div>
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.ev)} onClose={() => setMenu(null)} />}
     </div>
   )
 }
 
 function Lanes(props: {
   markers: Ev[]; events: Ev[]; width: number; from: number; to: number; selected: number | null
-  onSelect(id: number): void; onRange(r: [number, number]): void; allReq: boolean; hidden: Set<Lane>
+  onSelect(id: number): void; onRange(r: [number, number]): void; allReq: boolean; hidden: Set<Lane>; onMenu?(e: Ev, x: number, y: number): void
 }) {
-  const { events, markers, width: W, from, to, selected, onSelect, onRange, allReq, hidden } = props
+  const { events, markers, width: W, from, to, selected, onSelect, onRange, allReq, hidden, onMenu } = props
   const ref = useRef<HTMLDivElement>(null)
   const hlRef = useRef<SVGGElement>(null), hlText = useRef<SVGTextElement>(null), hlLine = useRef<SVGLineElement>(null), hlBg = useRef<SVGRectElement>(null)
   const [drag, setDrag] = useState<[number, number] | null>(null)
@@ -288,7 +308,7 @@ function Lanes(props: {
               {(e.kind === 'error' || isSel) && <circle cx={p.x} cy={p.y} r={r + 5} fill={isSel ? 'rgba(255,106,43,.25)' : 'rgba(255,92,92,.22)'} />}
               {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="#ffb454" strokeWidth={2} strokeDasharray="3 2" />}
               <circle className={many ? '' : 'node'} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={isSel ? '#fff' : '#0f0f11'} strokeWidth={isSel ? 2 : 1.5}
-                style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)}>
+                style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)} onContextMenu={(ev) => { ev.preventDefault(); ev.stopPropagation(); onSelect(e.id); onMenu?.(e, ev.clientX, ev.clientY) }}>
                 <title>{label(e)}</title>
               </circle>
             </g>
@@ -384,19 +404,23 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
   )
 }
 
+/** Olaydan (istek/yanit) bir Request Rule olusturur ve kural editorunu acar (mock: gercek yanit govdesiyle). */
+export async function addRuleFromEvent(ev: Ev, byId: Map<number, Ev>, kind: 'mock' | 'delay' | 'fail' | 'block'): Promise<void> {
+  const p = ev.payload
+  const body = kind === 'mock' ? await window.izlix.responseBody(ev.tabId, p.requestId) : null
+  const mime = [...byId.values()].find((x) => x.kind === 'response' && x.payload.requestId === p.requestId)?.payload.mimeType
+  const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
+  const method = byId.get([...byId.values()].find((x) => x.kind === 'request' && x.payload.requestId === p.requestId)?.id ?? -1)?.payload.method ?? p.method ?? 'GET'
+  void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, method, kind, body, mime)] })
+  st.set({ overlay: 'rules' })
+}
+
 export function QuickRules({ ev, byId }: { ev: Ev; byId: Map<number, Ev> }) {
   const t = useT()
-  const p = ev.payload
   return (
     <div className="quick-rules">{t('tl.ruleFrom')}{' '}
       {(['mock', 'delay', 'fail', 'block'] as const).map((k) => (
-        <button key={k} className="btn" onClick={async () => {
-          const body = k === 'mock' ? await window.izlix.responseBody(ev.tabId, p.requestId) : null
-          const mime = [...byId.values()].find((x) => x.kind === 'response' && x.payload.requestId === p.requestId)?.payload.mimeType
-          const st = useStore.getState(); const cfg = st.rules[st.activeWorkspaceId] ?? { rules: [], domains: ['localhost', '127.0.0.1', '*.localhost'] }
-          void window.izlix.setRules(st.activeWorkspaceId, { ...cfg, rules: [...cfg.rules, ruleFromRequest(p.url, p.method, k, body, mime)] })
-          st.set({ overlay: 'rules' })
-        }}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : k === 'block' ? 'tl.ruleBlock' : 'tl.ruleFail')}</button>
+        <button key={k} className="btn" onClick={() => void addRuleFromEvent(ev, byId, k)}>{t(k === 'mock' ? 'tl.ruleMock' : k === 'delay' ? 'tl.ruleDelay' : k === 'block' ? 'tl.ruleBlock' : 'tl.ruleFail')}</button>
       ))}
     </div>
   )

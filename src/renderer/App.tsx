@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
-import { Home } from './Home'
+import { StartPage } from './StartPage'
 import { DashboardView } from './DashboardView'
 import { IcDockB, IcDockL, IcOverview, IcPanel } from './icons'
 import { SessionPrompt } from './SessionPrompt'
@@ -95,8 +95,10 @@ export function App() {
   useEffect(() => { void window.izlix.getSettings().then((st: any) => { useStore.getState().set({ settings: st, ...(st.onboarded ? {} : { overlay: 'welcome' as const }) }) }) }, [])
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])
+  // yeni sekme sayfasi: URL'si olmayan (bos) sekmede (veya hic sekme yokken) shell DOM'undaki baslangic sayfasi gorunur
+  const startVisible = !s.dashboard && (!active || (!active.url && !active.lab && !active.split))
   // overlay acikken sayfa gorunumleri (native katman) gizlenir, aksi halde shell'in ustunde kalirlardi
-  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0 || s.dashboard) }, [s.overlay, s.permPrompts.length, s.dashboard])
+  useEffect(() => { void window.izlix.setOverlay(s.overlay !== null || s.permPrompts.length > 0 || s.dashboard || startVisible) }, [s.overlay, s.permPrompts.length, s.dashboard, startVisible])
   // adres cubugu: duzenlenmiyorsa aktif sekmenin URL'sini goster
   useEffect(() => { if (!editing) setAddr(active?.url ?? '') }, [active?.url, editing])
   // yerlesimi main surece bildir (WebContentsView sinirlari ayni hesapla belirlenir)
@@ -203,7 +205,7 @@ export function App() {
           <span style={{ color: 'var(--dim)' }}>{t('lab.hint')}</span>
         </div>
       )}
-      {!active && <Home style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
+      {startVisible && <StartPage tabId={active?.id ?? null} style={{ left: padRect(layout.page).x, top: padRect(layout.page).y, width: padRect(layout.page).width, height: padRect(layout.page).height }} />}
       {panelVisible && <div className={`panel side-${side}`} style={{ left: padRect(layout.timeline).x, top: padRect(layout.timeline).y, width: padRect(layout.timeline).width, height: padRect(layout.timeline).height }}>
         <Timeline width={padRect(layout.timeline).width} height={padRect(layout.timeline).height} />
       </div>}

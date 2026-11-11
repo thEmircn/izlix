@@ -39,3 +39,8 @@ export const IcRaw = ic('M3 4h10M3 8h10M3 12h6')
 export const IcHome = ic('M2.5 7.5 8 3l5.5 4.5M4 6.8V13h8V6.8')
 export const IcFolder = ic('M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z')
 export const IcServerDot = ic('M8 3v4M8 9v4M3 8h4M9 8h4')
+
+export const IcGear = ic('M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8zM8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1')
+export const IcClock = ic('M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 5v3.2l2.2 1.3')
+export const IcBookmark = ic('M4.5 2.5h7v11L8 10.8 4.5 13.5z')
+export const IcLayers = ic('M8 2.5 13.5 5.5 8 8.5 2.5 5.5zM2.5 8.2 8 11.2l5.5-3M2.5 10.8 8 13.8l5.5-3')

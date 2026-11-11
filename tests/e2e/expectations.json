@@ -2393,5 +2393,119 @@
       "eq",
       true
     ]
+  ],
+  "startpage": [
+    [
+      "startVisible",
+      "eq",
+      true
+    ],
+    [
+      "hasSearch",
+      "eq",
+      true
+    ],
+    [
+      "sidebar",
+      "contains",
+      "Home"
+    ],
+    [
+      "sidebar",
+      "contains",
+      "Dev servers"
+    ],
+    [
+      "sessionsTitle",
+      "eq",
+      "Sessions"
+    ],
+    [
+      "navigated",
+      "eq",
+      true
+    ],
+    [
+      "startGone",
+      "eq",
+      true
+    ],
+    [
+      "pageTitle",
+      "eq",
+      "hedef"
+    ],
+    [
+      "startAgain",
+      "eq",
+      true
+    ],
+    [
+      "cursorBtn",
+      "eq",
+      "default"
+    ],
+    [
+      "cursorInput",
+      "eq",
+      "text"
+    ],
+    [
+      "userSelectUi",
+      "eq",
+      "none"
+    ],
+    [
+      "userSelectInput",
+      "eq",
+      "text"
+    ],
+    [
+      "overscroll",
+      "eq",
+      "none"
+    ]
+  ],
+  "tlmenu": [
+    [
+      "dispatched",
+      "eq",
+      true
+    ],
+    [
+      "items",
+      "contains",
+      "Show in Network"
+    ],
+    [
+      "items",
+      "contains",
+      "Make a mock rule"
+    ],
+    [
+      "items",
+      "contains",
+      "Copy as cURL"
+    ],
+    [
+      "menuClosed",
+      "eq",
+      true
+    ],
+    [
+      "railAfter",
+      "eq",
+      "Network"
+    ],
+    [
+      "ruleAdded",
+      "eq",
+      true
+    ],
+    [
+      "lastRuleUrl",
+      "contains",
+      "/api/x"
+    ]
   ]
 }

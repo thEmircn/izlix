@@ -131,3 +131,24 @@ export function Donut({ segments, size = 104, thickness = 11, children }: { segm
     </div>
   )
 }
+
+export interface MenuItem { label?: string; run?: () => void; danger?: boolean; sep?: boolean; hint?: string }
+/** Imlecin yaninda acilan cam baglam menusu: disari tiklayinca / Esc / kaydirmada kapanir; kenarlara tasmaz. */
+export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose(): void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ x, y })
+  useLayoutEffect(() => { const r = ref.current?.getBoundingClientRect(); if (r) setPos({ x: Math.max(6, Math.min(x, window.innerWidth - r.width - 8)), y: Math.max(6, Math.min(y, window.innerHeight - r.height - 8)) }) }, [x, y])
+  useEffect(() => {
+    const close = (): void => onClose()
+    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('pointerdown', close, true); window.addEventListener('keydown', key); window.addEventListener('blur', close); window.addEventListener('wheel', close, { passive: true })
+    return () => { window.removeEventListener('pointerdown', close, true); window.removeEventListener('keydown', key); window.removeEventListener('blur', close); window.removeEventListener('wheel', close) }
+  }, [onClose])
+  return (
+    <div ref={ref} className="ctxmenu" style={{ left: pos.x, top: pos.y }} role="menu" onPointerDown={(e) => e.stopPropagation()}>
+      {items.map((it, i) => it.sep ? <i key={i} className="ctx-sep" /> : (
+        <button key={i} role="menuitem" className={`ctx-item ${it.danger ? 'bad' : ''}`} onClick={() => { it.run?.(); onClose() }}>{it.label}{it.hint && <kbd>{it.hint}</kbd>}</button>
+      ))}
+    </div>
+  )
+}

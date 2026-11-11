@@ -429,6 +429,7 @@ async function createWindow(): Promise<void> {
     
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })
+  win.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {}) // kabuk (arayuz) yakinlastirilamaz; yalnizca sayfalar
   if (maximized && !quiet) win.maximize()
   if (quiet) { win.setOpacity(0); win.setIgnoreMouseEvents(true); win.showInactive() }
   trackWindowState(win)
