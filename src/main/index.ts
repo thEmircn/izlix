@@ -23,6 +23,9 @@ import { FocusServer } from './focus'
 import { blockReason, lastDays } from '../shared/usage'
 import { siteOf as siteOfUsage } from '../shared/adblock'
 import { CAPTURE_SELECTION, applyNotesScript, pageKey, removeNoteScript } from '../shared/notes'
+import { SyncService, deviceName } from './sync'
+import { mergeBookmarks, mergeNotes, mergeSites, pickSettings, type SyncPayload } from '../shared/sync'
+import { loadDoc as loadDocS, saveDoc as saveDocS } from './docdb'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
 import { siteHost, stepZoom } from '../shared/sites'
@@ -119,6 +122,31 @@ const send = (channel: string, payload: unknown): void => { for (const w of shel
 const pushTabs = (): void => { for (const [id, w] of shellWins) if (!w.isDestroyed()) w.webContents.send(Ch.tabsState, tabs.list(id)) }
 /** menu/kisayol komutu yalnizca odaktaki pencereye gider */
 const sendFocused = (channel: string, payload: unknown): void => { const f = BrowserWindow.getFocusedWindow(); const w = (f && shellWins.get(f.id)) ?? win; if (w && !w.isDestroyed()) w.webContents.send(channel, payload) }
+// --- iCloud Drive esitleme (uctan uca sifreli, sunucusuz) ---
+interface SyncSt { enabled: boolean; last: number; error: string; pass: string }
+let syncSt: SyncSt = { enabled: false, last: 0, error: '', pass: '' }
+const syncCipher = (): typeof keychainCipher => (process.env.DB_SCRIPT ? plainCipher : keychainCipher)
+const syncPass = (): string | null => { try { return syncSt.pass ? syncCipher().decrypt(syncSt.pass) : null } catch { return null } }
+const saveSyncSt = (): void => { saveDocS(app.getPath('userData'), 'syncstate', syncSt) }
+let syncSvc: SyncService
+function buildSync(): SyncPayload {
+  const bookmarks: SyncPayload['bookmarks'] = {}
+  for (const w of workspaces.list()) { const l = library.bookmarks(w.id); if (l.length) bookmarks[w.name] = l.map((b) => ({ ...b })) }
+  return { v: 1, ts: Date.now(), device: deviceName(), bookmarks, notes: notes.all(), sites: sites.all() as SyncPayload['sites'], settings: pickSettings(settings.get() as unknown as Record<string, unknown>) }
+}
+function applySync(r: SyncPayload): void {
+  for (const w of workspaces.list()) { const rb = r.bookmarks[w.name]; if (rb) { library.setBookmarks(w.id, mergeBookmarks(library.bookmarks(w.id), rb)) } }
+  notes.replaceAll(mergeNotes(notes.all(), r.notes))
+  const ms = mergeSites(sites.all() as Record<string, Record<string, unknown>>, r.sites); for (const [h, v] of Object.entries(ms)) if (!(h in sites.all())) sites.set(h, v as never)
+  // ayarlar: yalniz uzak dosya bu cihazin son esitlemesinden yeniyse uygulanir (yerel degisiklik ezilmesin)
+  if (r.ts > syncSt.last && r.device !== deviceName()) { settings.set(r.settings as never); pushSettings() }
+  library.flush(); notes.flush(); pushLibrary()
+}
+function runSync(): { ok: boolean; error?: string; pulled?: boolean } {
+  const r = syncSvc.run()
+  syncSt.error = r.ok ? '' : r.error ?? 'error'; if (r.ok) syncSt.last = r.ts ?? Date.now(); saveSyncSt()
+  return r
+}
 const loadedParts = new Set<string>()
 /** kayitli eklentileri bir oturuma yukler (gizli/Tor oturumlari haric); hatali olan sessizce atlanir */
 async function loadExtensionsInto(ses: Electron.Session, part: string): Promise<void> {
@@ -445,6 +473,9 @@ function registerIpc(): void {
     const n = notes.remove(id); if (!n) return false
     tabs.each((wc) => { if (pageKey(wc.getURL()) === n.url) void wc.executeJavaScript(removeNoteScript(id)).catch(() => {}) }); return true
   })
+  handle(Ch.syncState, null, () => ({ enabled: syncSt.enabled, hasPass: !!syncSt.pass, last: syncSt.last, error: syncSt.error, dir: syncSvc.dir(), icloud: syncSvc.available() }))
+  handle(Ch.syncSetup, schemas.syncSetup, (p) => { if (p.clear) syncSt = { enabled: false, last: 0, error: '', pass: '' }; if (p.pass) syncSt.pass = syncCipher().encrypt(p.pass); if (p.enabled !== undefined) syncSt.enabled = p.enabled; saveSyncSt(); return true })
+  handle(Ch.syncNow, null, () => runSync())
   handle(Ch.extList, null, () => { const out: { id: string; name: string; version: string; path: string }[] = []; for (const part of new Set(['persist:ws-default', ...workspaces.list().map((w) => partitionFor(w.id))])) for (const e of session.fromPartition(part).getAllExtensions()) if (!out.some((o) => o.id === e.id)) out.push({ id: e.id, name: e.name, version: e.version, path: e.path }); return out })
   handle(Ch.extAdd, null, async () => {
     const dir = process.env.DB_EXT_DIR ?? (await dialog.showOpenDialog(curWin ?? win, { properties: ['openDirectory'], title: tr('set.extPick') })).filePaths[0]
@@ -1079,6 +1110,9 @@ async function createWindow(): Promise<void> {
   usage = new UsageStore(app.getPath('userData'))
   perfHist = new PerfHistory(app.getPath('userData'))
   for (const w of workspaces.list()) { const part = partitionFor(w.id); await loadExtensionsInto(session.fromPartition(part), part) }
+  syncSt = { ...syncSt, ...(loadDocS<SyncSt>(app.getPath('userData'), 'syncstate') ?? {}) }
+  syncSvc = new SyncService({ build: buildSync, apply: applySync, pass: syncPass })
+  if (syncSt.enabled) { setTimeout(() => runSync(), 5000); setInterval(() => { if (syncSt.enabled) runSync() }, 10 * 60_000).unref() }
   ai = new AiService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, () => (settings.get().ai ?? { provider: 'ollama', model: 'llama3.1' }) as AiConfig)
   widgets = new WidgetService(app.getPath('userData'),
     (u) => net.fetch(u, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.text() : null), () => null),

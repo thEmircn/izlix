@@ -4702,5 +4702,42 @@
       "eq",
       0
     ]
+  ],
+  "sync": [
+    [
+      "noPass",
+      "eq",
+      "no-pass"
+    ],
+    [
+      "first.ok",
+      "eq",
+      true
+    ],
+    [
+      "first.pulled",
+      "eq",
+      false
+    ],
+    [
+      "fileHasPlain",
+      "eq",
+      false
+    ],
+    [
+      "second.pulled",
+      "eq",
+      true
+    ],
+    [
+      "bm",
+      "eq",
+      2
+    ],
+    [
+      "wrong",
+      "eq",
+      "bad-pass"
+    ]
   ]
 }

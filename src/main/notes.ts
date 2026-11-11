@@ -25,5 +25,7 @@ export class NoteStore {
     if (patch.color) n.color = patch.color
     this.save(); return n
   }
+  /** esitleme: verilen listeyi (zaten birlestirilmis) yerine koyar */
+  replaceAll(list: Note[]): void { this.list = list.slice(-MAX); this.save() }
   remove(id: string): Note | null { const i = this.list.findIndex((n) => n.id === id); if (i < 0) return null; const [n] = this.list.splice(i, 1); this.save(); return n }
 }

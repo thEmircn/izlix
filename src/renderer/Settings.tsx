@@ -12,6 +12,8 @@ function Switch({ on, onChange, label }: { on: boolean; onChange(v: boolean): vo
 }
 
 /** Ayarlar (⌘,): dil, editor, telemetri, otomatik sekme, DevTools yerlesimi. */
+const syncErrKey = (e: string): 'set.syncErr.no-pass' | 'set.syncErr.no-icloud' | 'set.syncErr.bad-pass' | 'set.syncErr.corrupt' | 'set.syncErr.error' => (e === 'no-pass' || e === 'no-icloud' || e === 'bad-pass' || e === 'corrupt' ? (`set.syncErr.${e}` as const) : 'set.syncErr.error')
+
 export function Settings({ onClose }: { onClose(): void }) {
   const t = useT()
   const settings = useStore((s) => s.settings)
@@ -37,6 +39,11 @@ export function Settings({ onClose }: { onClose(): void }) {
   useEffect(() => { void api.aiPreview().then((p: { provider: string; hasKey: boolean }) => setAiHas((h) => ({ ...h, [p.provider]: p.hasKey }))) }, [aiCfg.provider])
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
+  const [sy, setSy] = useState<{ enabled: boolean; hasPass: boolean; last: number; error: string; dir: string; icloud: boolean } | null>(null); const [syPass, setSyPass] = useState(''); const [syBusy, setSyBusy] = useState(false)
+  const loadSy = (): void => { void api.syncState().then(setSy) }
+  useEffect(loadSy, [])
+  const [drm, setDrm] = useState<'check' | 'yes' | 'no'>('check')
+  useEffect(() => { void navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{ initDataTypes: ['cenc'], videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }] }]).then(() => setDrm('yes'), () => setDrm('no')) }, [])
   const [exts, setExts] = useState<{ id: string; name: string; version: string; path: string }[]>([]); const [extErr, setExtErr] = useState('')
   const loadExts = (): void => { void api.extList().then(setExts) }
   useEffect(loadExts, [])
@@ -96,6 +103,22 @@ export function Settings({ onClose }: { onClose(): void }) {
                 {!a.weak && !a.reused && !a.pwned && <span className="chip" style={{ color: 'var(--ok, #6ee7a8)' }}>{t('pw.ok')}</span>}</div>
             )))}
             {pw.never.map((o) => <div className="pwrow" key={o}><div className="pwo"><b>{o}</b><small>{t('pw.neverNote')}</small></div><button className="btn" onClick={() => void api.pwNeverRemove(o).then(loadPw)}>{t('pw.del')}</button></div>)}
+          </div>
+          <div className="srow" style={{ display: 'block' }} data-testid="drm-row"><div className="stitle">{t('set.drm')}</div><div className="shint" data-testid="drm-status">{drm === 'check' ? '…' : drm === 'yes' ? t('set.drmYes') : t('set.drmNo')}</div></div>
+          <div className="srow" style={{ display: 'block' }} data-testid="sync-section">
+            <div className="stitle">{t('set.sync')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.syncHint')}</div>
+            {sy && !sy.icloud && <div className="shint" style={{ color: 'var(--warn, #f5b94a)' }}>{t('set.syncNoIcloud')}</div>}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '6px 0' }}>
+              <input type="password" value={syPass} placeholder={sy?.hasPass ? t('set.syncPassSet') : t('set.syncPass')} onChange={(e) => setSyPass(e.target.value)} style={{ flex: 1 }} />
+              <button className="btn" disabled={syPass.length < 8} onClick={() => void api.syncSetup({ pass: syPass }).then(() => { setSyPass(''); loadSy() })}>{t('set.syncSave')}</button>
+            </div>
+            {syPass.length > 0 && syPass.length < 8 && <div className="shint">{t('set.syncShort')}</div>}
+            <Row title={t('set.syncAuto')} hint={t('set.syncAutoHint')}><Switch on={!!sy?.enabled} label={t('set.syncAuto')} onChange={(v) => void api.syncSetup({ enabled: v }).then(loadSy)} /></Row>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button className="btn" disabled={!sy?.hasPass || syBusy} onClick={() => { setSyBusy(true); void api.syncNow().then(() => { setSyBusy(false); loadSy() }) }}>{t('set.syncNow')}</button>
+              <span className="shint">{sy?.error ? t(syncErrKey(sy.error)) : sy?.last ? t('set.syncLast', { t: new Date(sy.last).toLocaleString() }) : t('set.syncNever')}</span>
+            </div>
+            <div className="shint" style={{ marginTop: 6 }}>{t('set.syncNote')}</div>
           </div>
           <div className="srow" style={{ display: 'block' }}>
             <div className="stitle">{t('set.ext')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.extHint')}</div>

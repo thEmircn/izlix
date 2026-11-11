@@ -100,6 +100,8 @@ export class Library {
   }
   clearHistory(): void { this.data.history = []; this.save() }
 
+  /** esitleme: birlestirilmis listeyi yerine koyar */
+  setBookmarks(wsId: string, list: Bookmark[]): void { this.data.bookmarks[wsId] = list; this.save() }
   bookmarks(wsId: string): Bookmark[] { return this.data.bookmarks[wsId] ?? [] }
   isBookmarked(wsId: string, url: string): boolean { return this.bookmarks(wsId).some((b) => b.url === url) }
   toggleBookmark(wsId: string, url: string, title: string, now = Date.now()): boolean {

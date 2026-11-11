@@ -39,6 +39,7 @@ export const schemas = {
   speak: z.object({ mode: z.enum(['auto', 'selection', 'page', 'stop']) }),
   noteSave: z.object({ tempId: z.string().max(32), note: z.string().max(2000) }),
   noteDelete: z.object({ id: z.string().max(64) }),
+  syncSetup: z.object({ pass: z.string().min(8).max(200).optional(), enabled: z.boolean().optional(), clear: z.boolean().optional() }),
   extRemove: z.object({ path: z.string().max(1000) }),
   appOpen: z.object({ url: z.string().max(2000).optional() }),
   usageGet: z.object({ days: z.number().int().min(1).max(60) }),
