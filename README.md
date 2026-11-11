@@ -96,7 +96,6 @@ flowchart LR
 - `src/main`: windows and tabs, CDP collector, React bridge, event bus, correlator, source resolver, request interceptor, lab.
 - `src/renderer`: the shell UI. It never talks to pages directly; everything goes through allow-listed, zod-validated IPC.
 - `src/shared`: pure logic (rules engine, layout, search, masking, correlation), unit tested.
-- Product plan: [docs/PLAN.md](docs/PLAN.md) (Turkish).
 
 ## Limitations
 
@@ -112,7 +111,7 @@ Pages run in sandboxed views with no preload and cannot reach IPC. Camera, micro
 
 ## Türkçe özet
 
-**Izlix**, React geliştiricisi için macOS'ta çalışan bir geliştirici tarayıcısıdır. Adı Eski Türkçe *iz* kelimesinden gelir. Bir hatanın sebebini tıklamadan render'a kadar **tek zaman çizelgesinde** görürsünüz, kaynağını tek tıkla editörünüzde açarsınız, backend'e dokunmadan istekleri değiştirirsiniz. Alfa sürümdür; Google hesabı girişi, imzalı sürüm ve otomatik güncelleme henüz yok. Ürün planı: [docs/PLAN.md](docs/PLAN.md).
+**Izlix**, React geliştiricisi için macOS'ta çalışan bir geliştirici tarayıcısıdır. Adı Eski Türkçe *iz* kelimesinden gelir. Bir hatanın sebebini tıklamadan render'a kadar **tek zaman çizelgesinde** görürsünüz, kaynağını tek tıkla editörünüzde açarsınız, backend'e dokunmadan istekleri değiştirirsiniz. Alfa sürümdür; Google hesabı girişi, imzalı sürüm ve otomatik güncelleme henüz yok.
 
 ## License
 
