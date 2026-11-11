@@ -17,6 +17,7 @@ export const schemas = {
   pwDelete: z.object({ origin: z.string().max(300), username: z.string().max(300) }),
   pwFill: z.object({ id: z.string().max(64) }),
   pwNever: z.object({ origin: z.string().max(300) }),
+  printPage: z.object({ mode: z.enum(['print', 'pdf', 'save']) }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

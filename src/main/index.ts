@@ -1,3 +1,7 @@
+import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
+import { translateUrl } from '../shared/translate'
+import { MockServer } from './mockserver'
+import { engineById, searchUrl } from '../shared/search'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
 import { siteHost, stepZoom } from '../shared/sites'
@@ -260,6 +264,7 @@ function registerIpc(): void {
     const sz = img.getSize(), scale = screen.getDisplayMatching((curWin ?? win).getBounds()).scaleFactor || 1
     return { url: `data:image/jpeg;base64,${img.toJPEG(72).toString('base64')}`, w: Math.round(sz.width / scale), h: Math.round(sz.height / scale) }
   })
+  handle(Ch.printPage, schemas.printPage, ({ mode }) => { const e = tabs.active(); return e ? pageOutput(e.view.webContents, mode) : null })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -546,6 +551,69 @@ const permissionHandlers = {
   }
 }
 
+/** Yazdir / PDF olarak kaydet / sayfayi kaydet (HTML). Dosya yolunu doner (yazdirmada null). Testte DB_OUT_DIR ile pencere acilmaz. */
+async function pageOutput(wc: Electron.WebContents, mode: 'print' | 'pdf' | 'save'): Promise<string | null> {
+  if (wc.isDestroyed() || !/^https?:/.test(wc.getURL())) return null
+  if (mode === 'print') { wc.print({ silent: false, printBackground: true }); return null }
+  const base = (wc.getTitle() || new URL(wc.getURL()).hostname).replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80)
+  const ext = mode === 'pdf' ? 'pdf' : 'html'
+  let file: string | undefined
+  if (process.env.DB_OUT_DIR) file = join(process.env.DB_OUT_DIR, `${base}.${ext}`)
+  else {
+    const r = await dialog.showSaveDialog(curWin ?? win, { defaultPath: join(app.getPath('downloads'), `${base}.${ext}`), filters: [{ name: mode === 'pdf' ? 'PDF' : 'HTML', extensions: [ext] }] })
+    file = r.canceled ? undefined : r.filePath
+  }
+  if (!file) return null
+  if (mode === 'pdf') writeFileSync(file, await wc.printToPDF({ printBackground: true, preferCSSPageSize: true }))
+  else await wc.savePage(file, 'HTMLComplete')
+  return file
+}
+
+/** Sayfa sag-tik menusu: tanim shared/ctxmenu.ts'te, burada native menuye cevrilir */
+const viewSourceServer = new MockServer()
+async function showCtx(tabId: string, p: Electron.ContextMenuParams): Promise<void> {
+  const e = tabs.get(tabId); if (!e) return
+  const wc = e.view.webContents, owner = shellWins.get(e.winId) ?? win
+  const engine = engineById(settings.get().searchEngine)
+  const items = buildCtxMenu({ ...p, pageURL: wc.getURL(), canGoBack: wc.navigationHistory.canGoBack(), canGoForward: wc.navigationHistory.canGoForward(), editFlags: p.editFlags })
+  const open = (url: string, priv?: 'incognito' | 'tor'): void => { void tabs.create({ url, workspaceId: e.info.workspaceId, winId: e.winId, ...((priv ?? e.info.private) ? { private: priv ?? e.info.private } : {}) }) }
+  const run = async (it: CtxItem): Promise<void> => {
+    const a = it.arg ?? ''
+    switch (it.act) {
+      case 'back': wc.navigationHistory.goBack(); break
+      case 'forward': wc.navigationHistory.goForward(); break
+      case 'reload': wc.reload(); break
+      case 'linkNewTab': case 'imgNewTab': open(a); break
+      case 'linkNewPrivate': open(a, 'incognito'); break
+      case 'linkCopy': case 'imgCopyUrl': case 'mediaCopyUrl': clipboard.writeText(a); break
+      case 'imgCopy': wc.copyImageAt(p.x, p.y); break
+      case 'imgSave': case 'mediaSave': wc.downloadURL(a); break
+      case 'mediaPip': void wc.executeJavaScript(`(async()=>{const v=[...document.querySelectorAll('video')].sort((a,b)=>b.videoWidth-a.videoWidth)[0]; if(v) await v.requestPictureInPicture()})()`, true).catch(() => {}); break
+      case 'cut': wc.cut(); break
+      case 'copy': wc.copy(); break
+      case 'paste': wc.paste(); break
+      case 'selectAll': wc.selectAll(); break
+      case 'search': open(searchUrl(settings.get().searchEngine, a)); break
+      case 'suggest': wc.replaceMisspelling(a); break
+      case 'addWord': wc.session.addWordToSpellCheckerDictionary(a); break
+      case 'savePage': void pageOutput(wc, 'save'); break
+      case 'print': void pageOutput(wc, 'print'); break
+      case 'savePdf': void pageOutput(wc, 'pdf'); break
+      case 'translate': tabs.go(tabId, translateUrl(wc.getURL(), settings.get().language)); break
+      case 'qr': owner.webContents.send(Ch.cmd, 'qr.open'); break
+      case 'inspect': wc.inspectElement(p.x, p.y); break
+      case 'viewSource': {
+        const raw = await net.fetch(wc.getURL(), { signal: AbortSignal.timeout(8000) }).then((r) => r.text()).catch(() => '')
+        const body = raw || await wc.executeJavaScript('document.documentElement.outerHTML').catch(() => '')
+        open(await viewSourceServer.url({ status: 200, body: String(body).slice(0, 3_000_000), contentType: 'text/plain; charset=utf-8' })); break
+      }
+    }
+  }
+  const label = (it: CtxItem): string => it.act === 'suggest' ? (it.arg ?? '') : it.act === 'addWord' ? tr('cm.addWord') : it.act === 'search' ? tr('cm.search', { engine: engine.label, q: (it.arg ?? '').slice(0, 30) }) : tr((it.label ?? `cm.${it.act}`) as Key)
+  const tpl: Electron.MenuItemConstructorOptions[] = items.map((it) => (it.sep ? { type: 'separator' as const } : { label: label(it), enabled: it.enabled !== false, ...(it.act === 'suggest' ? { } : {}), click: () => void run(it) }))
+  Menu.buildFromTemplate(tpl).popup({ window: owner })
+}
+
 /** Kabuk penceresi kapaniyorsa sekmeleri kalan pencereye tasir (uygulama kapanirken oturum bozulmasin diye atlanir) */
 function onShellClose(w: BrowserWindow): void {
   if (quitting || shellWins.size <= 1) { shellWins.delete(w.id); return }
@@ -626,7 +694,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void sites.apply(wc); void adblock.cosmetic(wc); void adblock.consent(wc, settings.get().cookieBanners !== false); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, onContextMenu: (id, params) => void showCtx(id, params), loginCount: (url) => passwords?.count(url) ?? 0, onAttached: (wc) => passwords?.attach(wc), siteInfo: (url) => { const h = siteHost(url); const s = h ? sites.get(h) : undefined; return s && (s.zoom || s.dark) ? { ...(s.zoom ? { zoom: s.zoom } : {}), ...(s.dark ? { dark: true } : {}) } : undefined }, stripTracking: () => ({ on: settings.get().stripTracking !== false, dev: !!settings.get().stripTrackingDev }), adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })

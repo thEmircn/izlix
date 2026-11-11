@@ -107,6 +107,8 @@ export function App() {
           case 'zoom.in': case 'zoom.out': case 'zoom.reset': if (act) void api.zoom(act.id, cmd.slice(5) as 'in' | 'out' | 'reset'); break
           case 'pw.fill': if (act && act.logins) void api.pwFill(act.id); break
           case 'site.open': st.set({ overlay: 'site' }); break
+          case 'page.print': void api.printPage('print'); break
+          case 'page.pdf': void api.printPage('pdf').then((f: string | null) => { if (f) toast(tNow('print.saved')) }); break
           case 'win.new': void api.newWindow(); break
           case 'tab.hop': if (act) void api.hopTab(act.id); break
           case 'tab.new': void api.createTab(); break

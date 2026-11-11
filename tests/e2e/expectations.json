@@ -3323,5 +3323,32 @@
       "eq",
       true
     ]
+  ],
+  "print": [
+    [
+      "pdfPath",
+      "eq",
+      "Yazdirilacak Sayfa.pdf"
+    ],
+    [
+      "pdfMagic",
+      "eq",
+      "%PDF-"
+    ],
+    [
+      "pdfSize",
+      "eq",
+      true
+    ],
+    [
+      "htmlSaved",
+      "eq",
+      true
+    ],
+    [
+      "blankNull",
+      "eq",
+      null
+    ]
   ]
 }
