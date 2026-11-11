@@ -1,0 +1,54 @@
+name: Desktop app packages
+
+# Imzasiz masaustu paketleri (macOS dmg/zip, Windows zip, Linux AppImage/tar.gz). Etiket: desktop-v*
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, script: dist, label: macos-arm64 }
+          - { os: windows-latest, script: 'dist:win', label: windows-x64 }
+          - { os: ubuntu-latest, script: 'dist:linux', label: linux-x64 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm run ${{ matrix.script }}
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: 'false' }
+      - name: Collect the artifacts
+        shell: bash
+        run: |
+          mkdir -p out-artifacts
+          for f in dist/*.dmg dist/*.zip dist/*.AppImage dist/*.tar.gz; do [ -f "$f" ] && cp "$f" out-artifacts/; done
+          cd out-artifacts && for f in *; do [ -f "$f" ] && (shasum -a 256 "$f" > "$f.sha256" 2>/dev/null || sha256sum "$f" > "$f.sha256"); done; ls -la
+      - uses: actions/upload-artifact@v4
+        with: { name: 'izlix-desktop-${{ matrix.label }}', path: out-artifacts/* }
+
+  release:
+    name: Publish release (tags only)
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: [package]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { path: dist, merge-multiple: true }
+      - name: Create the release
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          cat > notes.md <<'MD'
+          Izlix desktop app (Electron). **These builds are not code-signed.** macOS: right-click > Open the first time (or `xattr -dr com.apple.quarantine Izlix.app`). Windows: SmartScreen may warn; choose "More info > Run anyway". Linux: make the AppImage executable. Verify the SHA-256 files.
+          MD
+          gh release create "${GITHUB_REF_NAME}" dist/* --repo "$GITHUB_REPOSITORY" --title "Izlix desktop ${GITHUB_REF_NAME#desktop-v}" --notes-file notes.md --prerelease

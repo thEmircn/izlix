@@ -15,6 +15,14 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo: { NSCameraUsageDescription: '', NSMicrophoneUsageDescription: '' }
+win:
+  icon: build/icon.png
+  target: [zip]
+linux:
+  icon: build/icon.png
+  category: Development
+  maintainer: Izlix contributors
+  target: [AppImage, tar.gz]
 # Imzalama/notarization: CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID ortam degiskenleriyle (CI).
 # Yerel deneme: CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac --dir
 publish: { provider: github }

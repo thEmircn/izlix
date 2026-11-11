@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "pack": "electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --dir -c.mac.target=dir",
-    "dist": "electron-vite build && electron-builder --mac",
+    "dist": "electron-vite build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never",
     "build:demo": "vite build -c samples/demo-src/vite.config.ts",
     "e2e": "electron-vite build && python3 tests/e2e/suite.py",
     "update-electron": "npm install electron@latest --save-exact=false && npm run build && npx vitest run",
@@ -20,7 +20,9 @@
     "zip:ext": "npm run build:ext && cd packages/extension/dist && rm -f ../izlix-for-chrome.zip && zip -qr ../izlix-for-chrome.zip . && echo packages/extension/izlix-for-chrome.zip",
     "typecheck:ui": "tsc --noEmit -p packages/ui",
     "build:ui": "node packages/ui/build.mjs",
-    "notices": "node tools/notices.mjs > THIRD_PARTY_NOTICES.md"
+    "notices": "node tools/notices.mjs > THIRD_PARTY_NOTICES.md",
+    "dist:win": "electron-vite build && electron-builder --win --publish never",
+    "dist:linux": "electron-vite build && electron-builder --linux --publish never"
   },
   "dependencies": {
     "react": "^19.3.1",
