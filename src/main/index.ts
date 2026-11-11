@@ -51,7 +51,7 @@ import type { Editor } from '../shared/events'
 import { EventBus } from './bus'
 import { TabManager } from './tabs'
 import { RuleStore } from './rules'
-import { PermissionStore, originOf, permissionKey } from './permissions'
+import { PermissionStore, originOf, permissionKey, type PermKey } from './permissions'
 import { Library } from './library'
 import { Downloads, uniquePath } from './downloads'
 import { parseLaunch, type Launch } from './launch'
@@ -791,8 +791,11 @@ const permissionHandlers = {
     if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
     const key = permissionKey(permission, details)
     if (key === 'auto') return true
+    const o = originOf(origin) || originOf(wc?.getURL() ?? '')
+    // mediaType 'unknown' (aygit listeleme): kamera veya mikrofondan biri izinliyse etiketler gorunsun
+    if (permission === 'media' && !details?.mediaType?.match(/^(video|audio)$/)) return perms.get(o, 'camera') === 'allow' || perms.get(o, 'microphone') === 'allow'
     if (!key) return false
-    return perms.get(originOf(origin) || originOf(wc?.getURL() ?? ''), key) === 'allow'
+    return perms.get(o, key) === 'allow'
   },
   request: async (wc: Electron.WebContents | null, permission: string, details: any): Promise<boolean> => {
     if (permission === 'geolocation' && wc && tabs.isGeoEmulated(wc)) return true
@@ -801,15 +804,24 @@ const permissionHandlers = {
     const origin = originOf(details?.requestingUrl ?? wc?.getURL() ?? '')
     if (!key || !origin) return false
     const kinds = permission === 'media' ? ((details?.mediaTypes ?? []) as string[]).flatMap((t) => (t === 'video' ? ['camera' as const] : t === 'audio' ? ['microphone' as const] : [])) : []
-    const stored = perms.get(origin, key)
-    if (stored === 'deny') return false
-    if (stored === 'allow') return kinds.length ? ensureSystemMedia(kinds) : true
+    // kamera+mikrofon birlikte istenebilir (Meet/Zoom): ikisi tek kutuda sorulur, karar ikisine birden kaydedilir
+    const keys: PermKey[] = kinds.length ? kinds : [key as PermKey]
+    const states = keys.map((k) => perms.get(origin, k))
+    if (states.some((x) => x === 'deny')) return false
+    if (states.every((x) => x === 'allow')) return kinds.length ? ensureSystemMedia(kinds) : true
+    const label = keys.length > 1 ? 'camera+microphone' : keys[0]
     const id = `perm-${++permSeq}`
     // yalniz istegi yapan sekmenin penceresine goster (birden cok pencerede yinelenmesin)
     const wid = tabs.winOfWc(wc), target = wid !== undefined ? shellWins.get(wid) : undefined
-    if (target && !target.isDestroyed()) target.webContents.send(Ch.permAsk, { id, origin, permission: key }); else send(Ch.permAsk, { id, origin, permission: key })
+    const msg = { id, origin, permission: label }
+    if (target && !target.isDestroyed()) target.webContents.send(Ch.permAsk, msg); else send(Ch.permAsk, msg)
     return new Promise<boolean>((resolve) => {
-      pendingPerms.set(id, (a) => { if (a === 'allow') perms.set(origin, key, 'allow'); if (a === 'block') perms.set(origin, key, 'deny'); if (a === 'dismiss') { resolve(false); return } if (a === 'block' || !kinds.length) resolve(a !== 'block'); else void ensureSystemMedia(kinds).then(resolve) })
+      pendingPerms.set(id, (a) => {
+        if (a === 'dismiss') { resolve(false); return }
+        if (a === 'allow') for (const k of keys) perms.set(origin, k, 'allow')
+        if (a === 'block') { for (const k of keys) perms.set(origin, k, 'deny'); resolve(false); return }
+        if (kinds.length) void ensureSystemMedia(kinds).then(resolve); else resolve(true)
+      })
       setTimeout(() => { if (pendingPerms.delete(id)) { send(Ch.permClose, { id }); resolve(false) } }, 30_000)
     })
   }

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useStore, useT } from './store'
 
-const LABEL: Record<string, string> = { camera: 'perm.camera', microphone: 'perm.microphone', geolocation: 'perm.geolocation', notifications: 'perm.notifications', 'clipboard-read': 'perm.clipboard', midi: 'perm.midi', 'display-capture': 'perm.screen' }
+const LABEL: Record<string, string> = { 'camera+microphone': 'perm.cameraMic', camera: 'perm.camera', microphone: 'perm.microphone', geolocation: 'perm.geolocation', notifications: 'perm.notifications', 'clipboard-read': 'perm.clipboard', midi: 'perm.midi', 'display-capture': 'perm.screen' }
 
 /** Site izin istegi (modal): bir kez izin ver / her zaman izin ver / engelle. */
 export function PermissionPrompt() {

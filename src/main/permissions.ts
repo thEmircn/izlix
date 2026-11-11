@@ -11,10 +11,11 @@ export type PermKey = (typeof PROMPTABLE)[number]
 const AUTO_ALLOW = new Set(['clipboard-sanitized-write', 'fullscreen', 'pointerLock', 'keyboardLock'])
 
 /** Electron izin adi + ayrintilari -> bizim anahtar; null: sormadan reddet. 'auto': sormadan izin ver. */
-export function permissionKey(permission: string, details?: { mediaTypes?: string[] }): PermKey | 'auto' | null {
+export function permissionKey(permission: string, details?: { mediaTypes?: string[]; mediaType?: string }): PermKey | 'auto' | null {
   if (AUTO_ALLOW.has(permission)) return 'auto'
   if (permission === 'media') {
-    const t = details?.mediaTypes ?? []
+    // istek islemcisi `mediaTypes[]`, denetim islemcisi tekil `mediaType` verir
+    const t = details?.mediaTypes ?? (details?.mediaType ? [details.mediaType] : [])
     if (t.includes('video')) return 'camera'
     if (t.includes('audio')) return 'microphone'
     return null

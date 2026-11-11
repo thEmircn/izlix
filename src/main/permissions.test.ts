@@ -6,6 +6,9 @@ import { join } from 'node:path'
 import { originOf, PermissionStore, permissionKey } from './permissions'
 
 describe('permissionKey', () => {
+  it('denetim islemcisi tekil mediaType verir', () => {
+    expect(permissionKey('media', { mediaType: 'video' })).toBe('camera'); expect(permissionKey('media', { mediaType: 'audio' })).toBe('microphone'); expect(permissionKey('media', { mediaType: 'unknown' })).toBeNull()
+  })
   it('media: video->camera, audio->microphone; bilinmeyen null; otomatik izinler', () => {
     expect(permissionKey('media', { mediaTypes: ['video'] })).toBe('camera'); expect(permissionKey('media', { mediaTypes: ['audio'] })).toBe('microphone'); expect(permissionKey('media', {})).toBeNull()
     expect(permissionKey('geolocation')).toBe('geolocation'); expect(permissionKey('clipboard-sanitized-write')).toBe('auto'); expect(permissionKey('fullscreen')).toBe('auto')

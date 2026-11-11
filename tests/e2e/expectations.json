@@ -4739,5 +4739,22 @@
       "eq",
       "bad-pass"
     ]
+  ],
+  "mediaperm": [
+    [
+      "before",
+      "eq",
+      "denied"
+    ],
+    [
+      "afterCam",
+      "eq",
+      "granted"
+    ],
+    [
+      "afterMic",
+      "eq",
+      "granted"
+    ]
   ]
 }
