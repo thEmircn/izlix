@@ -148,6 +148,8 @@ export class TabManager {
     return true
   }
   each(fn: (wc: Electron.WebContents) => void): void { for (const e of this.tabs.values()) if (!e.view.webContents.isDestroyed()) fn(e.view.webContents) }
+  /** bu WebContents'in sekmesinin gosterildigi pencere */
+  winOfWc(wc: Electron.WebContents | null): number | undefined { if (!wc) return undefined; for (const e of this.tabs.values()) if (e.view.webContents === wc) return e.winId; return undefined }
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 

@@ -23,6 +23,7 @@ import { FocusServer } from './focus'
 import { blockReason, lastDays } from '../shared/usage'
 import { siteOf as siteOfUsage } from '../shared/adblock'
 import { CAPTURE_SELECTION, applyNotesScript, pageKey, removeNoteScript } from '../shared/notes'
+import { screenAtPoint } from '../shared/screenpick'
 import { SyncService, deviceName } from './sync'
 import { mergeBookmarks, mergeNotes, mergeSites, pickSettings, type SyncPayload } from '../shared/sync'
 import { loadDoc as loadDocS, saveDoc as saveDocS } from './docdb'
@@ -99,7 +100,7 @@ let sessions: SessionStore
 let settings: SettingsStore
 const tr = (k: Key, v?: Record<string, string | number>): string => translate(settings?.get().language ?? 'tr', k, v)
 let perms: PermissionStore
-const pendingPerms = new Map<string, (a: 'allow-once' | 'allow' | 'block') => void>()
+const pendingPerms = new Map<string, (a: 'allow-once' | 'allow' | 'block' | 'dismiss') => void>()
 let permSeq = 0
 let telemetry: Telemetry
 let demo: DemoServer
@@ -804,10 +805,12 @@ const permissionHandlers = {
     if (stored === 'deny') return false
     if (stored === 'allow') return kinds.length ? ensureSystemMedia(kinds) : true
     const id = `perm-${++permSeq}`
-    send(Ch.permAsk, { id, origin, permission: key })
+    // yalniz istegi yapan sekmenin penceresine goster (birden cok pencerede yinelenmesin)
+    const wid = tabs.winOfWc(wc), target = wid !== undefined ? shellWins.get(wid) : undefined
+    if (target && !target.isDestroyed()) target.webContents.send(Ch.permAsk, { id, origin, permission: key }); else send(Ch.permAsk, { id, origin, permission: key })
     return new Promise<boolean>((resolve) => {
-      pendingPerms.set(id, (a) => { if (a === 'allow') perms.set(origin, key, 'allow'); if (a === 'block') perms.set(origin, key, 'deny'); if (a === 'block' || !kinds.length) resolve(a !== 'block'); else void ensureSystemMedia(kinds).then(resolve) })
-      setTimeout(() => { if (pendingPerms.delete(id)) resolve(false) }, 30_000)
+      pendingPerms.set(id, (a) => { if (a === 'allow') perms.set(origin, key, 'allow'); if (a === 'block') perms.set(origin, key, 'deny'); if (a === 'dismiss') { resolve(false); return } if (a === 'block' || !kinds.length) resolve(a !== 'block'); else void ensureSystemMedia(kinds).then(resolve) })
+      setTimeout(() => { if (pendingPerms.delete(id)) { send(Ch.permClose, { id }); resolve(false) } }, 30_000)
     })
   }
 }
@@ -979,6 +982,9 @@ function handleDisplayMedia(ses: Electron.Session): void {
     if (process.env.DB_SCRIPT) { callback({} as Electron.Streams); return }
     void desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 0, height: 0 } }).then((sources) => {
       if (!sources.length) { callback({} as Electron.Streams); return }
+      // Birden cok ekranda imlecin bulundugu ekran otomatik paylasilir (menu yok); tek ekranda kaynak menusu cikar
+      const under = screenAtPoint(sources.map((x) => ({ id: x.id, name: x.name, display_id: x.display_id })), screen.getAllDisplays(), screen.getCursorScreenPoint())
+      if (under && screen.getAllDisplays().length > 1) { const src = sources.find((x) => x.id === under.id); if (src) { callback({ video: src }); return } }
       let done = false
       const items: Electron.MenuItemConstructorOptions[] = sources.slice(0, 30).map((s) => ({ label: (s.id.startsWith('screen') ? '🖥 ' : '') + (s.name || s.id).slice(0, 70), click: () => { done = true; callback({ video: s }) } }))
       Menu.buildFromTemplate([{ label: tr('share.pick'), enabled: false }, { type: 'separator' }, ...items]).popup({ window: BrowserWindow.getFocusedWindow() ?? win, callback: () => { if (!done) callback({} as Electron.Streams) } })

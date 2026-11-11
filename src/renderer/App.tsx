@@ -97,6 +97,7 @@ export function App() {
       api.onNoteAsk((a: any) => s.set({ noteAsk: a, overlay: 'notePrompt' })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
       api.onPermAsk((p: any) => useStore.setState((st) => ({ permPrompts: [...st.permPrompts, p] }))),
+      api.onPermClose((p: { id: string }) => useStore.setState((st) => ({ permPrompts: st.permPrompts.filter((x) => x.id !== p.id) }))),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
       api.onSettings((st: any) => { s.set({ settings: st }); if (!st.onboarded && useStore.getState().overlay === null) s.set({ overlay: 'welcome' }) }),
       api.onLibrary((l: any) => s.set({ bookmarks: l.bookmarks, downloads: l.downloads })),
