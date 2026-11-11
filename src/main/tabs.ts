@@ -46,7 +46,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     win.on('resize', () => this.layout())
   }
 
@@ -74,7 +74,7 @@ export class TabManager {
     const wc = view.webContents
     // CDP: ilk sayfa yuklenmeden komutlar yanit vermez -> about:blank, kurulum, asil sayfa
     await wc.loadURL('about:blank')
-    const target = resolveInput(opts.url ?? '')
+    const target = resolveInput(opts.url ?? '', this.hooks.searchEngine?.())
     if (/^https?:/.test(target)) entry.lastHttpUrl = target
     entry.cdp = await attachCdp(wc, id, this.bus, () => {
       const u = wc.getURL()
@@ -363,7 +363,7 @@ export class TabManager {
     return null
   }
 
-  go(id: string, input: string): void { const t = this.tabs.get(id); if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input)).catch(() => {}) }
+  go(id: string, input: string): void { const t = this.tabs.get(id); if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input, this.hooks.searchEngine?.())).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }
   forward(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goForward() }
   reload(id: string): void { this.tabs.get(id)?.view.webContents.reload() }

@@ -1,3 +1,4 @@
+import { ENGINES } from '../shared/search'
 import { PANEL_TABS, wsName, useStore, writePref, tNow as t, toast } from './store'
 import type { DevToolsDock } from '../shared/events'
 import { CPU_RATES, GEO_PRESETS, NETWORK_PRESETS, UA_PRESETS, VISION } from '../shared/emulation'
@@ -39,6 +40,7 @@ export function buildCommands(): Command[] {
     { id: 'settings', title: t('cmd.settings'), hint: '⌘,', run: () => s.set({ overlay: 'settings' }) },
     { id: 'demo.open', title: t('cmd.demo'), run: () => void api.openDemo() },
     { id: 'welcome.show', title: t('cmd.welcome'), run: () => s.set({ overlay: 'welcome' }) },
+    ...ENGINES.filter((e) => e.id !== (s.settings.searchEngine ?? 'duckduckgo')).map((e) => ({ id: `search.${e.id}`, title: t('cmd.searchEngine', { name: e.label }), run: () => void api.setSettings({ searchEngine: e.id }) })),
     { id: 'lang.switch', title: t('cmd.language', { lang: lang === 'en' ? 'Türkçe' : 'English' }), run: () => void api.setSettings({ language: lang === 'en' ? 'tr' : 'en' }) },
     s.settings.telemetry === 'granted'
       ? { id: 'telemetry.off', title: t('cmd.telemetryOff'), run: () => void api.setSettings({ telemetry: 'denied' }) }

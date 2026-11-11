@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isAllowedPageNavigation, resolveInput } from './url'
+import { ENGINES, engineById, searchUrl } from './search'
 
 describe('resolveInput', () => {
   it.each([
@@ -22,4 +23,15 @@ describe('isAllowedPageNavigation', () => {
     for (const u of ['https://a.com', 'http://localhost:3000/x', 'about:blank', ' HTTPS://A.COM']) expect(isAllowedPageNavigation(u)).toBe(true)
     for (const u of ['file:///etc/passwd', 'javascript:alert(1)', 'izlix://open?dir=/', 'vscode://file/x', 'data:text/html,hi', 'view-source:https://a.com', 'about:srcdoc', 'blob:https://a.com/x']) expect(isAllowedPageNavigation(u)).toBe(false)
   })
+})
+
+describe('arama motorlari', () => {
+  it('secili motorda arar; bilinmeyen motor varsayilana duser; .onion http olur', () => {
+    expect(resolveInput('kedi resimleri', 'google')).toBe('https://www.google.com/search?q=kedi%20resimleri')
+    expect(resolveInput('kedi', 'yandex')).toBe('https://yandex.com.tr/search/?text=kedi')
+    expect(resolveInput('kedi', 'yok')).toBe(searchUrl('duckduckgo', 'kedi')); expect(engineById(undefined).id).toBe('duckduckgo')
+    expect(resolveInput('abcdefghijklmnop.onion/path')).toBe('http://abcdefghijklmnop.onion/path')
+    expect(resolveInput('example.com', 'google')).toBe('https://example.com')
+  })
+  it('tum motorlar %s yer tutucusu ve https icerir', () => { for (const e of ENGINES) { expect(e.url).toContain('%s'); expect(e.url.startsWith('https://')).toBe(true) } })
 })

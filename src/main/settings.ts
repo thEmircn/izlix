@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Settings } from '../shared/events'
 
-const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr', installId: '', autoOpen: false }
+const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr', searchEngine: 'duckduckgo', installId: '', autoOpen: false }
 
 export class SettingsStore {
   private data: Settings
@@ -19,6 +19,6 @@ export class SettingsStore {
     if (!this.data.installId) { this.data.installId = Math.random().toString(36).slice(2) + Date.now().toString(36); this.save() }
   }
   get(): Settings { return { ...this.data } }
-  set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
+  set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen' | 'searchEngine'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
   private save(): void { saveDoc(this.dir, 'settings', this.data) }
 }

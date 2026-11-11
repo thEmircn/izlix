@@ -1,3 +1,4 @@
+import { ENGINES } from '../shared/search'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
 import { useStore, useT, writePref } from './store'
@@ -28,6 +29,9 @@ export function Settings({ onClose }: { onClose(): void }) {
         <div style={{ overflow: 'auto', padding: '4px 18px 14px' }}>
           <Row title={t('set.language')}>
             <select value={settings.language} onChange={(e) => void api.setSettings({ language: e.target.value as Language })}><option value="en">English</option><option value="tr">Türkçe</option></select>
+          </Row>
+          <Row title={t('set.search')} hint={t('set.searchHint')}>
+            <select value={settings.searchEngine ?? 'duckduckgo'} onChange={(e) => void api.setSettings({ searchEngine: e.target.value })}>{ENGINES.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</select>
           </Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>
             <select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></select>

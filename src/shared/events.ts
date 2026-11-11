@@ -51,4 +51,4 @@ export type Editor = 'vscode' | 'cursor' | 'webstorm'
 export type DevToolsDock = 'right' | 'bottom' | 'off'
 
 export type Language = 'en' | 'tr'
-export interface Settings { telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string; /** Workspace'e ait yeni dev sunucusu baslayinca sekme ac */ autoOpen: boolean }
+export interface Settings { /** adres cubugu arama motoru kimligi (shared/search.ts) */ searchEngine?: string; telemetry: 'unset' | 'granted' | 'denied'; onboarded: boolean; language: Language; installId: string; /** Workspace'e ait yeni dev sunucusu baslayinca sekme ac */ autoOpen: boolean }
