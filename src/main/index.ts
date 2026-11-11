@@ -1,6 +1,7 @@
 import { networkInterfaces } from 'node:os'
 import { lanUrl, pickLanIp } from '../shared/lan'
 import { mergeShortcuts } from '../shared/shortcuts'
+import { matchesTitle, rankTabs, searchText, type TabHit } from '../shared/tabsearch'
 import { editorCommand } from '../shared/editor'
 import { GROUP_COLOR_NAMES } from '../shared/groups'
 import { buildCtxMenu, type CtxItem } from '../shared/ctxmenu'
@@ -355,6 +356,18 @@ function registerIpc(): void {
     const url = lanUrl(e.view.webContents.getURL(), ip); if (!url) return null
     const reachable = await net.fetch(url, { signal: AbortSignal.timeout(1500), method: 'HEAD' }).then(() => true, () => false)
     return { url, ip, reachable }
+  })
+  // Tum sekmelerde ara: her (uyumayan) sekmenin metni CDP'siz, executeJavaScript ile (1.5 sn sinir); uyuyanlar yalniz baslik/adres
+  handle(Ch.tabsSearch, schemas.tabsSearch, async ({ q }) => {
+    const infos = tabs.list().tabs.filter((t) => t.workspaceId === activeWorkspaceId)
+    const hits = await Promise.all(infos.map(async (t): Promise<TabHit> => {
+      const base: TabHit = { id: t.id, title: t.title, url: t.url, count: 0, snippets: [], titleMatch: matchesTitle(t.title, t.url, q), ...(t.sleeping ? { sleeping: true } : {}), ...(t.private ? { private: true } : {}) }
+      const wc = tabs.get(t.id)?.view.webContents
+      if (!q.trim() || t.sleeping || !wc || wc.isDestroyed() || !/^https?:/.test(t.url)) return base
+      const text = await Promise.race([wc.executeJavaScript('document.body ? document.body.innerText.slice(0, 2000000) : ""'), new Promise<string>((r) => setTimeout(() => r(''), 1500))]).catch(() => '')
+      return { ...base, ...searchText(String(text), q) }
+    }))
+    return rankTabs(hits.filter((h) => !q.trim() || h.count > 0 || h.titleMatch))
   })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {

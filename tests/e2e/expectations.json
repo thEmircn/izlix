@@ -4013,5 +4013,57 @@
       "eq",
       1
     ]
+  ],
+  "tabsearch": [
+    [
+      "countA",
+      "contains",
+      ":2"
+    ],
+    [
+      "noC",
+      "eq",
+      true
+    ],
+    [
+      "titleOnly",
+      "eq",
+      true
+    ],
+    [
+      "emptyAll",
+      "eq",
+      true
+    ],
+    [
+      "sleepingByTitle",
+      "eq",
+      true
+    ],
+    [
+      "sleepingNoContent",
+      "eq",
+      true
+    ],
+    [
+      "rows",
+      "gte",
+      1
+    ],
+    [
+      "snippet",
+      "contains",
+      "pembe"
+    ],
+    [
+      "badge",
+      "eq",
+      "1"
+    ],
+    [
+      "activated",
+      "eq",
+      true
+    ]
   ]
 }

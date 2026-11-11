@@ -62,6 +62,7 @@ export const api = {
   onRec: sub(Ch.recState),
   heapSnapshot: () => call(Ch.heapSnap) as Promise<{ file: string; mb: number } | null>,
   lanInfo: (id: string) => call(Ch.lanInfo, { id }) as Promise<{ url: string; ip: string; reachable: boolean } | null>,
+  tabsSearch: (q: string) => call(Ch.tabsSearch, { q }) as Promise<import('../shared/tabsearch').TabHit[]>,
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,
