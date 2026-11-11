@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import type { TabInfo, DevToolsDock } from '../shared/events'
 import { computeLayout, padRect, CARD_RADIUS, GAP, type LayoutParams, type Rect } from '../shared/layout'
 import { isAllowedPageNavigation, resolveInput } from '../shared/url'
+import { cleanTrackingParams } from '../shared/tracking'
 import { attachCdp, type Tab } from './cdp'
 import type { EventBus } from './bus'
 import { partitionFor, type WorkspaceStore } from './workspace'
@@ -72,7 +73,7 @@ export class TabManager {
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; stripTracking?: () => { on: boolean; dev: boolean }; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
     this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
@@ -160,7 +161,7 @@ export class TabManager {
     if (opts.private === 'tor') wc.setWebRTCIPHandlingPolicy('disable_non_proxied_udp')
     // CDP: ilk sayfa yuklenmeden komutlar yanit vermez -> about:blank, kurulum, asil sayfa
     await wc.loadURL('about:blank')
-    const target = resolveInput(opts.url ?? '', this.hooks.searchEngine?.())
+    const target = this.tidy(resolveInput(opts.url ?? '', this.hooks.searchEngine?.()))
     if (/^https?:/.test(target)) entry.lastHttpUrl = target
     entry.cdp = await attachCdp(wc, id, this.bus, () => {
       const u = wc.getURL()
@@ -213,8 +214,14 @@ export class TabManager {
     })
     wc.on('did-navigate', () => { e.failedUrl = undefined })
     wc.on('found-in-page', (_ev, r) => this.hooks.onFound?.(e.info.id, r.activeMatchOrdinal, r.matches))
-    wc.on('will-navigate', guard)
-    wc.on('will-redirect', guard)
+    // izleme parametrelerini (utm_, fbclid...) temizleyip ayni adrese temiz haliyle gec (ana belge gezinmeleri)
+    const clean = (event: Electron.Event, url: string): void => {
+      const st = this.hooks.stripTracking?.(); if (!st?.on) return
+      const c = cleanTrackingParams(url, st.dev)
+      if (c !== url) { event.preventDefault(); void wc.loadURL(c).catch(() => {}) }
+    }
+    wc.on('will-navigate', (ev, url) => { guard(ev, url); if (!ev.defaultPrevented) clean(ev, url) })
+    wc.on('will-redirect', (ev, url) => { guard(ev, url); if (!ev.defaultPrevented) clean(ev, url) })
   }
 
   private adHook(wc: Electron.WebContents): { cfg: NonNullable<ConstructorParameters<typeof Interceptor>[4]>['cfg']; onBlocked: () => void } | undefined {
@@ -560,7 +567,8 @@ export class TabManager {
     return null
   }
 
-  go(id: string, input: string): void { const t = this.tabs.get(id); if (t?.info.sleeping) this.wake(t, resolveInput(input, this.hooks.searchEngine?.())); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(resolveInput(input, this.hooks.searchEngine?.())).catch(() => {}) }
+  private tidy(url: string): string { const st = this.hooks.stripTracking?.(); return st?.on ? cleanTrackingParams(url, st.dev) : url }
+  go(id: string, input: string): void { const url = this.tidy(resolveInput(input, this.hooks.searchEngine?.())); const t = this.tabs.get(id); if (t?.info.sleeping) this.wake(t, url); else if (t) t.failedUrl = undefined; void this.tabs.get(id)?.view.webContents.loadURL(url).catch(() => {}) }
   back(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goBack() }
   forward(id: string): void { this.tabs.get(id)?.view.webContents.navigationHistory.goForward() }
   reload(id: string): void { const t = this.tabs.get(id); if (t?.info.sleeping) { this.wake(t); return } t?.view.webContents.reload() }

@@ -2982,5 +2982,27 @@
       "eq",
       false
     ]
+  ],
+  "tracking": [
+    [
+      "devUntouched",
+      "contains",
+      "utm_source=x"
+    ],
+    [
+      "cleanedClick",
+      "eq",
+      "http://localhost:5301/t?id=5"
+    ],
+    [
+      "cleanedTyped",
+      "eq",
+      "http://localhost:5301/t?k=2"
+    ],
+    [
+      "offKeeps",
+      "contains",
+      "gclid=1"
+    ]
   ]
 }

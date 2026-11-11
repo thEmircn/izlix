@@ -48,6 +48,7 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.sleep')} hint={t('set.sleepHint')}>
             <select value={settings.sleepMinutes ?? 30} onChange={(e) => void api.setSettings({ sleepMinutes: Number(e.target.value) })}>{[0, 10, 30, 60, 180].map((m) => <option key={m} value={m}>{m === 0 ? t('ad.lvl.off') : t('set.sleepMin', { n: m })}</option>)}</select>
           </Row>
+          <Row title={t('set.strip')} hint={t('set.stripHint')}><Switch on={settings.stripTracking !== false} label={t('set.strip')} onChange={(v) => void api.setSettings({ stripTracking: v })} /></Row>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>
