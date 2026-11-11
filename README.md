@@ -17,6 +17,8 @@
   <img src="docs/assets/demo.gif" alt="A click becomes a request, a response and a render on the timeline" width="62%">
 </p>
 
+**Website:** [themircn.github.io/izlix](https://themircn.github.io/izlix/) · **UI kit:** [/ui](https://themircn.github.io/izlix/ui/)
+
 > **Status: alpha.** Not signed, no auto-update. Please read [Limitations](#limitations) before using it as your main browser.
 
 ---
