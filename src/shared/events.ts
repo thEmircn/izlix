@@ -29,6 +29,8 @@ export interface TabInfo {
   /** Bolunmus gorunumde sekmenin tarafi */
   split?: 'left' | 'right'
   id: string
+  /** sekmenin gosterildigi pencere */
+  winId?: number
   workspaceId: string
   title: string
   url: string

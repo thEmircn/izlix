@@ -25,7 +25,12 @@ async function wipeIncognito(part: string): Promise<void> {
   await ses.clearStorageData().catch(() => {}); await ses.clearCache().catch(() => {}); await ses.clearAuthCache().catch(() => {})
 }
 
+/** Bir pencerenin gorunum durumu */
+export interface WinCtx { id: number; win: BrowserWindow; activeId: string | null; split: { a: string; b: string } | null; layoutParams: LayoutParams; overlayOpen: boolean }
+
 interface Entry {
+  /** sekmenin gosterildigi pencere (WinCtx.id) */
+  winId: number
   /** son aktif olma zamani (otomatik uyutma icin) */
   lastActive: number
   info: TabInfo
@@ -45,32 +50,90 @@ interface Entry {
 export class TabManager {
   private tabs = new Map<string, Entry>()
   private order: string[] = []
-  private activeId: string | null = null
+  /** Pencere baglamlari: her pencerenin kendi aktif sekmesi, bolunmus gorunumu ve yerlesimi vardir; sekme havuzu ortaktir. */
+  private ctxs = new Map<number, WinCtx>()
+  /** Gecerli pencere baglami: IPC cagrisi gonderen pencereye, sekme islemleri sekmenin penceresine ayarlanir (senkron kesitlerde) */
+  private cur!: WinCtx
+  private get win(): BrowserWindow { return this.cur.win }
+  private get activeId(): string | null { return this.cur.activeId }
+  private set activeId(v: string | null) { this.cur.activeId = v }
   /** Bolunmus gorunum: iki sekme yan yana (a solda, b sagda); aktif sekme ikisinden biridir. */
-  private split: { a: string; b: string } | null = null
+  private get split(): { a: string; b: string } | null { return this.cur.split }
+  private set split(v: { a: string; b: string } | null) { this.cur.split = v }
+  private get overlayOpen(): boolean { return this.cur.overlayOpen }
+  private set overlayOpen(v: boolean) { this.cur.overlayOpen = v }
+  private get layoutParams(): LayoutParams { return this.cur.layoutParams }
+  private set layoutParams(v: LayoutParams) { this.cur.layoutParams = v }
   private seq = 0
-  private overlayOpen = false
   private closed: { url: string; workspaceId: string }[] = []
-  private layoutParams: LayoutParams = { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }
 
-  constructor(private win: BrowserWindow, private bus: EventBus, private workspaces: WorkspaceStore, private onChange: () => void,
+  constructor(win: BrowserWindow, private bus: EventBus, private workspaces: WorkspaceStore, private onChange: () => void,
     /** sayfanin dev sunucusunun proje kokunu bulur (Workspace kokunun yoksa port -> cwd) */
     private rootFor: (url: string, workspaceId: string) => string | null = () => null,
     /** Workspace'in Request Rules yapilandirmasi */
     private rulesFor: (workspaceId: string) => RulesConfig = () => ({ rules: [], domains: [] }),
-    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
-    win.on('resize', () => this.layout())
+    private hooks: { detectedPorts?: () => number[]; language?: () => 'en' | 'tr'; searchEngine?: () => string; torPort?: () => Promise<number | null>; sleepMinutes?: () => number; onFocusWindow?: (win: BrowserWindow) => void; openWindow?: () => Promise<number>; adCfg?: () => { level: 'off' | 'ads' | 'strict'; allow: string[]; blockOnDev: boolean }; onDomReady?: (wc: Electron.WebContents) => void; onFavicons?: (ses: Electron.Session, pageUrl: string, urls: string[]) => void; onThumb?: (url: string, wc: Electron.WebContents) => void; onFound?: (tabId: string, active: number, total: number) => void; onVisit?: (url: string, title: string) => void; onSession?: (ses: Electron.Session) => void } = {}) {
+    this.addWindow(win)
     setInterval(() => this.sweep(), 60_000).unref() // hareketsiz sekmeleri uyut
   }
 
-  list(): { tabs: TabInfo[]; activeId: string | null } {
-    return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: this.activeId }
+  // ---- coklu pencere: tek sekme havuzu, her sekme tam bir pencerede gosterilir ----
+  addWindow(win: BrowserWindow): number {
+    const ctx: WinCtx = { id: win.id, win, activeId: null, split: null, layoutParams: { dock: 'off', panelRatio: 0.4, chromeHeight: 84 }, overlayOpen: false }
+    this.ctxs.set(ctx.id, ctx)
+    if (!this.cur) this.cur = ctx
+    win.on('resize', () => this.inWin(ctx.id, () => this.layout()))
+    return ctx.id
+  }
+  /** Pencere kapaninca sekmeleri `fallbackId` penceresine tasir */
+  removeWindow(id: number, fallbackId: number): void {
+    const ctx = this.ctxs.get(id); if (!ctx || id === fallbackId || !this.ctxs.has(fallbackId)) return
+    for (const tid of [...this.order]) if (this.tabs.get(tid)?.winId === id) this.moveToWindow(tid, fallbackId, false)
+    this.ctxs.delete(id)
+    if (this.cur.id === id) this.cur = this.ctxs.get(fallbackId)!
+    this.syncSplitInfo(); this.onChange(); this.persist()
+  }
+  setCurrent(winId: number): void { const c = this.ctxs.get(winId); if (c) this.cur = c }
+  get currentWinId(): number { return this.cur.id }
+  windowIds(): number[] { return [...this.ctxs.keys()] }
+  /** Pencere baglaminda senkron calistir, sonra eskisine don */
+  inWin<T>(winId: number, fn: () => T): T {
+    const prev = this.cur, c = this.ctxs.get(winId)
+    if (c) this.cur = c
+    try { return fn() } finally { this.cur = prev }
+  }
+  /** `winId` penceresindeki sekmeler (genel sirada) */
+  private peers(winId: number): string[] { return this.order.filter((i) => this.tabs.get(i)?.winId === winId) }
+  /** Bir pencerenin sekme/gorunum durumu (arayuze gonderilir): tum sekmeler + o pencerenin aktif sekmesi */
+  list(winId?: number): { tabs: TabInfo[]; activeId: string | null; win: number; wins: number; dock: DevToolsDock } {
+    const c = (winId !== undefined && this.ctxs.get(winId)) || this.cur
+    return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: c.activeId, win: c.id, wins: this.ctxs.size, dock: c.layoutParams.dock }
+  }
+  /** Sekmeyi baska bir pencereye tasir; hedef pencerede aktif olur, kaynak pencerede komsu sekme aktif olur */
+  moveToWindow(id: string, target: number, focus = true): boolean {
+    const e = this.tabs.get(id), dst = this.ctxs.get(target)
+    if (!e || !dst || e.winId === target) return false
+    const src = e.winId
+    this.inWin(src, () => {
+      if (this.split && (id === this.split.a || id === this.split.b)) { this.split = null; this.syncSplitInfo() }
+      if (e.lab) { void e.lab.dispose(); e.lab = undefined; e.info.lab = undefined }
+      const wasActive = this.activeId === id
+      this.releaseDevTools(e)
+      try { this.win.contentView.removeChildView(e.view) } catch { /* zaten cocuk degil */ }
+      if (wasActive) this.activeId = null
+    })
+    e.winId = target; e.info.winId = target
+    this.inWin(src, () => { if (!this.activeId) { const next = this.peers(src)[0]; if (next) this.activateIn(next); else this.layout() } })
+    this.inWin(target, () => this.activateIn(id))
+    if (focus) this.hooks.onFocusWindow?.(dst.win)
+    this.onChange(); this.persist()
+    return true
   }
   each(fn: (wc: Electron.WebContents) => void): void { for (const e of this.tabs.values()) if (!e.view.webContents.isDestroyed()) fn(e.view.webContents) }
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 
-  async create(opts: { url?: string; workspaceId: string; activate?: boolean; pinned?: boolean; private?: 'incognito' | 'tor' }): Promise<string> {
+  async create(opts: { url?: string; workspaceId: string; winId?: number; activate?: boolean; pinned?: boolean; private?: 'incognito' | 'tor' }): Promise<string> {
     const id = `tab-${++this.seq}`
     // gizli sekmeler tek ortak, bellek ici (persist: yok) oturumu paylasir; son gizli sekme kapaninca temizlenir
     const ses = session.fromPartition(opts.private === 'tor' ? TOR_PARTITION : opts.private ? INCOGNITO_PARTITION : partitionFor(opts.workspaceId))
@@ -85,11 +148,12 @@ export class TabManager {
     { const ua = ses.getUserAgent(), clean = ua.replace(/\s+Electron\/[\d.]+/, '').replace(/\s+izlix\/[\w.\-]+/i, ''); if (clean !== ua) ses.setUserAgent(clean) }
     // Sayfa gorunumu: preload yok, sandbox, contextIsolation (plan bolum 4: sayfa hicbir IPC kanalina erisemez)
     const view = new WebContentsView({ webPreferences: { session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false } })
-    const entry: Entry = { lastActive: Date.now(), view, info: { id, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}) } }
+    const winId = opts.winId !== undefined && this.ctxs.has(opts.winId) ? opts.winId : this.cur.id
+    const entry: Entry = { winId, lastActive: Date.now(), view, info: { id, winId, workspaceId: opts.workspaceId, title: 'New Tab', url: '', loading: false, canGoBack: false, canGoForward: false, ...(opts.private ? { private: opts.private } : {}), ...(opts.pinned ? { pinned: true } : {}) } }
     this.tabs.set(id, entry); this.order.push(id)
     this.wire(entry)
     // bolunmus gorunumde tiklanan taraf odagi (aktif sekmeyi) alir
-    view.webContents.on('focus', () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activate(id) })
+    view.webContents.on('focus', () => this.inWin(entry.winId, () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activateIn(id) }))
     if (opts.activate !== false) this.activate(id)
 
     const wc = view.webContents
@@ -170,12 +234,20 @@ export class TabManager {
     const wc = e.view.webContents, url = wc.getURL()
     if (!/^https?:/.test(url)) return
     setTimeout(() => {
-      if (wc.isDestroyed() || this.activeId !== e.info.id || this.overlayOpen || e.failedUrl || wc.getURL() !== url || wc.isLoading()) return
+      const c = this.ctxs.get(e.winId)
+      if (wc.isDestroyed() || !c || c.activeId !== e.info.id || c.overlayOpen || e.failedUrl || wc.getURL() !== url || wc.isLoading()) return
       this.hooks.onThumb?.(url, wc)
     }, 1500)
   }
 
+  /** Sekmeyi, gosterildigi pencerede aktif eder (baska pencerede ise o pencere one gelir) */
   activate(id: string): void {
+    const e = this.tabs.get(id); if (!e) return
+    const ctx = this.ctxs.get(e.winId) ?? this.cur
+    if (ctx.id !== this.cur.id) { this.inWin(ctx.id, () => this.activateIn(id)); this.hooks.onFocusWindow?.(ctx.win); return }
+    this.activateIn(id)
+  }
+  private activateIn(id: string): void {
     if (!this.tabs.has(id)) return
     if (id === this.activeId) return // zaten aktif: DevTools'u yok edip yeniden kurma
     const waking = this.tabs.get(id)!; if (waking.info.sleeping) this.wake(waking)
@@ -255,8 +327,10 @@ export class TabManager {
   }
 
   close(id: string): void {
-    const e = this.tabs.get(id)
-    if (!e) return
+    const e0 = this.tabs.get(id)
+    if (!e0) return
+    if (e0.winId !== this.cur.id && this.ctxs.has(e0.winId)) { this.inWin(e0.winId, () => this.close(id)); return }
+    const e = e0
     const idx = this.order.indexOf(id)
     if (e.info.url && !e.info.private) { this.closed.push({ url: e.info.url, workspaceId: e.info.workspaceId }); if (this.closed.length > 20) this.closed.shift() }
     if (this.split && (id === this.split.a || id === this.split.b)) {
@@ -275,8 +349,9 @@ export class TabManager {
     if (e.info.private && ![...this.tabs.values()].some((t) => t.info.private === e.info.private)) void wipeIncognito(e.info.private === 'tor' ? TOR_PARTITION : INCOGNITO_PARTITION)
     if (this.activeId === id) {
       this.activeId = null
-      const next = this.order[Math.min(idx, this.order.length - 1)]
-      if (next) this.activate(next)
+      const mine = this.peers(e.winId) // ayni penceredeki komsu sekme
+      const next = mine.find((i) => this.order.indexOf(i) >= idx) ?? mine[mine.length - 1]
+      if (next) this.activateIn(next)
     }
     this.layout(); this.onChange(); this.persist()
   }
@@ -341,7 +416,7 @@ export class TabManager {
       e.view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); this.layout()
     } else {
       if (!e.lab) {
-        e.lab = new Lab(this.win, e.view, session.fromPartition(partitionFor(e.info.workspaceId)))
+        e.lab = new Lab(this.ctxs.get(e.winId)?.win ?? this.win, e.view, session.fromPartition(partitionFor(e.info.workspaceId)))
         if (e.info.media) e.lab.media = [...(e.info.media.colorScheme ? [{ name: 'prefers-color-scheme', value: e.info.media.colorScheme }] : []), ...(e.info.media.reducedMotion ? [{ name: 'prefers-reduced-motion', value: 'reduce' }] : [])]
       }
       await e.lab.setDevices(devices)
@@ -381,7 +456,7 @@ export class TabManager {
   get splitIds(): string[] { return this.split ? [this.split.a, this.split.b] : [] }
   private syncSplitInfo(): void {
     for (const e of this.tabs.values()) delete e.info.split
-    if (this.split) { const a = this.tabs.get(this.split.a), b = this.tabs.get(this.split.b); if (a) a.info.split = 'left'; if (b) b.info.split = 'right' }
+    for (const c of this.ctxs.values()) if (c.split) { const a = this.tabs.get(c.split.a), b = this.tabs.get(c.split.b); if (a) a.info.split = 'left'; if (b) b.info.split = 'right' }
   }
 
   /** Sekmeyi `toIndex` konumuna tasir (ayni Workspace icinde gorunen sira korunur; genel sira dizisinde yer degistirir) */
@@ -399,7 +474,8 @@ export class TabManager {
   // ---- sekme uyutma: sayfa sureci kapanir (bellek), sekme seritte kalir; secilince ayni adresle yeniden yuklenir ----
   private canSleep(e: Entry, manual: boolean): boolean {
     const id = e.info.id
-    if (e.info.sleeping || id === this.activeId || e.info.private || e.lab || (this.split && (id === this.split.a || id === this.split.b))) return false
+    if (e.info.sleeping || e.info.private || e.lab) return false
+    for (const c of this.ctxs.values()) if (c.activeId === id || (c.split && (id === c.split.a || id === c.split.b))) return false
     if (!manual && e.info.pinned) return false
     const wc = e.view.webContents; if (wc.isDestroyed()) return false
     const url = wc.getURL()
@@ -409,6 +485,7 @@ export class TabManager {
   }
   sleep(id: string, manual = true): boolean {
     const e = this.tabs.get(id); if (!e || !this.canSleep(e, manual)) return false
+    if (e.winId !== this.cur.id) return this.inWin(e.winId, () => this.sleep(id, manual))
     const old = e.view
     e.info.url = old.webContents.getURL(); e.info.title = old.webContents.getTitle() || e.info.title
     if (e.retryTimer) { clearTimeout(e.retryTimer); e.retryTimer = undefined }
@@ -438,7 +515,7 @@ export class TabManager {
     e.view = view
     try { placeholder.webContents.close() } catch { /* yok */ }
     this.wire(e)
-    view.webContents.on('focus', () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activate(id) })
+    view.webContents.on('focus', () => this.inWin(e.winId, () => { if (this.split && (id === this.split.a || id === this.split.b) && id !== this.activeId) this.activateIn(id) }))
     void (async () => {
       const wc = view.webContents
       await wc.loadURL('about:blank')
@@ -491,20 +568,26 @@ export class TabManager {
   // ---- oturum kaydi: cokme veya yeniden baslatma sonrasi sekmeler geri gelir ----
   private persist(): void {
     try {
-      const tabs = this.order.map((id) => this.tabs.get(id)!.info).filter((t) => t.url && !t.private).map((t) => ({ url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}) }))
-      saveDoc(app.getPath('userData'), 'session', { tabs, active: Math.max(0, this.order.findIndex((i) => i === this.activeId)) })
+      const primary = [...this.ctxs.keys()][0]
+      const keep = this.order.filter((i) => { const t = this.tabs.get(i)!.info; return t.url && !t.private })
+      const tabs = keep.map((i) => { const t = this.tabs.get(i)!.info; return { url: t.url, workspaceId: t.workspaceId, ...(t.pinned ? { pinned: true } : {}), ...(t.winId !== primary ? { second: true } : {}) } })
+      const actives = [...this.ctxs.values()].map((c) => keep.indexOf(c.activeId ?? ''))
+      saveDoc(app.getPath('userData'), 'session', { tabs, active: Math.max(0, actives[0] ?? 0), activeSecond: actives[1] ?? -1 })
     } catch { /* disk hatasi oturumu durdurmaz */ }
   }
 
   async restore(): Promise<boolean> {
-    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean }[]; active: number }
+    let saved: { tabs: { url: string; workspaceId: string; pinned?: boolean; second?: boolean }[]; active: number; activeSecond?: number }
     const doc = loadDoc<typeof saved>(app.getPath('userData'), 'session'); if (!doc) return false
     saved = doc
     const valid = saved.tabs.filter((t) => this.workspaces.get(t.workspaceId))
     if (!valid.length) return false
     const ids: string[] = []
-    for (const t of valid) ids.push(await this.create({ ...t, activate: false }))
+    // ikinci pencerede sekme varsa o pencere yeniden acilir
+    const w2 = valid.some((t) => t.second) ? await this.hooks.openWindow?.() : undefined
+    for (const { second, ...t } of valid) ids.push(await this.create({ ...t, ...(second && w2 !== undefined ? { winId: w2 } : {}), activate: false }))
     this.activate(ids[Math.min(saved.active, ids.length - 1)])
+    if (w2 !== undefined && saved.activeSecond !== undefined && saved.activeSecond >= 0 && ids[saved.activeSecond]) this.activate(ids[saved.activeSecond])
     return true
   }
 }

@@ -905,3 +905,10 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 
 /* v9: uyuyan sekme */
 .tab.sleeping { opacity: .55; } .tab.sleeping .tab-fav { filter: grayscale(1); } .tab.sleeping:hover { opacity: .85; }
+
+/* v9: coklu pencere - diger pencerede acik sekme ve tasima dugmesi */
+.tab.away { opacity: .5; font-style: normal; } .tab.away::after { content: ''; position: absolute; left: 6px; bottom: 3px; width: 10px; height: 2px; border-radius: 2px; background: var(--dim, #888); }
+.tab.away:hover { opacity: .9; }
+.tab-hop { opacity: 0; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 5px; color: var(--dim, #999); background: transparent; border: 0; cursor: pointer; transition: opacity .15s, background .15s; }
+.tab:hover .tab-hop { opacity: 1; } .tab-hop:hover { background: var(--hover, rgba(255,255,255,.1)); color: var(--fg, #eee); }
+.tab-hop svg { width: 12px; height: 12px; }

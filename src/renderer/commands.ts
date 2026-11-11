@@ -14,6 +14,7 @@ export function buildCommands(): Command[] {
   const closeOverlay = (): void => s.set({ overlay: null })
   const lang = s.settings.language
   const cmds: Command[] = [
+    { id: 'win.new', title: t('cmd.newWindow'), hint: '⌘N', run: () => void api.newWindow() },
     { id: 'tab.newPrivate', title: t('cmd.newPrivate'), hint: '⇧⌘N', run: () => void api.createTab(undefined, 'incognito') },
     { id: 'tab.newTor', title: t('cmd.newTor'), run: () => void api.createTab(undefined, 'tor') },
     { id: 'tab.new', title: t('cmd.newTab'), hint: '⌘T', run: () => void api.createTab() },
@@ -139,6 +140,7 @@ export function buildCommands(): Command[] {
   }
   // Bolunmus gorunum (Split View)
   const act = s.tabs.find((x) => x.id === s.activeTabId)
+  if (act) cmds.push({ id: 'tab.hop', title: t('cmd.hopTab'), hint: '⌥⌘M', run: () => void api.hopTab(act.id) })
   if (act) cmds.push({ id: 'tab.pin', title: t(act.pinned ? 'cmd.unpin' : 'cmd.pin'), run: () => void api.pinTab(act.id, !act.pinned) })
   if (act && !act.lab) {
     for (const tb of s.tabs.filter((x) => x.workspaceId === s.activeWorkspaceId && x.id !== act.id && !x.lab && x.split !== (act.split === 'left' ? 'right' : 'left'))) {

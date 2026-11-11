@@ -1,3 +1,4 @@
+import { inSet, siteOf } from '../shared/adblock'
 import { readerScript } from '../shared/reader'
 import { readSafariProfile } from './importer-safari'
 import { readChromeProfile } from './importer'
@@ -8,7 +9,7 @@ import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
-import { app, net, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, net, screen, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
@@ -52,6 +53,12 @@ if (process.env.DB_USER_DATA) { app.setPath('userData', process.env.DB_USER_DATA
 registerAppScheme()
 const bus = new EventBus()
 let win: BrowserWindow
+/** tum kabuk pencereleri (id -> pencere); `win` birincil pencere */
+const shellWins = new Map<number, BrowserWindow>()
+/** o an IPC cagrisini yapan pencere (acilir menuler/diyaloglar icin) */
+let curWin: BrowserWindow | null = null
+let quitting = false
+const senderWin = (wc: Electron.WebContents): BrowserWindow | undefined => { for (const w of shellWins.values()) if (!w.isDestroyed() && w.webContents === wc) return w }
 let tabs: TabManager
 let workspaces: WorkspaceStore
 let rules: RuleStore
@@ -78,8 +85,11 @@ function editorUrl(editor: Editor, file: string, line: number, col: number): str
   return `${editor}://file${encodeURI(file)}:${line}:${col}`
 }
 
-const send = (channel: string, payload: unknown): void => { if (win && !win.isDestroyed()) win.webContents.send(channel, payload) }
-const pushTabs = (): void => send(Ch.tabsState, { ...tabs.list(), dock: tabs.dock })
+const send = (channel: string, payload: unknown): void => { for (const w of shellWins.values()) if (!w.isDestroyed()) w.webContents.send(channel, payload) }
+/** her pencereye kendi aktif sekmesi/yerlesimiyle sekme durumu */
+const pushTabs = (): void => { for (const [id, w] of shellWins) if (!w.isDestroyed()) w.webContents.send(Ch.tabsState, tabs.list(id)) }
+/** menu/kisayol komutu yalnizca odaktaki pencereye gider */
+const sendFocused = (channel: string, payload: unknown): void => { const f = BrowserWindow.getFocusedWindow(); const w = (f && shellWins.get(f.id)) ?? win; if (w && !w.isDestroyed()) w.webContents.send(channel, payload) }
 const pushSettings = (): void => send(Ch.settingsState, settings.get())
 const pushRules = (): void => send(Ch.rulesState, rules.all())
 const pushSessions = (): void => send(Ch.sessState, sessions.all())
@@ -90,7 +100,9 @@ const pushWorkspaces = (): void => send(Ch.wsState, { workspaces: workspaces.lis
 function handle<S extends z.ZodType>(channel: string, schema: S | null, fn: (arg: z.infer<S>) => unknown): void {
   ipcMain.handle(channel, (e, raw) => {
     // yalnizca shell penceresi cagirabilir (DevTools veya baska webContents degil)
-    if (e.sender !== win?.webContents) throw new Error(`yetkisiz IPC gondereni: ${channel}`)
+    const sw = senderWin(e.sender)
+    if (!sw) throw new Error(`yetkisiz IPC gondereni: ${channel}`)
+    curWin = sw; tabs?.setCurrent(sw.id)
     if (!schema) return fn(undefined as z.infer<S>)
     const r = schema.safeParse(raw)
     if (!r.success) throw new Error(`gecersiz IPC mesaji: ${channel}`)
@@ -202,6 +214,26 @@ function registerIpc(): void {
   })
   handle(Ch.tabSleep, schemas.tabSleep, ({ id }) => (id ? (tabs.sleep(id) ? 1 : 0) : tabs.sleepOthers()))
   handle(Ch.reader, null, async () => { const e = tabs.active(); if (!e || !/^https?:/.test(e.view.webContents.getURL())) return 'none'; return e.view.webContents.executeJavaScript(readerScript(settings.get().language === 'tr' ? 'tr' : 'en'), true).catch(() => 'error') })
+  // Reklam engelleyici menusu: bu site icin ac/kapa + genel duzey (kapali / reklamlar / reklam ve izleyiciler)
+  handle(Ch.adMenu, schemas.adMenu, ({ host }) => {
+    const s = settings.get(), lvl = s.adblock ?? 'ads', allow = s.adblockAllow ?? []
+    const h = host.toLowerCase(), site = siteOf(h), allowed = !!h && inSet(h, new Set(allow))
+    const apply = (patch: Parameters<typeof settings.set>[0]): void => { settings.set(patch); tabs.refreshRules(); pushSettings(); const a = tabs.active(); if (a) tabs.reload(a.info.id) }
+    const items: Electron.MenuItemConstructorOptions[] = []
+    if (h && lvl !== 'off') {
+      items.push({ label: tr(allowed ? 'ad.menu.siteOn' : 'ad.menu.siteOff', { h: site }), click: () => apply({ adblockAllow: allowed ? allow.filter((x) => !(h === x || h.endsWith('.' + x))) : [...allow, site] }) }, { type: 'separator' })
+    }
+    for (const [v, k] of [['off', 'ad.lvl.off'], ['ads', 'ad.lvl.ads'], ['strict', 'ad.lvl.strict']] as const) items.push({ label: tr(k), type: 'radio', checked: lvl === v, click: () => apply({ adblock: v }) })
+    Menu.buildFromTemplate(items).popup({ window: curWin ?? win })
+  })
+  handle(Ch.winNew, null, () => openWindow())
+  // Sekmeyi diger pencereye gonder (yalniz bir pencere varsa ikinciyi acar); baska penceredeki sekme ise buraya getirir
+  handle(Ch.tabHop, schemas.tabHop, async ({ id }) => {
+    const e = tabs.get(id); if (!e) return false
+    const here = tabs.currentWinId
+    const target = e.winId !== here ? here : (tabs.windowIds().find((x) => x !== here) ?? await openWindow())
+    return tabs.moveToWindow(id, target)
+  })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -239,7 +271,7 @@ function registerIpc(): void {
   })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.settingsGet, null, () => settings.get())
-  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.language && p.language !== before) installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
+  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.language && p.language !== before) installMenu((cmd) => sendFocused(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
   handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
   handle(Ch.demoOpen, null, async () => {
     const port = await demo.start()
@@ -343,7 +375,7 @@ function registerIpc(): void {
       { label: tr('ctx.close'), click: () => { proxy.drop(id); tabs.close(id) } },
       { label: tr('ctx.closeOthers'), click: () => { tabs.closeOthers(id) } },
       { label: tr('ctx.closeRight'), click: () => { tabs.closeOthers(id, true) } }
-    ]).popup({ window: win })
+    ]).popup({ window: curWin ?? win })
   })
   handle(Ch.hookSet, schemas.hookSet, ({ id, node, index, json }) => evalInPage(id, `window.__IZLIX_SET_HOOK__ ? window.__IZLIX_SET_HOOK__(${node}, ${index}, ${JSON.stringify(json)}) : null`))
   handle(Ch.propSet, schemas.propSet, ({ id, node, key, json }) => evalInPage(id, `window.__IZLIX_SET_PROP__ ? window.__IZLIX_SET_PROP__(${node}, ${JSON.stringify(key)}, ${JSON.stringify(json)}) : null`))
@@ -487,6 +519,36 @@ const permissionHandlers = {
   }
 }
 
+/** Kabuk penceresi kapaniyorsa sekmeleri kalan pencereye tasir (uygulama kapanirken oturum bozulmasin diye atlanir) */
+function onShellClose(w: BrowserWindow): void {
+  if (quitting || shellWins.size <= 1) { shellWins.delete(w.id); return }
+  const fallback = [...shellWins.values()].find((x) => x.id !== w.id && !x.isDestroyed())
+  if (fallback) tabs.removeWindow(w.id, fallback.id)
+  shellWins.delete(w.id)
+  if (win === w && fallback) win = fallback
+  pushTabs()
+}
+
+/** Ikinci (ve sonraki) kabuk penceresi: sekme havuzu ortak; tercihen diger monitorde acilir. */
+async function openWindow(): Promise<number> {
+  const quiet = !!process.env.DB_SCRIPT && !process.env.DB_VISIBLE
+  const here = screen.getDisplayMatching(win.getBounds()), other = screen.getAllDisplays().find((d) => d.id !== here.id)
+  const wa = (other ?? here).workArea
+  const def = other ? { x: wa.x + 40, y: wa.y + 40, width: Math.max(900, wa.width - 80), height: Math.max(600, wa.height - 80) } : { x: wa.x + Math.floor(wa.width / 2), y: wa.y + 40, width: Math.max(900, Math.floor(wa.width / 2) - 20), height: Math.max(600, wa.height - 80) }
+  const { maximized, ...b } = restoreWindowState(def, 'window2')
+  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#00000000', vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {})
+  if (maximized && !quiet) w.maximize()
+  if (quiet) { w.setOpacity(0); w.setIgnoreMouseEvents(true); w.showInactive() }
+  trackWindowState(w, 'window2')
+  shellWins.set(w.id, w); w.on('close', () => onShellClose(w))
+  const id = tabs.addWindow(w)
+  lockShell(w, [process.env.ELECTRON_RENDERER_URL ?? 'app://shell/'])
+  await w.loadURL(process.env.ELECTRON_RENDERER_URL ?? 'app://shell/index.html')
+  pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSessions(); pushSettings()
+  return id
+}
+
 async function createWindow(): Promise<void> {
   // Test modu (DB_SCRIPT): kullaniciyi rahatsiz etme — Dock'a dusme, one gelme, gorunmez (opacity 0) ama render ediliyor. DB_VISIBLE=1 ile normal gorunur.
   nativeTheme.themeSource = 'dark' // cam (vibrancy) her zaman koyu
@@ -502,6 +564,7 @@ async function createWindow(): Promise<void> {
   if (maximized && !quiet) win.maximize()
   if (quiet) { win.setOpacity(0); win.setIgnoreMouseEvents(true); win.showInactive() }
   trackWindowState(win)
+  shellWins.set(win.id, win); win.on('close', () => onShellClose(win))
   workspaces = new WorkspaceStore()
   rules = new RuleStore()
   library = new Library()
@@ -520,7 +583,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void adblock.cosmetic(wc); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, adCfg, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void adblock.cosmetic(wc); void injectAmbient(wc) }, sleepMinutes: () => settings.get().sleepMinutes ?? 30, adCfg, onFocusWindow: (w) => { if (!process.env.DB_SCRIPT || process.env.DB_VISIBLE) { if (w.isMinimized()) w.restore(); w.focus() } }, openWindow, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
@@ -546,7 +609,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab,
+      newTab, openWindow, shellWins,
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
       pageEval: (code: string): Promise<any> => tabs.active()!.view.webContents.executeJavaScript(code),
@@ -571,5 +634,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => { library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
+app.on('before-quit', () => { quitting = true; library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
 app.on('window-all-closed', () => app.quit())

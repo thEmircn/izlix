@@ -7,6 +7,8 @@ export const schemas = {
   faviconsGet: z.object({ origins: z.array(z.string().max(300)).max(200) }),
   defaultBrowser: z.object({ set: z.boolean() }),
   tabSleep: z.object({ id: z.string().max(64).nullable() }),
+  adMenu: z.object({ host: z.string().max(253) }),
+  tabHop: z.object({ id: z.string().max(64) }),
   tabPin: z.object({ id: z.string().max(64), pinned: z.boolean() }),
   suggestRemote: z.object({ q: z.string().min(1).max(100) }),
   thumbGet: z.object({ url: z.string().max(4096) }),

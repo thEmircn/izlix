@@ -2,7 +2,7 @@ import { originKey } from '../shared/favicon'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
-import { IcShield } from './icons'
+import { IcShield, IcHop } from './icons'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -50,15 +50,9 @@ export function App() {
   const nActive = activeRules(s.rules[s.activeWorkspaceId] ?? { rules: [], domains: [] }).length
   const pageHost = (() => { try { return new URL(active?.url ?? '').hostname.toLowerCase() } catch { return '' } })()
   const adLevel = s.settings.adblock ?? 'ads'
-  const shieldShown = adLevel !== 'off' && /^https?:/.test(active?.url ?? '') && !isLoopbackHost(pageHost) && !active?.private
+  const shieldShown = /^https?:/.test(active?.url ?? '') && !isLoopbackHost(pageHost) && !active?.private
   const siteAllowed = inSet(pageHost, new Set(s.settings.adblockAllow ?? []))
-  const toggleSite = (): void => {
-    if (!active || !pageHost) return
-    const cur = s.settings.adblockAllow ?? []
-    const next = siteAllowed ? cur.filter((x) => !(pageHost === x || pageHost.endsWith('.' + x))) : [...cur, siteOf(pageHost)]
-    void api.setSettings({ adblockAllow: next }).then(() => api.reload(active.id))
-    toast(t(siteAllowed ? 'ad.on' : 'ad.off', { h: siteOf(pageHost) }))
-  }
+  const adOff = adLevel === 'off' || siteAllowed
   const pickSug = (x: Sug): void => { setTyped(null); if (x.kind === 'tab' && x.tabId) void api.activateTab(x.tabId); else if (active) void api.go(active.id, x.url); else void api.createTab(x.url); addrRef.current?.blur() }
   const bookmarked = !!active && (s.bookmarks[s.activeWorkspaceId] ?? []).some((b) => b.url === active.url)
   const busyDl = s.downloads.filter((d) => d.state === 'progressing').length
@@ -70,7 +64,7 @@ export function App() {
     const queue: any[] = []
     void api.favicons([]).then((f) => useStore.setState((st) => ({ favicons: { ...f, ...st.favicons } }))).catch(() => {})
     const offs = [
-      api.onTabs((p) => s.set({ tabs: p.tabs, activeTabId: p.activeId })),
+      api.onTabs((p: any) => s.set({ tabs: p.tabs, activeTabId: p.activeId, winId: p.win ?? 0, wins: p.wins ?? 1 })),
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
@@ -95,13 +89,15 @@ export function App() {
           case 'bookmark.toggle': if (act) void api.toggleBookmark(act.id); break
           case cmd.startsWith('panel.') ? cmd : '': { const k = PANEL_TABS[Number(cmd.slice(6))]; if (k) st.set({ panelTab: k }); break }
           case cmd.startsWith('tab.go.') || cmd === 'tab.next' || cmd === 'tab.prev' ? cmd : '': {
-            const mine = st.tabs.filter((x) => x.workspaceId === st.activeWorkspaceId)
+            const mine = st.tabs.filter((x) => x.workspaceId === st.activeWorkspaceId && (x.winId ?? st.winId) === st.winId)
             if (!mine.length) break
             const cur = mine.findIndex((x) => x.id === st.activeTabId)
             const idx = cmd === 'tab.next' ? (cur + 1) % mine.length : cmd === 'tab.prev' ? (cur - 1 + mine.length) % mine.length : Number(cmd.slice(7)) === 9 ? mine.length - 1 : Math.min(Number(cmd.slice(7)) - 1, mine.length - 1)
             void api.activateTab(mine[idx].id); break
           }
           case 'tab.reopen': void api.reopenTab(); break
+          case 'win.new': void api.newWindow(); break
+          case 'tab.hop': if (act) void api.hopTab(act.id); break
           case 'tab.new': void api.createTab(); break
           case 'tab.newPrivate': void api.createTab(undefined, 'incognito')
           case 'reader.toggle': void api.reader().then((r: string) => { if (r === 'none') toast(tNow('reader.none')) }); break
@@ -161,12 +157,13 @@ export function App() {
     <>
       <div className="tabstrip drag">
         {myTabs.map((tb) => (
-          <div key={tb.id} draggable className={`tab nodrag ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable className={`tab nodrag ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onClick={() => api.activateTab(tb.id)} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
             <span className="t">{!tb.private && s.favicons[originKey(tb.url) ?? ''] && <img className="tab-fav" alt="" src={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
+            {!tb.pinned && <button className="tab-hop" aria-label={t('tab.hopTip')} title={t(tb.winId !== undefined && tb.winId !== s.winId ? 'tab.hopBack' : 'tab.hopTip')} onClick={(e) => { e.stopPropagation(); void api.hopTab(tb.id) }}><IcHop /></button>}
             {!tb.pinned && <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>}
           </div>
         ))}
@@ -196,7 +193,7 @@ export function App() {
           )}
         </form>
         {shieldShown && active && (
-          <button type="button" className={`chip shield nodrag ${siteAllowed ? 'off' : ''}`} title={t(siteAllowed ? 'ad.tipOff' : 'ad.tipOn', { n: active.blocked ?? 0 })} onClick={toggleSite}><IcShield />{!siteAllowed && (active.blocked ?? 0) > 0 && <b>{active.blocked}</b>}</button>
+          <button type="button" className={`chip shield nodrag ${adOff ? 'off' : ''}`} title={t(adOff ? 'ad.tipOff' : 'ad.tipOn', { n: active.blocked ?? 0 })} onClick={() => void api.adMenu(pageHost)}><IcShield />{!adOff && (active.blocked ?? 0) > 0 && <b>{active.blocked}</b>}</button>
         )}
         {emuActive(active?.emu) && active && (
           <button type="button" className="chip emu" title={t('emu.resetTip')} onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null, ua: null, touch: null, vision: null, contrast: null, forcedColors: null, print: null })}>
