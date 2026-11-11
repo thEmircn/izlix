@@ -3301,5 +3301,27 @@
       "eq",
       true
     ]
+  ],
+  "roll": [
+    [
+      "hasStrips",
+      "gte",
+      3
+    ],
+    [
+      "moving",
+      "eq",
+      true
+    ],
+    [
+      "grew",
+      "eq",
+      true
+    ],
+    [
+      "digitCols",
+      "eq",
+      true
+    ]
   ]
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, useT, wsName } from './store'
 import { originKey } from '../shared/favicon'
-import { Fav } from './ui'
+import { Fav, Roll } from './ui'
 import { SuggestList, useSuggestions } from './Suggest'
 import type { Sug } from '../shared/suggest'
 import { IcBookmark, IcClock, IcFolder, IcGear, IcHome, IcLayers, IcServer, Plus } from './icons'
@@ -102,7 +102,7 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
           <button className="tor" onClick={() => api.createTab(undefined, 'tor')} title="⌥⇧⌘N"><span className="priv-dot" />{t('hub.tor')}</button>
         </div>
         <nav className="hub-nav">
-          {nav.map((x) => <button key={x.id} className={x.id === sec ? 'on' : ''} onClick={() => { setSec(x.id); setQ('') }}>{x.icon}<span>{x.label}</span>{x.n > 0 && <em>{x.n}</em>}</button>)}
+          {nav.map((x) => <button key={x.id} className={x.id === sec ? 'on' : ''} onClick={() => { setSec(x.id); setQ('') }}>{x.icon}<span>{x.label}</span>{x.n > 0 && <em><Roll text={x.n} /></em>}</button>)}
         </nav>
         <div className="hub-cap">{t('hub.workspaces')}</div>
         <div className="hub-ws">

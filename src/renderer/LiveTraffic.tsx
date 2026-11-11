@@ -1,3 +1,4 @@
+import { Roll } from './ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { buildNetworkRows, formatBytes } from '../shared/network'
@@ -117,7 +118,7 @@ export function LiveTraffic({ events, height = 150, compact = false, mode = 'net
     <div className={`live ${compact ? 'compact' : ''}`}>
       <div className="live-hud">
         <span className="pill ok live-pill"><i />{t('live.title')}</span>
-        <div className="hud"><b>{hud.rps.toFixed(hud.rps < 10 ? 1 : 0)}</b><small>{t(mode === 'net' ? 'live.rps' : 'live.eps')}</small></div>
+        <div className="hud"><b><Roll text={hud.rps.toFixed(hud.rps < 10 ? 1 : 0)} /></b><small>{t(mode === 'net' ? 'live.rps' : 'live.eps')}</small></div>
         {mode === 'net' ? <div className="hud"><b>{formatBytes(Math.round(hud.bps)) || '0 B'}</b><small>{t('live.bps')}</small></div> : <div className="hud"><b>{hud.bps.toFixed(hud.bps < 10 ? 1 : 0)}</b><small>{t('live.rendersps')}</small></div>}
         {mode === 'net' && <div className="hud"><b>{hud.pending}</b><small>{t('live.pending')}</small></div>}
         {hud.fails > 0 && <div className="hud bad"><b>{hud.fails}</b><small>{t('live.fails')}</small></div>}

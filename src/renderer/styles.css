@@ -941,3 +941,14 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 /* v9: sayfa gizlenirken donmus goruntu (surukleme/palet/ayarlar sirasinda sayfa kararmaz) */
 .freeze { position: absolute; overflow: hidden; border-radius: var(--r, 12px); pointer-events: none; background: #000; }
 .freeze img { display: block; max-width: none; object-fit: none; object-position: left top; user-select: none; }
+
+/* v9: donen rakamlar (analog sayac): her rakam 0-9 dikey seridinde ileri doner */
+.roll { display: inline-flex; align-items: baseline; font-variant-numeric: tabular-nums; white-space: pre; }
+.roll-d { position: relative; display: inline-block; height: 1.18em; line-height: 1.18em; overflow: hidden; vertical-align: bottom; }
+.roll-strip { display: flex; flex-direction: column; transition: transform .85s cubic-bezier(.22, 1.2, .36, 1); will-change: transform; }
+.roll-strip.snap { transition: none; }
+.roll-strip > span { display: block; height: 1.18em; line-height: 1.18em; }
+.roll-ghost { visibility: hidden; position: absolute; left: 0; top: 0; } /* genislik icin (tabular-nums ile ayni) */
+.roll-ch { display: inline-block; height: 1.18em; line-height: 1.18em; }
+.stat b { animation: none; }
+@media (prefers-reduced-motion: reduce) { .roll-strip { transition: none; } }

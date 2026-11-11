@@ -4,6 +4,7 @@ import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
 import { IcShield, IcHop, IcSpeaker, IcMuted, IcTune, IcKey } from './icons'
 import { SiteSettings } from './SiteSettings'
+import { Roll } from './ui'
 import { SuggestList, useSuggestions } from './Suggest'
 import { computeLayout, padRect, type PanelSide } from '../shared/layout'
 import { StartPage } from './StartPage'
@@ -230,7 +231,7 @@ export function App() {
           </>
         )}
         {shieldShown && active && (
-          <button type="button" className={`chip shield nodrag ${adOff ? 'off' : ''}`} title={t(adOff ? 'ad.tipOff' : 'ad.tipOn', { n: active.blocked ?? 0 })} onClick={() => void api.adMenu(pageHost)}><IcShield />{!adOff && (active.blocked ?? 0) > 0 && <b>{active.blocked}</b>}</button>
+          <button type="button" className={`chip shield nodrag ${adOff ? 'off' : ''}`} title={t(adOff ? 'ad.tipOff' : 'ad.tipOn', { n: active.blocked ?? 0 })} onClick={() => void api.adMenu(pageHost)}><IcShield />{!adOff && (active.blocked ?? 0) > 0 && <b><Roll text={active.blocked ?? 0} /></b>}</button>
         )}
         {emuActive(active?.emu) && active && (
           <button type="button" className="chip emu" title={t('emu.resetTip')} onClick={() => void api.setEmulation(active.id, { network: null, cpu: null, geo: null, ua: null, touch: null, vision: null, contrast: null, forcedColors: null, print: null })}>

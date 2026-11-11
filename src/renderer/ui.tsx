@@ -25,24 +25,44 @@ export function Seg<T extends string>({ items, value, onChange, small }: { items
   )
 }
 
-/** Sayi degisince eski degerden yenisine akan sayac (reduced-motion'da aninda). */
-export function CountUp({ value, decimals = 0, ms = 600 }: { value: number; decimals?: number; ms?: number }) {
-  const [shown, setShown] = useState(value)
-  const from = useRef(value)
+const reduceMotion = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/** Tek rakam makarasi: 0-9 dikey seritte; rakam degisince seridi her zaman ILERI dondurur (analog sayac / kilometre sayaci gibi). */
+function RollDigit({ d }: { d: number }) {
+  const [idx, setIdx] = useState(d)      // seritteki konum 0..18 (dinlenirken 0..9)
+  const [snap, setSnap] = useState(false) // 10'u gecince animasyonsuz geri sar
+  const cur = useRef(d)
   useEffect(() => {
-    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce || from.current === value) { setShown(value); from.current = value; return }
-    const a = from.current, t0 = performance.now()
-    let raf = 0
-    const step = (t: number): void => {
-      const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3)
-      setShown(a + (value - a) * e)
-      if (k < 1) raf = requestAnimationFrame(step); else from.current = value
-    }
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [value, ms])
-  return <>{shown.toFixed(decimals)}</>
+    if (cur.current === d) return
+    if (reduceMotion()) { cur.current = d; setSnap(true); setIdx(d); return }
+    const steps = (d - cur.current + 10) % 10
+    cur.current = d; setSnap(false); setIdx((i) => (i % 10) + steps)
+  }, [d])
+  const done = (): void => { if (idx >= 10) { setSnap(true); setIdx(idx % 10) } }
+  useEffect(() => { if (snap) { const r = requestAnimationFrame(() => requestAnimationFrame(() => setSnap(false))); return () => cancelAnimationFrame(r) } }, [snap])
+  return (
+    <span className="roll-d" aria-hidden="true">
+      <span className={`roll-strip ${snap ? 'snap' : ''}`} style={{ transform: `translateY(calc(${idx} * -1.18em))` }} onTransitionEnd={done}>
+        {Array.from({ length: 19 }, (_, k) => <span key={k}>{k % 10}</span>)}
+      </span>
+      <span className="roll-ghost">{d}</span>
+    </span>
+  )
+}
+
+/** Metindeki rakamlar dondurulerek degisir (analog saat gibi); diger karakterler sabit. Genislik rakamlari sabit tutar. */
+export function Roll({ text, className }: { text: string | number; className?: string }) {
+  const s = String(text)
+  return (
+    <span className={`roll ${className ?? ''}`} role="text" aria-label={s}>
+      {[...s].map((ch, i) => (/\d/.test(ch) ? <RollDigit key={s.length - i} d={Number(ch)} /> : <span key={`c${s.length - i}`} className="roll-ch">{ch}</span>))}
+    </span>
+  )
+}
+
+/** Eski ad: sayi degisince rakamlar doner. */
+export function CountUp({ value, decimals = 0 }: { value: number; decimals?: number; ms?: number }) {
+  return <Roll text={value.toFixed(decimals)} />
 }
 
 function useWidth(): [React.RefObject<HTMLDivElement | null>, number] {

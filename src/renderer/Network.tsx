@@ -7,7 +7,7 @@ import { SENSITIVE_KEYS } from '../shared/mask'
 import { sortRows, type SortKey, typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
-import { Seg } from './ui'
+import { Seg, Roll } from './ui'
 import { JwtList } from './Jwt'
 import { findJwts } from '../shared/jwt'
 import { toast, useStore, useT, writePref, tNow } from './store'
@@ -56,7 +56,7 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
       <div className="net-bar">
         <div className="chips">
           {FILTERS.map((f) => (counts[f] || f === 'all') ? (
-            <button key={f} className={`fchip ${filter === f ? 'on' : ''}`} onClick={() => setFilter(f)}>{f === 'all' ? t('net.all') : f}<em>{counts[f] ?? 0}</em></button>
+            <button key={f} className={`fchip ${filter === f ? 'on' : ''}`} onClick={() => setFilter(f)}>{f === 'all' ? t('net.all') : f}<em><Roll text={counts[f] ?? 0} /></em></button>
           ) : null)}
         </div>
         <input className="search" placeholder={t('net.search')} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -101,7 +101,7 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
 /** Sayi/metin degisince yumusakca zipliyor */
 function Stat({ label, value, text, bad }: { label: string; value?: number; text?: string; bad?: boolean }) {
   const shown = text ?? String(value ?? 0)
-  return <div className="stat"><span>{label}</span><b key={shown} className={bad ? 'bad' : ''}>{shown}</b></div>
+  return <div className="stat"><span>{label}</span><b className={bad ? 'bad' : ''}><Roll text={shown} /></b></div>
 }
 
 function Row({ r, gql, t0, span, now, selected, onClick }: { r: NetRow; gql?: string; t0: number; span: number; now: number; selected: boolean; onClick(): void }) {

@@ -4,7 +4,7 @@ import { useStore, writePref, useT, useThrottled, toast, type PanelTab } from '.
 import { toCurl } from '../shared/network'
 import { Inspector, RenderTracker } from './Inspector'
 import { Network } from './Network'
-import { ContextMenu, type MenuItem } from './ui'
+import { ContextMenu, Roll, type MenuItem } from './ui'
 import { Elements } from './Elements'
 import { Storage } from './Storage'
 import { Perf } from './Perf'
@@ -128,7 +128,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       <Rail value={tab} onChange={setTab} labels={labels} badges={badges} groupLabels={{ timeline: labels.timeline, network: labels.network, console: labels.console, elements: labels.elements, sources: labels.sources, storage: labels.storage, perf: labels.perf, quality: t('tl.quality'), react: t('tl.react'), server: labels.server }} />
       <div className="pmain" ref={mainRef} data-dir={lastDir.current}>
       <div className="phead">
-        <div className="ptitle"><h3 key={tab}>{groupTitle}</h3>{tab === 'timeline' || tab === 'raw' ? <span className="pcount">{t('tl.eventsCount', { n: all.length })}</span> : null}
+        <div className="ptitle"><h3 key={tab}>{groupTitle}</h3>{tab === 'timeline' || tab === 'raw' ? <span className="pcount"><Roll text={t('tl.eventsCount', { n: all.length })} /></span> : null}
           <div className="pctl">
             {(['left', 'bottom', 'right'] as const).map((sd) => <button key={sd} className={`pctl-b ${panelSide === sd ? 'on' : ''}`} title={t(`panel.side.${sd}` as any)} aria-label={t(`panel.side.${sd}` as any)} aria-pressed={panelSide === sd} disabled={dockOn} onClick={() => set({ panelSide: sd })}>{sd === 'left' ? <IcDockL /> : sd === 'bottom' ? <IcDockB /> : <IcPanel />}</button>)}
             <span className="pctl-sep" />
