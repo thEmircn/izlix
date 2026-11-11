@@ -40,6 +40,8 @@ jobs:
           exec "$HERE/chrome" --load-extension="$HERE/izlix-extension" --silent-debugger-extension-api --user-data-dir="${IZLIX_PROFILE:-$HOME/.config/izlix}" "$@"
           SH
           sed -i 's/^          //' "$dir/izlix"; chmod +x "$dir/izlix"
+          cp build/icon.png "$dir/izlix.png"
+          printf '[Desktop Entry]\nType=Application\nName=Izlix\nComment=React-aware development browser\nExec=sh -c "$(dirname "$(readlink -f %%k)")/izlix %%U"\nIcon=izlix\nCategories=Network;WebBrowser;Development;\nTerminal=false\n' > "$dir/izlix.desktop"
           echo "BUNDLE_DIR=$dir" >> "$GITHUB_ENV"
       - name: Smoke test (virtual display)
         run: xvfb-run -a node tools/bundle-smoke.mjs "$BUNDLE_DIR/izlix" --no-sandbox --disable-gpu
@@ -112,6 +114,9 @@ jobs:
           SH
           sed -i '' 's/^          //' "$app/Contents/MacOS/$exe"; chmod +x "$app/Contents/MacOS/$exe"
           /usr/libexec/PlistBuddy -c 'Add :CFBundleDisplayName string Izlix' "$app/Contents/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName Izlix' "$app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Set :CFBundleName Izlix' "$app/Contents/Info.plist"
+          icon=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$app/Contents/Info.plist"); icon="${icon%.icns}.icns"
+          cp build/icon.icns "$app/Contents/Resources/$icon"
           xattr -cr "$app"
           codesign --force --deep -s - "$app"
           mv "$app" work/Izlix.app
