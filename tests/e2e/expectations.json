@@ -2697,5 +2697,37 @@
       "eq",
       0
     ]
+  ],
+  "ambient": [
+    [
+      "devSkipped",
+      "eq",
+      true
+    ],
+    [
+      "created",
+      "eq",
+      true
+    ],
+    [
+      "opacity",
+      "gt",
+      0.3
+    ],
+    [
+      "pixel",
+      "eq",
+      true
+    ],
+    [
+      "clipped",
+      "eq",
+      true
+    ],
+    [
+      "offOpacity",
+      "lt",
+      0.1
+    ]
   ]
 }

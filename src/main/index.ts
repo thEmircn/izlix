@@ -1,3 +1,5 @@
+import { isLoopbackHost } from './security'
+import { AMBIENT_SCRIPT } from '../shared/ambient'
 import { AdBlocker } from './adblock'
 import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
@@ -112,6 +114,13 @@ async function handleLaunch(l: Launch): Promise<void> {
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
 let favicons: FaviconStore, thumbs: ThumbStore
+/** Ambient isik betigini sayfaya koyar (yerel gelistirme sayfalari haric) ve acik/kapali durumunu esitler */
+async function injectAmbient(wc: Electron.WebContents): Promise<void> {
+  const s = settings?.get(); if (!s || wc.isDestroyed()) return
+  let host = ''; try { host = new URL(wc.getURL()).hostname } catch { return }
+  if (!host || (isLoopbackHost(host) && !s.ambientDev)) return
+  await wc.executeJavaScript(AMBIENT_SCRIPT + `;window.__dbAmbient.on=${s.ambient !== false}`).catch(() => {})
+}
 const adblock = new AdBlocker(() => { const s = settings?.get(); return { level: s?.adblock ?? 'ads', allow: s?.adblockAllow ?? [], blockOnDev: !!s?.adblockDev } }, (id) => tabs?.noteBlocked(id))
 const tor = new TorService(join(app.getPath('userData'), 'tor'))
 async function newTab(url?: string, priv?: 'incognito' | 'tor'): Promise<string> {
@@ -204,7 +213,7 @@ function registerIpc(): void {
   })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.settingsGet, null, () => settings.get())
-  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.language && p.language !== before) installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
+  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.language && p.language !== before) installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
   handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
   handle(Ch.demoOpen, null, async () => {
     const port = await demo.start()
@@ -483,7 +492,7 @@ async function createWindow(): Promise<void> {
     // 1) sayfanin portunu dinleyen dev sunucusunun cwd'si  2) Workspace kok klasoru
     try { const port = Number(new URL(url).port); if (demo.port && port === demo.port) return join(samples, 'demo-src'); const s = detected.find((d) => d.port === port); if (s?.cwd) return s.cwd } catch { /* gecersiz url */ }
     return workspaces.get(wsId)?.rootDir ?? null
-  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => void adblock.cosmetic(wc), torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { adblock.attach(ses); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
+  }, (wsId) => rules.get(wsId), { detectedPorts: () => detected.map((d) => d.port), language: () => settings.get().language, searchEngine: () => settings.get().searchEngine ?? 'duckduckgo', onFavicons: (ses, u, urls) => void favicons.capture(ses, u, urls), onThumb: (u, wc) => { if (!thumbs.recentlyHas(u, 60_000)) void wc.capturePage().then((img) => thumbs.put(u, img)).catch(() => {}) }, onDomReady: (wc) => { void adblock.cosmetic(wc); void injectAmbient(wc) }, torPort: async () => { const r = await tor.ensure(); return r.ok ? r.port : null }, onFound: (id, active, total) => send(Ch.findResult, { id, active, total }), onVisit: (u, t) => library.addVisit(u, t), onSession: (ses) => { adblock.attach(ses); downloads.attach(ses); lockPermissions(ses, permissionHandlers); trustLoopbackCerts(ses) } })
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })

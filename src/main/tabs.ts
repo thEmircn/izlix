@@ -63,6 +63,7 @@ export class TabManager {
   list(): { tabs: TabInfo[]; activeId: string | null } {
     return { tabs: this.order.map((id) => this.tabs.get(id)!.info), activeId: this.activeId }
   }
+  each(fn: (wc: Electron.WebContents) => void): void { for (const e of this.tabs.values()) if (!e.view.webContents.isDestroyed()) fn(e.view.webContents) }
   get(id: string): Entry | undefined { return this.tabs.get(id) }
   active(): Entry | undefined { return this.activeId ? this.tabs.get(this.activeId) : undefined }
 
