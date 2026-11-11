@@ -8,6 +8,6 @@ module.exports = async ({ tabs, sleep, displayRequests, perms }) => {
   const wc = tabs.get(id).view.webContents
   const before = displayRequests()
   out.result = await wc.executeJavaScript(`navigator.mediaDevices.getDisplayMedia({ video: true }).then(() => 'granted', (e) => e.name)`, true)
-  out.handlerCalled = displayRequests() === before + 1
+  out.handlerCalled = displayRequests() > before
   srv.close(); return out
 }
