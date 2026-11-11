@@ -990,7 +990,7 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .dialog.rec { width: min(980px, 95vw); height: min(80vh, 720px); display: flex; flex-direction: column; } .rec-main { flex: 1; display: flex; min-height: 0; } .rec-steps { width: 44%; overflow: auto; padding: 8px 12px; border-right: 1px solid var(--line); } .rec-step { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; } .rec-step em { font-style: normal; color: var(--dim); width: 22px; text-align: right; flex: none; font-size: 11px; } .rec-step code { font-size: 11.5px; word-break: break-all; }
 .rec-code { flex: 1; resize: none; border: 0; background: rgba(0,0,0,.25); color: var(--fg); padding: 12px; font: 12px/1.55 ui-monospace, Menlo, monospace; outline: none; } .rec-foot { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
 
-.net-throttle { height: 28px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--fg); padding: 0 6px; font-size: 12px; }
+.net-throttle, .net-select { height: 28px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--fg); padding: 0 6px; font-size: 12px; }
 
 /* v9: sekme/icerik arama */
 .dialog.ts { width: min(760px, 94vw); height: min(76vh, 680px); display: flex; flex-direction: column; } .ts-list { flex: 1; overflow: auto; padding: 6px 10px 12px; }

@@ -84,7 +84,7 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         </div>
         <input className="search" placeholder={t('net.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
-        <select className="net-throttle net-export" aria-label={t('net.export')} title={t('net.export')} value="" onChange={(e) => { const v = e.target.value as 'msw' | 'postman' | 'openapi'; e.target.value = ''; if (v) void doExport(v) }}>
+        <select className="net-select net-export" aria-label={t('net.export')} title={t('net.export')} value="" onChange={(e) => { const v = e.target.value as 'msw' | 'postman' | 'openapi'; e.target.value = ''; if (v) void doExport(v) }}>
           <option value="">{t('net.export')}</option><option value="msw">MSW handlers</option><option value="postman">Postman</option><option value="openapi">OpenAPI</option>
         </select>
         <select className="net-throttle" aria-label={t('net.throttle')} title={t('net.throttle')} value={netThrottle} onChange={(e) => tabId && void window.izlix.setEmulation(tabId, { network: e.target.value || null })}>
