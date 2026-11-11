@@ -140,4 +140,4 @@ jobs:
 
           **These builds are not code-signed.** macOS: right-click > Open the first time (or `xattr -dr com.apple.quarantine Izlix.app`). Windows: SmartScreen may warn; choose "More info > Run anyway". Verify the SHA-256 files.
           MD
-          gh release create "${GITHUB_REF_NAME}" dist/* --repo "$GITHUB_REPOSITORY" --title "Izlix Browser ${GITHUB_REF_NAME#browser-v}" --notes-file notes.md
+          gh release create "${GITHUB_REF_NAME}" dist/* --repo "$GITHUB_REPOSITORY" --title "Izlix Browser ${GITHUB_REF_NAME#browser-v}" --notes-file notes.md --prerelease

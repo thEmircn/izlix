@@ -93,6 +93,12 @@ npm run build:ext
 
 Open your React app on `localhost`, click the Izlix toolbar button; the page reloads with tracing on. Chrome shows its standard "started debugging this browser" bar while the extension is attached. Early alpha: the timeline, network, console, render tracker, request rules (mock, delay, redirect, status, headers) and click-to-source are available; the other panels of the desktop app are not ported yet.
 
+## Izlix Browser (alpha bundle)
+
+Prefer a ready-to-run browser? The **Izlix Browser** bundle is a repackaged [ungoogled-chromium](https://github.com/ungoogled-software) (BSD-3) with the Izlix extension preinstalled and Chrome's debugging banner hidden. Because it is a full Chromium-based browser, **Google sign-in works**. Builds for macOS (Apple Silicon), Windows and Linux are produced by the `Izlix Browser bundle` workflow and published on the Releases page.
+
+These builds are **not code-signed**: on macOS right-click > Open the first time (or `xattr -dr com.apple.quarantine Izlix.app`); on Windows choose "More info > Run anyway" in SmartScreen. Verify the published SHA-256 files. The browser engine is updated by repackaging upstream releases, so check for newer builds regularly.
+
 ## How it works
 
 ```mermaid
