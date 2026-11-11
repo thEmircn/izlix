@@ -1,7 +1,8 @@
 import { searchUrl } from './search'
+import { resolveShortcut, type Shortcut } from './shortcuts'
 
 /** Adres cubugu girdisini URL'ye cevirir: sema varsa aynen, localhost/IP/host:port -> http, .onion -> http, alan adi -> https, aksi secili motorda arama. */
-export function resolveInput(raw: string, engine?: string): string {
+export function resolveInput(raw: string, engine?: string, shortcuts?: Shortcut[]): string {
   const input = raw.trim()
   if (!input) return 'about:blank'
   if (/^(about|file|devtools|view-source):/i.test(input)) return input
@@ -10,6 +11,8 @@ export function resolveInput(raw: string, engine?: string): string {
   if (hostLike.test(input) || /^[\w.-]+:\d+([/?#].*)?$/.test(input)) return `http://${input}`
   if (!/\s/.test(input) && /^[^\s/]+\.onion([:/?#].*)?$/i.test(input)) return `http://${input}` // onion siteleri cogunlukla http (Tor katmani sifreler)
   if (!/\s/.test(input) && /^[^\s/]+\.[a-z]{2,}([:/?#].*)?$/i.test(input)) return `https://${input}`
+  const sc = shortcuts ? resolveShortcut(input, shortcuts) : null
+  if (sc) return sc.url
   return searchUrl(engine, input)
 }
 

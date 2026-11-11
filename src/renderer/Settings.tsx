@@ -19,6 +19,8 @@ export function Settings({ onClose }: { onClose(): void }) {
   const api = window.izlix
   const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
   const [pw, setPw] = useState<{ logins: { origin: string; username: string; ts: number }[]; never: string[] }>({ logins: [], never: [] })
+  const [scText, setScText] = useState((settings.shortcuts ?? []).map((x) => `${x.key} ${x.url}`).join('\n'))
+  const saveShortcuts = (): void => { const list = scText.split('\n').map((l) => l.trim().split(/\s+/)).filter((p) => p.length >= 2).map(([key, url]) => ({ key, url })); void api.setSettings({ shortcuts: list }).then(() => toast(t('site.saved'))) }
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
   const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
@@ -66,6 +68,10 @@ export function Settings({ onClose }: { onClose(): void }) {
           </div>
           <Row title={t('set.spell')} hint={t('set.spellHint')}><Switch on={settings.spellcheck !== false} label={t('set.spell')} onChange={(v) => void api.setSettings({ spellcheck: v })} /></Row>
           <Row title={t('set.https')} hint={t('set.httpsHint')}><Switch on={settings.httpsOnly !== false} label={t('set.https')} onChange={(v) => void api.setSettings({ httpsOnly: v })} /></Row>
+          <div className="srow" style={{ display: 'block' }}>
+            <div className="stitle">{t('set.shortcuts')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.shortcutsHint')}</div>
+            <textarea value={scText} spellCheck={false} rows={4} placeholder="docs https://docs.example.com/search?q=%s" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setScText(e.target.value)} onBlur={saveShortcuts} />
+          </div>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.tabLayout')} hint={t('set.tabLayoutHint')}>

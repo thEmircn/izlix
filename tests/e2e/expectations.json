@@ -3991,5 +3991,27 @@
       "eq",
       true
     ]
+  ],
+  "shortcuts": [
+    [
+      "customUrl",
+      "eq",
+      "http://localhost:5541/ara?q=kedi%20resmi"
+    ],
+    [
+      "ghDirect",
+      "contains",
+      "github.com/vercel/next.js"
+    ],
+    [
+      "firstRow",
+      "eq",
+      "bul: merhaba"
+    ],
+    [
+      "stored",
+      "eq",
+      1
+    ]
   ]
 }

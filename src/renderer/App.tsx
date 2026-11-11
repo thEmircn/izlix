@@ -54,7 +54,7 @@ export function App() {
   const addrRef = useRef<HTMLInputElement>(null)
   const [typed, setTyped] = useState<string | null>(null) // kullanicinin yazdigi metin (tamamlama ve oneriler buna gore)
   const sg = useSuggestions(typed ?? '', editing)
-  const sugOpen = typed !== null && editing && sg.items.length > 1
+  const sugOpen = typed !== null && editing && (sg.items.length > 1 || sg.items[0]?.kind === 'shortcut')
   const pendingSel = useRef<[number, number] | null>(null)
   useLayoutEffect(() => { if (pendingSel.current && addrRef.current) { addrRef.current.setSelectionRange(...pendingSel.current); pendingSel.current = null } })
   const active = s.tabs.find((t) => t.id === s.activeTabId)

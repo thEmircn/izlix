@@ -1,6 +1,7 @@
 // Adres cubugu / yeni sekme onerileri (saf): yerel kaynaklardan (sekme, yer imi, dev sunucusu, gecmis) siralanir. Dis servise istek yok.
 import { POPULAR } from './popular'
-export type SugKind = 'url' | 'search' | 'tab' | 'bookmark' | 'server' | 'history' | 'site'
+import { resolveShortcut, type Shortcut } from './shortcuts'
+export type SugKind = 'shortcut' | 'url' | 'search' | 'tab' | 'bookmark' | 'server' | 'history' | 'site'
 export interface Sug { kind: SugKind; title: string; url: string; tabId?: string }
 export interface SugSource {
   history: { url: string; title: string; ts: number }[]
@@ -12,13 +13,14 @@ export interface SugSource {
 export const looksLikeUrl = (v: string): boolean => /^(https?:\/\/|localhost|[\w-]+(\.[\w-]+)+(\/|:|$)|\d{1,3}(\.\d{1,3}){3})/i.test(v.trim())
 const norm = (u: string): string => u.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
 const hostOf = (n: string): string => n.split(/[/?#]/)[0]
-const PRIO: Record<SugKind, number> = { tab: 6, bookmark: 5, server: 4, history: 3, site: 2, url: 1, search: 0 }
-const BASE: Record<SugKind, number> = { tab: 125, bookmark: 120, server: 120, history: 100, site: -10, url: 0, search: 0 } // kullanici verisi her zaman gomulu sitelerin ustunde
+const PRIO: Record<SugKind, number> = { shortcut: 0, tab: 6, bookmark: 5, server: 4, history: 3, site: 2, url: 1, search: 0 }
+const BASE: Record<SugKind, number> = { shortcut: 0, tab: 125, bookmark: 120, server: 120, history: 100, site: -10, url: 0, search: 0 } // kullanici verisi her zaman gomulu sitelerin ustunde
 
 /** Siralanmis oneriler; ilk oge her zaman yazilan metnin kendisi (adres ise git, degilse ara). */
-export function suggest(query: string, src: SugSource, limit = 8, now = Date.now()): Sug[] {
+export function suggest(query: string, src: SugSource, limit = 8, now = Date.now(), shortcuts?: Shortcut[]): Sug[] {
   const q = query.trim().toLowerCase()
   if (!q) return []
+  const sc = shortcuts ? resolveShortcut(query, shortcuts) : null
   const tokens = q.split(/\s+/)
   const best = new Map<string, { s: Sug; score: number }>()
   const add = (kind: SugKind, url: string, title: string, extra = 0, tabId?: string): void => {
@@ -41,7 +43,8 @@ export function suggest(query: string, src: SugSource, limit = 8, now = Date.now
   for (const h of src.history) add('history', h.url, h.title, 15 * Math.max(0, 1 - (now - h.ts) / (30 * 86_400_000)))
   const list = [...best.values()].sort((a, b) => b.score - a.score).slice(0, limit).map((x) => x.s)
   const first: Sug = looksLikeUrl(query) ? { kind: 'url', title: query.trim(), url: query.trim() } : { kind: 'search', title: query.trim(), url: query.trim() }
-  return [first, ...list.filter((x) => norm(x.url) !== norm(first.url))]
+  const head: Sug[] = sc ? [{ kind: 'shortcut', title: `${sc.shortcut.label ?? sc.shortcut.key}: ${sc.query}`, url: sc.url }] : [first]
+  return [...head, ...list.filter((x) => norm(x.url) !== norm(first.url) && !(sc && norm(x.url) === norm(sc.url)))]
 }
 
 /** Satir ici tamamlama: yazilan metin bir sitenin host'unun basiysa host'un geri kalani. Bulunamazsa null. */
