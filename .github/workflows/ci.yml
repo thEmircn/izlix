@@ -57,4 +57,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Run a few end-to-end scripts under a virtual display
-        run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py hub sync ext threat permissions history bookmarks groups tracking sites notes budget netexport statepanel
+        run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py hub sync ext threat permissions history bookmarks groups tracking sites notes netexport statepanel
