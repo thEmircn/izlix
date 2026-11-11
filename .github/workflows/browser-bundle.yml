@@ -2,9 +2,10 @@ name: Izlix Browser bundle
 
 # Hazir ungoogled-chromium surumunu (BSD-3) Izlix eklentisi onyuklu olarak yeniden paketler. Derleme yok; imzasiz/ad-hoc.
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
   push:
-    tags: ['browser-v*']
+    tags:
+      - 'browser-v*'
 
 permissions:
   contents: write
