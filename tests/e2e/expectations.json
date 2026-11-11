@@ -4564,5 +4564,67 @@
       "eq",
       "element not found"
     ]
+  ],
+  "aiexplain": [
+    [
+      "dialog",
+      "eq",
+      true
+    ],
+    [
+      "hasError",
+      "eq",
+      true
+    ],
+    [
+      "masked",
+      "eq",
+      true
+    ],
+    [
+      "local",
+      "eq",
+      true
+    ],
+    [
+      "nothingSentYet",
+      "eq",
+      true
+    ],
+    [
+      "answer",
+      "contains",
+      "Sebep: items undefined"
+    ],
+    [
+      "sentOnce",
+      "eq",
+      true
+    ],
+    [
+      "bodyMasked",
+      "eq",
+      true
+    ],
+    [
+      "noKeyDisabled",
+      "eq",
+      true
+    ],
+    [
+      "remoteBadge",
+      "eq",
+      true
+    ],
+    [
+      "keySaved",
+      "eq",
+      true
+    ],
+    [
+      "hasKeyNow",
+      "eq",
+      true
+    ]
   ]
 }

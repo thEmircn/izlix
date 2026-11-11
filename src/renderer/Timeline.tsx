@@ -116,6 +116,7 @@ export function Timeline({ width, height }: { width: number; height: number }) {
       { label: t('ctx.tl.curl'), run: () => copy(toCurl(reqEv?.payload.method ?? p.method ?? 'GET', p.url, reqEv?.payload.headers, reqEv?.payload.postData)) })
     if (p.origin?.file) items.push({ label: t('ctx.tl.source'), run: () => open(p.origin.file, p.origin.line, p.origin.column) })
     if (e.kind === 'render' && p.components?.[0]?.file) items.push({ label: t('ctx.tl.source'), run: () => open(p.components[0].file, p.components[0].line) })
+    if (e.kind === 'console' || e.kind === 'error' || (isNet && (p.status ?? 0) >= 400)) items.push({ label: t('ai.cmd'), run: () => set({ overlay: 'ai', aiFocus: e.id }) })
     if (e.kind === 'console' || e.kind === 'error') items.push({ label: t('ctx.tl.showCon'), run: () => set({ panelTab: 'console' }) })
     if (e.kind === 'render') items.push({ label: t('ctx.tl.showRender'), run: () => set({ panelTab: 'renders' }) })
     items.push({ sep: true }, { label: t('ctx.tl.zoom'), run: () => setRange([e.ts - 1500, e.ts + 1500]) }, { label: t('ctx.tl.copyEv'), run: () => copy(JSON.stringify({ id: e.id, kind: e.kind, ts: e.ts, source: e.source, payload: e.payload }, null, 2)) })

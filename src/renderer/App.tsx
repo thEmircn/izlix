@@ -10,6 +10,7 @@ import { TabSearch } from './TabSearch'
 import { DownloadsPage } from './DownloadsPage'
 import { NotePrompt, NotesPage } from './Notes'
 import { UsagePage } from './UsagePage'
+import { AiDialog } from './AiDialog'
 import { BudgetChip } from './BudgetChip'
 import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
@@ -133,6 +134,7 @@ export function App() {
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'inspect.elements': st.set({ panelTab: 'elements', panelOpen: true, dashboard: false }); break
           case 'speak.toggle': if (st.speaking) void api.speak('stop'); else void api.speak('auto'); break
+          case 'ai.explain': st.set({ overlay: 'ai', aiFocus: undefined }); break
           case 'usage.open': st.set({ overlay: 'usage' }); break
           case 'notes.open': st.set({ overlay: 'notes' }); break
           case 'tabsearch.open': st.set({ overlay: 'tabsearch' }); break
@@ -377,6 +379,7 @@ export function App() {
       {s.overlay === 'site' && active && <SiteSettings tabId={active.id} onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'recorder' && <RecorderDialog onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'qr' && active && <QrDialog tabId={active.id} onClose={() => s.set({ overlay: null })} />}
+      {s.overlay === 'ai' && <AiDialog onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'usage' && <UsagePage onClose={() => s.set({ overlay: null })} />}
       {s.overlay === 'notePrompt' && s.noteAsk && <NotePrompt onClose={() => s.set({ overlay: null, noteAsk: null })} />}
       {s.overlay === 'notes' && <NotesPage onClose={() => s.set({ overlay: null })} />}

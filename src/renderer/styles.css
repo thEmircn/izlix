@@ -1032,3 +1032,8 @@ button.hub-row:hover { transform: translateX(4px); background: var(--g2); border
 .bin { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--dim); } .bin input { height: 28px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--fg); padding: 0 8px; outline: none; }
 
 .rec-step.st-ok em { color: var(--ok, #6ee7a8); } .rec-step.st-fail em { color: var(--bad, #ff6b6b); } .rec-step.st-fail code { color: var(--bad, #ff6b6b); } .rec-step.st-run em { color: var(--warn, #f5b94a); } .rec-step.st-skip { opacity: .5; }
+
+/* v9: AI ile acikla */
+.dialog.ai { width: min(820px, 94vw); height: min(80vh, 720px); display: flex; flex-direction: column; } .ai-body { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-height: 0; } .ai-prompt { flex: 1; resize: none; border-radius: 10px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--fg); padding: 12px; font: 12px/1.55 ui-monospace, Menlo, monospace; outline: none; }
+.ai-answer { flex: 1; overflow: auto; white-space: pre-wrap; line-height: 1.6; font-size: 13.5px; border: 1px solid var(--line); border-radius: 10px; padding: 14px; } .ai-answer.error { color: var(--bad, #ff6b6b); }
+.ai-target { font: 11px ui-monospace, Menlo, monospace; padding: 2px 8px; border-radius: 6px; margin-left: 10px; } .ai-target.local { color: var(--ok, #6ee7a8); background: rgba(110,231,168,.12); } .ai-target.remote { color: var(--warn, #f5b94a); background: rgba(245,185,74,.12); }

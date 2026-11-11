@@ -14,6 +14,8 @@ import { Speaker } from './speak'
 import { NoteStore } from './notes'
 import { UsageStore } from './usage'
 import { PerfHistory } from './perfhist'
+import { AiService } from './ai'
+import { buildAiContext, needsKey, type AiConfig } from '../shared/ai'
 import { WidgetService } from './widgets'
 import { parseReminder } from '../shared/widgets'
 import { FocusServer } from './focus'
@@ -154,7 +156,7 @@ async function handleLaunch(l: Launch): Promise<void> {
 }
 let pendingLaunch: Launch | null = parseLaunch(process.argv.slice(1))
 
-let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore, widgets: WidgetService, perfHist: PerfHistory
+let favicons: FaviconStore, thumbs: ThumbStore, sites: SiteStore, passwords: PasswordService, notes: NoteStore, usage: UsageStore, widgets: WidgetService, perfHist: PerfHistory, ai: AiService
 const notified: string[] = []
 const focusServer = new FocusServer((a) => {
   const f = settings.get().focus ?? { on: false, sites: [], limits: {} }
@@ -446,6 +448,15 @@ function registerIpc(): void {
     writeFileSync(file, content); if (!process.env.DB_SCRIPT) shell.showItemInFolder(file)
     return file
   })
+  // AI ile acikla: once ONIZLEME (gonderilecek metin + hedef), kullanici onaylayinca istek
+  handle(Ch.aiPreview, schemas.aiPreview, ({ focusId }) => {
+    const e = tabs.active(); const cfg = (settings.get().ai ?? { provider: 'ollama', model: 'llama3.1' }) as AiConfig
+    const prompt = e ? buildAiContext(bus.snapshot(e.info.id), e.view.webContents.getURL(), focusId) : ''
+    const target = cfg.provider === 'ollama' ? (cfg.endpoint || 'http://127.0.0.1:11434') : cfg.provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com'
+    return { prompt, provider: cfg.provider, model: cfg.model, target, needsKey: needsKey(cfg.provider), hasKey: ai.hasKey(cfg.provider), empty: !/ERROR:|CONSOLE|REQUEST FAILED/.test(prompt) }
+  })
+  handle(Ch.aiAsk, schemas.aiAsk, ({ prompt }) => ai.ask(prompt, settings.get().language))
+  handle(Ch.aiKey, schemas.aiKey, ({ provider, key }) => ({ saved: ai.setKey(provider, key), hasKey: ai.hasKey(provider) }))
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -1042,6 +1053,7 @@ async function createWindow(): Promise<void> {
   notes = new NoteStore(app.getPath('userData'))
   usage = new UsageStore(app.getPath('userData'))
   perfHist = new PerfHistory(app.getPath('userData'))
+  ai = new AiService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, () => (settings.get().ai ?? { provider: 'ollama', model: 'llama3.1' }) as AiConfig)
   widgets = new WidgetService(app.getPath('userData'),
     (u) => net.fetch(u, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.text() : null), () => null),
     (r) => { notified.push(r.text); if (process.env.DB_SCRIPT) return; const n = new Notification({ title: tr('rem.title'), body: r.text }); n.on('click', () => { win.show(); win.focus() }); n.show() })

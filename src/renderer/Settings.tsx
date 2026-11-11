@@ -31,6 +31,10 @@ export function Settings({ onClose }: { onClose(): void }) {
   const [fSites, setFSites] = useState(focus.sites.join('\n'))
   const [fLimits, setFLimits] = useState(Object.entries(focus.limits).map(([k, v]) => `${k} ${v}`).join('\n'))
   const saveFocus = (on = focus.on): void => { void api.setSettings({ focus: { ...focus, on, sites: siteList(fSites), limits: parseLimits(fLimits) } }) }
+  const aiCfg = settings.ai ?? { provider: 'ollama' as const, model: 'llama3.1' }
+  const [aiKey, setAiKey] = useState('')
+  const [aiHas, setAiHas] = useState<Record<string, boolean>>({})
+  useEffect(() => { void api.aiPreview().then((p: { provider: string; hasKey: boolean }) => setAiHas((h) => ({ ...h, [p.provider]: p.hasKey }))) }, [aiCfg.provider])
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
   const loadPerms = (): void => { void api.permList().then((l: any) => setPerms(l ?? [])) }
@@ -112,6 +116,15 @@ export function Settings({ onClose }: { onClose(): void }) {
                   <input type="number" min={0} step={k === 'cls' ? 0.01 : 1} defaultValue={(settings.budgets as Record<string, number> | undefined)?.[k] ?? (DEFAULT_BUDGET as Record<string, number>)[k] ?? ''} placeholder="—"
                     onBlur={(e) => { const v = Number(e.target.value); const next: Record<string, number> = { ...(settings.budgets ?? {}) }; if (v > 0) next[k] = v; else delete next[k]; void api.setSettings({ budgets: next }) }} /></label>
               ))}
+            </div>
+          </div>
+          <div className="srow" style={{ display: 'block' }}>
+            <div className="stitle">{t('set.ai')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.aiHint')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8, alignItems: 'center' }}>
+              <select value={aiCfg.provider} onChange={(e) => { const p = e.target.value as 'ollama' | 'anthropic' | 'openai'; void api.setSettings({ ai: { provider: p, model: { ollama: 'llama3.1', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o-mini' }[p] } }) }}><option value="ollama">Ollama (local)</option><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></select>
+              <input defaultValue={aiCfg.model} key={aiCfg.provider} placeholder={t('set.aiModel')} onBlur={(e) => { if (e.target.value.trim()) void api.setSettings({ ai: { ...aiCfg, model: e.target.value.trim() } }) }} />
+              {aiCfg.provider === 'ollama' ? <><span className="shint">{t('set.aiEndpoint')}</span><input defaultValue={aiCfg.endpoint ?? ''} placeholder="http://127.0.0.1:11434" onBlur={(e) => void api.setSettings({ ai: { ...aiCfg, endpoint: e.target.value.trim() || undefined } })} /></>
+                : <><span className="shint">{t('set.aiKey')}</span><div style={{ display: 'flex', gap: 6 }}><input type="password" value={aiKey} placeholder={aiHas[aiCfg.provider] ? t('set.aiKeySaved') : 'sk-…'} onChange={(e) => setAiKey(e.target.value)} style={{ flex: 1 }} /><button className="btn" onClick={() => void api.aiKey(aiCfg.provider, aiKey).then((r: { hasKey: boolean }) => { setAiHas({ ...aiHas, [aiCfg.provider]: r.hasKey }); setAiKey(''); toast(t('site.saved')) })}>{t('site.save')}</button></div></>}
             </div>
           </div>
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
