@@ -3962,5 +3962,17 @@
       "eq",
       true
     ]
+  ],
+  "screenshare": [
+    [
+      "handlerCalled",
+      "eq",
+      true
+    ],
+    [
+      "result",
+      "eq",
+      "AbortError"
+    ]
   ]
 }
