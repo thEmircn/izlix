@@ -60,21 +60,21 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
   ]
   const title = nav.find((x) => x.id === sec)!.label
 
-  const ServerRow = ({ d }: { d: (typeof servers)[number] }): React.ReactElement => (
-    <button className="hub-row" onClick={() => go(`localhost:${d.port}`)} title={d.cwd ?? ''} {...hover(`http://localhost:${d.port}/`)}>
+  const serverRow = (d: (typeof servers)[number]): React.ReactElement => (
+    <button key={d.port} className="hub-row" onClick={() => go(`localhost:${d.port}`)} title={d.cwd ?? ''} {...hover(`http://localhost:${d.port}/`)}>
       <span className={`hub-av srv ${iconOf(`http://localhost:${d.port}`) ? 'has-icon' : ''}`} style={{ ['--h' as any]: hue(String(d.port)) }}><Fav icon={iconOf(`http://localhost:${d.port}`)}>{(d.cwd?.split('/').filter(Boolean).pop() ?? 'S').charAt(0).toUpperCase()}</Fav><i className="dot" /></span>
       <span className="hub-main"><b>{d.cwd?.split('/').filter(Boolean).pop() ?? t('start.devServer')}</b><small>{d.cwd ?? `localhost:${d.port}`}</small></span>
       <code>:{d.port}</code>{d.framework && <em className="hub-tag">{d.framework}</em>}<span className="hub-go">{t('hub.open')}</span>
     </button>
   )
-  const UrlRow = ({ url, title: ti, meta }: { url: string; title: string; meta?: string }): React.ReactElement => (
-    <button className="hub-row" onClick={() => go(url)} title={url} {...hover(url)}>
+  const urlRow = (url: string, ti: string, meta?: string): React.ReactElement => (
+    <button key={url} className="hub-row" onClick={() => go(url)} title={url} {...hover(url)}>
       <span className={`hub-av ${iconOf(url) ? 'has-icon' : ''}`} style={{ ['--h' as any]: hue(hostOf(url)) }}><Fav icon={iconOf(url)}>{(ti || hostOf(url)).trim().charAt(0).toUpperCase()}</Fav></span>
       <span className="hub-main"><b>{ti || hostOf(url)}</b><small>{hostOf(url)}</small></span>{meta && <code>{meta}</code>}<span className="hub-go">{t('hub.open')}</span>
     </button>
   )
-  const SessRow = ({ x }: { x: (typeof sess)[number] }): React.ReactElement => (
-    <div className="hub-row static">
+  const sessRow = (x: (typeof sess)[number]): React.ReactElement => (
+    <div key={x.id} className="hub-row static">
       <span className="hub-av ses"><IcLayers /></span>
       <span className="hub-main"><b>{x.name}</b><small>{t('sess.tabs', { n: x.tabs.length })} · {new Date(x.ts).toLocaleDateString()}</small></span>
       <button className="hub-act" onClick={() => void api.openSession(x.id)}>{t('sess.open')}</button>
@@ -82,8 +82,8 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
       <button className="hub-act bad" onClick={() => void api.deleteSession(x.id)}>{t('sess.del')}</button>
     </div>
   )
-  const Block = ({ id, label, n, children }: { id: Section; label: string; n: number; children: React.ReactNode }): React.ReactElement | null => (n === 0 ? null : (
-    <section className="hub-block"><header><h4>{label}</h4><button className="link" onClick={() => setSec(id)}>{t('hub.all')} ({n}) ›</button></header>{children}</section>
+  const block = (id: Section, label: string, n: number, children: React.ReactNode): React.ReactElement | null => (n === 0 ? null : (
+    <section key={id} className="hub-block"><header><h4>{label}</h4><button className="link" onClick={() => setSec(id)}>{t('hub.all')} ({n}) ›</button></header>{children}</section>
   ))
 
   return (
@@ -120,18 +120,18 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
           {sec === 'home' && (
             <>
               {servers.length === 0 && marks.length === 0 && hist.length === 0 && sess.length === 0 && <div className="hub-empty">{t('start.empty')}</div>}
-              <Block id="servers" label={t('hub.servers')} n={fServers.length}>{fServers.slice(0, 4).map((d) => <ServerRow key={d.port} d={d} />)}</Block>
-              <Block id="sessions" label={t('hub.continue')} n={fSess.length}>{fSess.slice(0, 3).map((x) => <SessRow key={x.id} x={x} />)}</Block>
-              <Block id="bookmarks" label={t('hub.bookmarks')} n={fMarks.length}>{fMarks.slice(0, 4).map((b) => <UrlRow key={b.url} url={b.url} title={b.title} />)}</Block>
-              <Block id="history" label={t('hub.recent')} n={fHist.length}>{fHist.slice(0, 5).map((h) => <UrlRow key={h.url} url={h.url} title={h.title} meta={rel(h.ts)} />)}</Block>
+              {block('servers', t('hub.servers'), fServers.length, <>{fServers.slice(0, 4).map((d) => serverRow(d))}</>)}
+              {block('sessions', t('hub.continue'), fSess.length, <>{fSess.slice(0, 3).map((x) => sessRow(x))}</>)}
+              {block('bookmarks', t('hub.bookmarks'), fMarks.length, <>{fMarks.slice(0, 4).map((b) => urlRow(b.url, b.title))}</>)}
+              {block('history', t('hub.recent'), fHist.length, <>{fHist.slice(0, 5).map((h) => urlRow(h.url, h.title, rel(h.ts)))}</>)}
             </>
           )}
-          {sec === 'servers' && (fServers.length ? fServers.map((d) => <ServerRow key={d.port} d={d} />) : <div className="hub-empty">{t('home.noServers')}</div>)}
-          {sec === 'bookmarks' && (fMarks.length ? fMarks.map((b) => <UrlRow key={b.url} url={b.url} title={b.title} />) : <div className="hub-empty">{t('home.noBookmarks')}</div>)}
-          {sec === 'history' && (fHist.length ? fHist.map((h) => <UrlRow key={h.url} url={h.url} title={h.title} meta={rel(h.ts)} />) : <div className="hub-empty">{t('home.noRecent')}</div>)}
+          {sec === 'servers' && (fServers.length ? fServers.map((d) => serverRow(d)) : <div className="hub-empty">{t('home.noServers')}</div>)}
+          {sec === 'bookmarks' && (fMarks.length ? fMarks.map((b) => urlRow(b.url, b.title)) : <div className="hub-empty">{t('home.noBookmarks')}</div>)}
+          {sec === 'history' && (fHist.length ? fHist.map((h) => urlRow(h.url, h.title, rel(h.ts))) : <div className="hub-empty">{t('home.noRecent')}</div>)}
           {sec === 'sessions' && (<>
             <div className="hub-tools"><button className="btn" onClick={() => s.set({ overlay: 'session' })}>{t('sess.save')}</button></div>
-            {fSess.length ? fSess.map((x) => <SessRow key={x.id} x={x} />) : <div className="hub-empty">{t('sess.empty')}</div>}
+            {fSess.length ? fSess.map((x) => sessRow(x)) : <div className="hub-empty">{t('sess.empty')}</div>}
           </>)}
         </div>
       </section>
