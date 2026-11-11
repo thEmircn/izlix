@@ -3639,5 +3639,27 @@
       "eq",
       true
     ]
+  ],
+  "siteinfo": [
+    [
+      "secureShown",
+      "eq",
+      true
+    ],
+    [
+      "tlsShown",
+      "eq",
+      true
+    ],
+    [
+      "issuerShown",
+      "eq",
+      true
+    ],
+    [
+      "httpWarn",
+      "eq",
+      true
+    ]
   ]
 }

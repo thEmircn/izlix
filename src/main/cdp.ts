@@ -48,7 +48,8 @@ export async function attachCdp(wc: WebContents, tabId: string, bus: EventBus, r
           const ev = bus.emit({ tabId, kind: 'response', ts: clock.toEpoch(p.timestamp, now), source: `cdp:${method}`, payload: {
             requestId: p.requestId, url: p.response.url, status: p.response.status, statusText: p.response.statusText, mimeType: p.response.mimeType, type: p.type,
             headers: p.response.headers, protocol: p.response.protocol, remote: p.response.remoteIPAddress, fromCache: !!(p.response.fromDiskCache || p.response.fromServiceWorker),
-            timing: p.response.timing
+            timing: p.response.timing,
+            security: p.response.securityDetails ? { protocol: p.response.securityDetails.protocol, cipher: p.response.securityDetails.cipher, subject: p.response.securityDetails.subjectName, issuer: p.response.securityDetails.issuer, validFrom: p.response.securityDetails.validFrom, validTo: p.response.securityDetails.validTo } : undefined
           } })
           resEvents.set(p.requestId, ev.id)
           if (resEvents.size > 2000) resEvents.delete(resEvents.keys().next().value!)

@@ -11,6 +11,7 @@ export function SiteSettings({ tabId, onClose }: { tabId: string; onClose(): voi
   const t = useT()
   const api = window.izlix
   const tab = useStore((s) => s.tabs.find((x) => x.id === tabId))
+  const events = useStore((s) => s.events)
   const [site, setSite] = useState<{ host: string; zoom?: number; dark?: boolean; css?: string } | null>(null)
   const [css, setCss] = useState('')
   const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
@@ -21,11 +22,25 @@ export function SiteSettings({ tabId, onClose }: { tabId: string; onClose(): voi
   useEffect(() => { load() }, [tab?.site?.zoom, tab?.site?.dark])
   if (!site) return null
   const zoom = site.zoom ?? 1
+  // baglanti/sertifika: bu sekmenin ayni kaynaktan son belge yanitindaki TLS ayrintilari
+  const sec = (() => {
+    let best: any = null
+    for (const ev of events.values()) if (ev.tabId === tabId && ev.kind === 'response' && ev.payload.type === 'Document' && ev.payload.url.startsWith(origin) && (!best || ev.ts > best.ts)) best = ev
+    return best?.payload?.security as { protocol: string; cipher: string; subject: string; issuer: string; validFrom: number; validTo: number } | undefined
+  })()
+  const date = (s: number): string => new Date(s * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
   return (
     <div className="overlay" onMouseDown={onClose}>
       <div className="dialog" role="dialog" aria-label={t('site.title')} style={{ width: 'min(520px, 92vw)' }} onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center' }}><b style={{ flex: 1, fontSize: 14 }}>{site.host}</b><Kbd>esc</Kbd></div>
         <div style={{ overflow: 'auto', padding: '4px 18px 14px' }}>
+          <div className="srow" style={{ alignItems: 'flex-start' }}><div><div className="stitle">{t('site.conn')}</div></div>
+            <div style={{ width: '62%', fontSize: 12.5, lineHeight: 1.6 }}>
+              {origin.startsWith('https:') && sec ? (<>
+                <div style={{ color: 'var(--ok, #6ee7a8)' }}>{t('site.secure')} · {sec.protocol} · {sec.cipher}</div>
+                <div>{t('site.certTo')}: <b>{sec.subject}</b></div><div>{t('site.certBy')}: {sec.issuer}</div><div>{t('site.certValid')}: {date(sec.validFrom)} – {date(sec.validTo)}</div>
+              </>) : origin.startsWith('https:') ? <div style={{ color: 'var(--ok, #6ee7a8)' }}>{t('site.secure')}</div> : <div style={{ color: 'var(--warn, #f5b94a)' }}>{t('site.notSecure')}</div>}
+            </div></div>
           <div className="srow"><div><div className="stitle">{t('site.zoom')}</div></div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <button className="btn" onClick={() => void api.zoom(tabId, 'out')}>−</button><b style={{ minWidth: 48, textAlign: 'center' }}>{Math.round(zoom * 100)}%</b><button className="btn" onClick={() => void api.zoom(tabId, 'in')}>+</button><button className="btn" onClick={() => void api.zoom(tabId, 'reset')}>{t('site.reset')}</button>
