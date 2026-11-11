@@ -4856,5 +4856,12 @@
       ""
     ]
   ],
-  "docshots": []
+  "docshots": [],
+  "visual": [
+    [
+      "maxDiff",
+      "lt",
+      0.004
+    ]
+  ]
 }
