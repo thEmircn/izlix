@@ -1,4 +1,4 @@
-// getDisplayMedia artik bir istek isleyicisine ulasiyor (once hic yoktu: Meet/Zoom ekran paylasimi basarisiz olurdu)
+// getDisplayMedia duman testi: macOS sistem secicisi kullanilir (gorunmez test penceresinde secici iptal olur -> AbortError); isleyici yedegi secici yoksa devreye girer
 module.exports = async ({ tabs, sleep, displayRequests, perms }) => {
   const http = require('http'), out = {}
   const srv = http.createServer((q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end('<title>s</title>x') })
