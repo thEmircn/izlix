@@ -1,5 +1,6 @@
 @import '../../packages/ui/src/tokens.css';
 @import '../../packages/ui/src/motion.css';
+@import '../../packages/ui/src/legacy.css';
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body { font: 12px/1.45 -apple-system, 'SF Pro Text', ui-sans-serif, sans-serif; color: var(--fg); background: var(--bg); overflow: hidden; -webkit-font-smoothing: antialiased; }
@@ -55,11 +56,6 @@ a { color: var(--fg); text-underline-offset: 2px; }
 .card { border: 1px solid var(--line); border-radius: var(--r); background: rgba(255,255,255,.025); }
 
 /* buton / form */
-.btn { background: var(--raise); border: 1px solid var(--line); border-radius: 7px; padding: 4px 12px; cursor: pointer; transition: background .15s, border-color .15s, transform .12s var(--ease); display: inline-flex; align-items: center; gap: 6px; }
-.btn:hover { background: #242427; border-color: var(--line2); }
-.btn:active { transform: scale(.97); }
-.btn.primary { background: var(--accent); color: #0e0e0f; font-weight: 600; border-color: transparent; }
-.btn.primary:hover { background: #fff; }
 .kbd { font: 10.5px ui-monospace, Menlo, monospace; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line2); border-bottom-width: 2px; background: rgba(255,255,255,.04); color: var(--dim); }
 
 /* overlay / dialog */
@@ -216,7 +212,7 @@ pre.code { margin: 6px 0; padding: 10px 12px; border-radius: 8px; background: va
 .attrs .arow { display: grid; grid-template-columns: 120px 1fr 24px; gap: 8px; align-items: center; padding: 2px 0; } .attrs .arow > span { color: var(--dim); font: 11.5px ui-monospace, Menlo, monospace; }
 .attrs .arow.add { grid-template-columns: 1fr 1fr 36px; margin-top: 6px; }
 .attrs input, .st input:not(.search) { background: var(--bg2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; outline: none; font: 11.5px ui-monospace, Menlo, monospace; width: 100%; } .attrs input:focus, .st input:focus { border-color: rgba(255,255,255,.4); }
-.actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; } .btn.danger:hover { background: rgba(248,113,113,.18); border-color: rgba(248,113,113,.5); color: #fecaca; }
+.actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
 .rchain .rc { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; animation: rowin .25s var(--ease) both; } .rchain a { color: var(--dim); font-size: 11px; }
 
 /* ---- Storage ---- */
@@ -229,7 +225,6 @@ pre.code { margin: 6px 0; padding: 10px 12px; border-radius: 8px; background: va
 .seg2 { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; } .seg2::-webkit-scrollbar { display: none; }
 .seg2 button { white-space: nowrap; padding: 3px 9px; flex: none; }
 
-.btn.sm { padding: 1px 9px; font-size: 11px; }
 
 .repl-bar { display: flex; gap: 8px; align-items: center; padding: 6px 12px; border-top: 1px solid var(--line); background: var(--bg2); }
 .repl-bar b { color: var(--dim); } .repl-bar input { flex: 1; background: none; border: 0; outline: none; font: 12px ui-monospace, Menlo, monospace; }
@@ -366,8 +361,6 @@ h4.sec { margin: 14px 12px 4px; font-size: 11px; font-weight: 600; color: var(--
 .tab.active { background: var(--raise); box-shadow: inset 0 0 0 1px var(--line), inset 0 -2px 0 var(--ac); }
 .addr { border-radius: 10px; background: var(--bg2); }
 .addr:focus { border-color: rgba(255,106,43,.55); box-shadow: 0 0 0 3px var(--ac-soft); }
-.btn { border-radius: 9px; background: var(--raise); }
-.btn.primary { background: var(--ac); color: #1a0d05; } .btn.primary:hover { background: #ff7d45; }
 .chip { border-radius: 999px !important; }
 .chip .dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(90,208,138,.15); }
 .dialog { background: #131315; border-radius: 16px; border-color: var(--line2); }
@@ -651,11 +644,6 @@ body { background: radial-gradient(1100px 650px at 100% 100%, rgba(255,106,43,.0
 .tile.hero { background: radial-gradient(90% 150% at 0% 0%, rgba(255,106,43,.10), transparent 62%), var(--card); }
 
 /* dugmeler: cam + yayli basma */
-.btn { background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.045)); border: 1px solid var(--g-brd); box-shadow: var(--g-hi), 0 2px 6px rgba(0,0,0,.25); border-radius: 10px; transition: background .2s, border-color .2s, transform .3s var(--spring), box-shadow .25s; }
-.btn:hover { background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07)); border-color: var(--g-brd2); transform: translateY(-1px); box-shadow: var(--g-hi), 0 8px 18px rgba(0,0,0,.3); }
-.btn:active { transform: scale(.95) translateY(0); transition-duration: .08s; }
-.btn.primary { background: linear-gradient(180deg, #ff8650, #ff6a2b); border-color: rgba(255,150,100,.5); color: #200d04; box-shadow: 0 8px 22px rgba(255,106,43,.38), inset 0 1px 0 rgba(255,255,255,.4); }
-.btn.primary:hover { background: linear-gradient(180deg, #ff9565, #ff7a3f); box-shadow: 0 12px 28px rgba(255,106,43,.5), inset 0 1px 0 rgba(255,255,255,.45); }
 .fchip, .lane-dot { transition: background .2s, color .2s, border-color .2s, transform .3s var(--spring), opacity .2s; } .fchip:active { transform: scale(.94); }
 .fchip { background: var(--g1); backdrop-filter: blur(8px); }
 .seg2:not(.rail) { background: rgba(0,0,0,.22); border-color: var(--g-brd); box-shadow: inset 0 1px 3px rgba(0,0,0,.3); } .seg-ind { background: var(--g3); box-shadow: var(--g-hi), 0 4px 12px rgba(0,0,0,.3); transition: transform .5s var(--spring), width .4s var(--spring); }
@@ -679,7 +667,6 @@ body { background: radial-gradient(1100px 650px at 100% 100%, rgba(255,106,43,.0
 .has-ripple { position: relative; overflow: hidden; }
 .ripple { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255,255,255,.34) 0%, rgba(255,255,255,.14) 38%, transparent 68%); transform: scale(0); opacity: .9; animation: ripple .8s cubic-bezier(.2,.7,.2,1) forwards; z-index: 0; }
 @keyframes ripple { to { transform: scale(1); opacity: 0; } }
-.btn.primary .ripple { background: radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,.2) 40%, transparent 68%); }
 
 /* iskelet: kayan isik */
 .skeleton { background: linear-gradient(90deg, rgba(255,255,255,.04) 20%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.04) 80%); background-size: 220% 100%; animation: shimmer 1.5s linear infinite; border-radius: 8px; } @keyframes shimmer { to { background-position: -220% 0; } }
