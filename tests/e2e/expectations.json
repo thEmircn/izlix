@@ -4154,5 +4154,52 @@
       "contains",
       "Leaked 777×"
     ]
+  ],
+  "speak": [
+    [
+      "selOk",
+      "eq",
+      true
+    ],
+    [
+      "selText",
+      "eq",
+      "Birinci paragraf burada."
+    ],
+    [
+      "selLang",
+      "eq",
+      "tr"
+    ],
+    [
+      "pageOk",
+      "eq",
+      true
+    ],
+    [
+      "pageText",
+      "contains",
+      "Ikinci paragraf"
+    ],
+    [
+      "selectionOnlyEmpty",
+      "eq",
+      false
+    ],
+    [
+      "stopFalse",
+      "eq",
+      false
+    ],
+    [
+      "ctxSel",
+      "eq",
+      true
+    ],
+    [
+      "ctxPage",
+      "eq",
+      true
+    ]
   ]
 }

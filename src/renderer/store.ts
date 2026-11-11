@@ -12,6 +12,8 @@ export const PANEL_TABS: PanelTab[] = ['timeline', 'network', 'console', 'elemen
 interface State {
   /** sekme duzeni: ustte yatay serit / solda dikey kenar cubugu (+ daraltilmis) */
   groups: TabGroup[]
+  /** sesli okuma suruyor mu */
+  speaking: boolean
   /** Recorder durumu (kayit sirasinda adimlar canli gelir) */
   rec: { recording: boolean; tabId: string | null; steps: import('../shared/recorder').Step[] }
   /** yer imleri cubugu gorunur mu */
@@ -60,7 +62,7 @@ export const writePref = (k: string, v: string): void => { try { localStorage.se
 const MAX = 5000
 
 export const useStore = create<State>((set) => ({
-  rec: { recording: false, tabId: null, steps: [] }, groups: [], bmBar: read('bmBar', '0') === '1', tabLayout: (read('tabLayout', 'top') === 'side' ? 'side' : 'top'), sideCollapsed: read('sideCollapsed', '0') === '1', winId: 0, wins: 1, tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
+  speaking: false, rec: { recording: false, tabId: null, steps: [] }, groups: [], bmBar: read('bmBar', '0') === '1', tabLayout: (read('tabLayout', 'top') === 'side' ? 'side' : 'top'), sideCollapsed: read('sideCollapsed', '0') === '1', winId: 0, wins: 1, tabs: [], activeTabId: null, dock: (read('dock', 'off') as DevToolsDock), workspaces: [], activeWorkspaceId: 'default', detected: [],
   events: new Map(), selectedEventId: null,
   editor: read('editor', 'vscode') as Editor, panelRatio: Number(read('panelRatio', '0.4')), split: Number(read('split', '0.52')),
   rules: {}, bookmarks: {}, favicons: {}, downloads: [], overlay: null, panelTab: (PANEL_TABS.includes(read('panelTab', 'timeline') as PanelTab) && read('panelTab', 'timeline') !== 'overview' ? read('panelTab', 'timeline') : 'timeline') as PanelTab, panelOpen: read('panelOpen', '0') === '1', dashboard: false, panelSide: (['right', 'left', 'bottom'].includes(read('panelSide', 'right')) ? read('panelSide', 'right') : 'right') as PanelSide, flash: false, bps: [], evBps: [], xhrBps: [], sessions: {}, paused: null, sourceTarget: null, snapshot: null, permPrompts: [], preserveLog: read('preserveLog', '1') === '1', toasts: [], find: { open: false, active: 0, total: 0 }, settings: { telemetry: 'unset', onboarded: true, language: 'tr', installId: '', autoOpen: false },

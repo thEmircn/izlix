@@ -12,7 +12,7 @@ export type CtxAct =
   | 'back' | 'forward' | 'reload' | 'savePage' | 'print' | 'savePdf' | 'viewSource' | 'inspect' | 'translate' | 'qr'
   | 'linkNewTab' | 'linkNewPrivate' | 'linkCopy' | 'imgNewTab' | 'imgCopy' | 'imgCopyUrl' | 'imgSave' | 'mediaCopyUrl' | 'mediaSave' | 'mediaPip'
   | 'cut' | 'copy' | 'paste' | 'selectAll' | 'search' | 'suggest' | 'addWord'
-  | 'newTab' | 'newWindow' | 'btnNewTab' | 'btnNewWindow' | 'linkNewWindow' | 'linkSplit' | 'linkOtherWin' | 'component' | 'inspectEl' | 'copySel' | 'openRoot' | 'lab' | 'openChrome' | 'openSafari' | 'shotView' | 'shotFull'
+  | 'speakSel' | 'speakPage' | 'newTab' | 'newWindow' | 'btnNewTab' | 'btnNewWindow' | 'linkNewWindow' | 'linkSplit' | 'linkOtherWin' | 'component' | 'inspectEl' | 'copySel' | 'openRoot' | 'lab' | 'openChrome' | 'openSafari' | 'shotView' | 'shotFull'
 export interface CtxItem { act?: CtxAct; label?: string; arg?: string; sep?: true; enabled?: boolean; submenu?: CtxItem[]; /** etiketteki {name}/{editor} yer tutuculari */ vars?: Record<string, string> }
 const isHttp = (u?: string): boolean => !!u && /^https?:/i.test(u)
 
@@ -43,7 +43,7 @@ export function buildCtxMenu(p: CtxParams): CtxItem[] {
     }
     push({ act: 'cut', enabled: !!e.canCut }, { act: 'copy', enabled: !!e.canCopy }, { act: 'paste', enabled: !!e.canPaste }, { act: 'selectAll', enabled: !!e.canSelectAll })
   } else if (p.selectionText?.trim()) {
-    push({ act: 'copy' }, { act: 'search', arg: p.selectionText.trim().slice(0, 200) })
+    push({ act: 'copy' }, { act: 'search', arg: p.selectionText.trim().slice(0, 200) }, { act: 'speakSel' })
   }
   if (isHttp(p.linkURL)) {
     sep(); push({ act: 'linkNewTab', arg: p.linkURL }, { act: 'linkNewPrivate', arg: p.linkURL }, { act: 'linkSplit', arg: p.linkURL })
@@ -57,7 +57,7 @@ export function buildCtxMenu(p: CtxParams): CtxItem[] {
     sep(); push({ act: 'back', enabled: !!p.canGoBack }, { act: 'forward', enabled: !!p.canGoForward }, { act: 'reload' })
   }
   if (page) {
-    sep(); push({ act: 'savePage' }, { act: 'print' }, { act: 'savePdf' }, { act: 'translate' }, { act: 'qr' })
+    sep(); push({ act: 'savePage' }, { act: 'print' }, { act: 'savePdf' }, { act: 'translate' }, { act: 'speakPage' }, { act: 'qr' })
     // Gelistirici alt menusu
     const dev: CtxItem[] = []
     if (x.component && p.isEditable) dev.push({ act: 'component', arg: x.component, vars: { name: x.component, editor: x.editorLabel ?? 'VS Code' } })

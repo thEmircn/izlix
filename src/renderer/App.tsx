@@ -85,6 +85,7 @@ export function App() {
       api.onWorkspaces((p) => s.set({ workspaces: p.workspaces, activeWorkspaceId: p.activeId, detected: p.detected })),
       api.onRules((r) => s.set({ rules: r })),
       api.onRec((r: any) => s.set({ rec: r })),
+      api.onSpeak((on: boolean) => s.set({ speaking: on })),
       api.onFavicon((f: { origin: string; url: string }) => useStore.setState((st) => ({ favicons: { ...st.favicons, [f.origin]: f.url } }))),
       api.onPermAsk((p: any) => useStore.setState((st) => ({ permPrompts: [...st.permPrompts, p] }))),
       api.onFind((r: any) => { if (r.id === useStore.getState().activeTabId) s.set({ find: { open: true, active: r.active, total: r.total } }) }),
@@ -122,6 +123,7 @@ export function App() {
           case 'rec.open': st.set({ overlay: 'recorder' }); break
           case 'qr.open': if (act && /^https?:/.test(act.url)) st.set({ overlay: 'qr' }); break
           case 'inspect.elements': st.set({ panelTab: 'elements', panelOpen: true, dashboard: false }); break
+          case 'speak.toggle': if (st.speaking) void api.speak('stop'); else void api.speak('auto'); break
           case 'tabsearch.open': st.set({ overlay: 'tabsearch' }); break
           case 'downloads.open': st.set({ overlay: 'downloads' }); break
           case 'history.open': st.set({ overlay: 'history' }); break
@@ -266,6 +268,7 @@ export function App() {
         {/^https?:/.test(active?.url ?? '') && active && (
           <>
             {active.site?.zoom && <button type="button" className="chip zoomchip nodrag" title={t('site.zoomReset')} onClick={() => void api.zoom(active.id, 'reset')}>{Math.round(active.site.zoom * 100)}%</button>}
+            {s.speaking && <button type="button" className="chip speakchip nodrag" title={t('tts.stop')} onClick={() => void api.speak('stop')}><i /><b>{t('tts.speaking')}</b></button>}
             {s.rec.recording && <button type="button" className="chip recchip nodrag" title={t('rec.stop')} onClick={() => void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' }))}><i /><b>REC</b><Roll text={s.rec.steps.length} /></button>}
             {insecure && <span className="chip insecure nodrag" title={t('sec.insecureTip')}>{t('sec.insecure')}</span>}
             {active.translatedFrom

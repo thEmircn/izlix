@@ -5,7 +5,7 @@ const acts = (l: CtxItem[]): string[] => l.map((x) => (x.sep ? '-' : (x.act ?? x
 describe('buildCtxMenu', () => {
   it('bos sayfa: gezinme + sayfa eylemleri + kaynak/inceleme; ayirac duzgun', () => {
     const l = buildCtxMenu({ pageURL: 'https://a.com/', canGoBack: true })
-    expect(acts(l)).toEqual(['newTab', 'newWindow', '-', 'back', 'forward', 'reload', '-', 'savePage', 'print', 'savePdf', 'translate', 'qr', '-', 'cm.dev', '-', 'viewSource', 'inspect'])
+    expect(acts(l)).toEqual(['newTab', 'newWindow', '-', 'back', 'forward', 'reload', '-', 'savePage', 'print', 'savePdf', 'translate', 'speakPage', 'qr', '-', 'cm.dev', '-', 'viewSource', 'inspect'])
     const b = l.filter((x) => x.act === 'back' || x.act === 'forward'); expect(b[0].enabled).toBe(true); expect(b[1].enabled).toBe(false)
   })
   it('baglanti: yeni sekme/gizli/kopyala; yalniz http(s)', () => {
@@ -13,7 +13,7 @@ describe('buildCtxMenu', () => {
     expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', linkURL: 'javascript:alert(1)' }))).not.toContain('linkNewTab')
   })
   it('secili metin: kopyala + ara; duzenlenebilir alan: kes/kopyala/yapistir; yazim onerileri', () => {
-    expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', selectionText: ' kedi ' })).slice(0, 2)).toEqual(['copy', 'search'])
+    expect(acts(buildCtxMenu({ pageURL: 'https://a.com/', selectionText: ' kedi ' })).slice(0, 3)).toEqual(['copy', 'search', 'speakSel'])
     const l = buildCtxMenu({ pageURL: 'https://a.com/', isEditable: true, misspelledWord: 'mrb', dictionarySuggestions: ['merhaba', 'mırıl'], editFlags: { canPaste: true } })
     expect(acts(l).slice(0, 7)).toEqual(['suggest', 'suggest', 'addWord', '-', 'cut', 'copy', 'paste'])
     expect(l.find((x) => x.act === 'paste')!.enabled).toBe(true); expect(l.find((x) => x.act === 'cut')!.enabled).toBe(false)

@@ -65,6 +65,8 @@ export const api = {
   tabsSearch: (q: string) => call(Ch.tabsSearch, { q }) as Promise<import('../shared/tabsearch').TabHit[]>,
   downloadAct: (id: string, act: 'pause' | 'resume' | 'cancel' | 'open' | 'show' | 'remove' | 'clear') => call(Ch.downloadAct, { id, act }) as Promise<boolean>,
   pwAudit: (check: boolean) => call(Ch.pwAudit, { check }) as Promise<{ origin: string; username: string; weak: boolean; reused: number; pwned: number | null }[]>,
+  speak: (mode: 'auto' | 'selection' | 'page' | 'stop') => call(Ch.speak, { mode }) as Promise<boolean>,
+  onSpeak: sub(Ch.speakState),
   pinTab: (id: string, pinned: boolean) => call(Ch.tabPin, { id, pinned }),
   pip: () => call(Ch.pip) as Promise<string>,
   importChrome: () => call(Ch.importChrome) as Promise<{ bookmarks: number; history: number } | null>,

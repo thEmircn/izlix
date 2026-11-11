@@ -9,6 +9,7 @@ import { translateUrl } from '../shared/translate'
 import { MockServer } from './mockserver'
 import { engineById, searchUrl } from '../shared/search'
 import { Recorder } from './recorder'
+import { Speaker } from './speak'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
 import { SiteStore } from './sites'
 import { siteHost, stepZoom } from '../shared/sites'
@@ -374,6 +375,8 @@ function registerIpc(): void {
     }))
     return rankTabs(hits.filter((h) => !q.trim() || h.count > 0 || h.titleMatch))
   })
+  // Sesli okuma: secili metin, yoksa okuyucu makalesi, yoksa sayfanin ana metni
+  handle(Ch.speak, schemas.speak, async ({ mode }) => { const e = tabs.active(); return speakFrom(e?.view.webContents ?? null, mode) })
   handle(Ch.tabPin, schemas.tabPin, ({ id, pinned }) => tabs.setPinned(id, pinned))
   handle(Ch.pip, null, async () => {
     const e = tabs.active(); if (!e) return 'none'
@@ -764,6 +767,8 @@ async function showCtx(tabId: string, p: Electron.ContextMenuParams, dry = false
       case 'search': open(searchUrl(settings.get().searchEngine, a)); break
       case 'suggest': wc.replaceMisspelling(a); break
       case 'addWord': wc.session.addWordToSpellCheckerDictionary(a); break
+      case 'speakSel': void speakFrom(wc, 'selection'); break
+      case 'speakPage': void speakFrom(wc, 'page'); break
       case 'savePage': void pageOutput(wc, 'save'); break
       case 'print': void pageOutput(wc, 'print'); break
       case 'savePdf': void pageOutput(wc, 'pdf'); break
@@ -816,6 +821,24 @@ function handleDisplayMedia(ses: Electron.Session): void {
       Menu.buildFromTemplate([{ label: tr('share.pick'), enabled: false }, { type: 'separator' }, ...items]).popup({ window: BrowserWindow.getFocusedWindow() ?? win, callback: () => { if (!done) callback({} as Electron.Streams) } })
     }).catch(() => callback({} as Electron.Streams))
   }, { useSystemPicker: true })
+}
+
+const speaker = new Speaker((on) => send(Ch.speakState, on))
+let lastSpeak: { text: string; lang: string } | null = null
+const SPEAK_SCRIPT = (mode: string): string => `(() => {
+  const sel = (window.getSelection() || '').toString().trim()
+  if (${mode === 'page' ? 'false' : 'true'} && sel) return sel
+  if (${mode === 'selection' ? 'true' : 'false'}) return ''
+  const r = document.querySelector('.db-reader'); if (r) return r.innerText
+  const m = document.querySelector('article, main, [role=main]'); return (m || document.body).innerText.slice(0, 40000)
+})()`
+async function speakFrom(wc: Electron.WebContents | null, mode: 'auto' | 'selection' | 'page' | 'stop'): Promise<boolean> {
+  if (mode === 'stop') { speaker.stop(); return false }
+  if (!wc || wc.isDestroyed() || !/^https?:/.test(wc.getURL())) return false
+  const text = String(await wc.executeJavaScript(SPEAK_SCRIPT(mode)).catch(() => '') ?? '')
+  const lang = String(await wc.executeJavaScript('(document.documentElement.lang||"").slice(0,2)').catch(() => '')) || settings.get().language
+  if (process.env.DB_SCRIPT) { lastSpeak = { text: text.replace(/\s+/g, ' ').trim().slice(0, 4000), lang }; return !!text.trim() } // testlerde ses calinmaz
+  return !!(await speaker.speak(text, lang))
 }
 
 /** URL'yi baska bir pencerede ac (yalniz bir pencere varsa ikincisini acar) */
@@ -976,7 +999,7 @@ async function createWindow(): Promise<void> {
     await win.webContents.executeJavaScript(`new Promise((r)=>{const go=(n)=>{const pt=document.querySelector('.panel-toggle');if(pt&&pt.getAttribute('aria-pressed')==='false')pt.click();const b=[...document.querySelectorAll('.seg2 > button')].find(x=>x.textContent==='Timeline');if(b){b.click();r(1)}else if(n>0)setTimeout(()=>go(n-1),100);else r(0)};go(30)})`).catch(() => {})
     const ctx = {
       app, win, tabs, bus, library, downloads, handleLaunch, settings, telemetry, demo, exportReport: (p: string) => exportReport(win, tabs, bus, (id) => workspaces.get(id)?.name ?? id, p), workspaces, rules, sleep, refreshRules: () => { tabs.refreshRules(); pushRules() }, detected: () => detected, pushTabs, detectServers,
-      newTab, openWindow, shellWins, passwords, cardState, recorder, displayRequests: () => displayRequests, perms,
+      newTab, openWindow, shellWins, passwords, cardState, recorder, lastSpeak: () => lastSpeak, displayRequests: () => displayRequests, perms,
       ctxPrepare: (id: string, params: Partial<Electron.ContextMenuParams>) => showCtx(id, { x: 20, y: 20, ...params } as Electron.ContextMenuParams, true), editorOpens: () => lastEditorOpen, lastShot: () => lastShot, resetCtx: () => { lastEditorOpen = null; lastShot = null },
       shellEval: (code: string): Promise<any> => win.webContents.executeJavaScript(code),
       shot: async (file: string): Promise<void> => { writeFileSync(file, (await win.webContents.capturePage()).toPNG()) },
@@ -1002,5 +1025,5 @@ app.on('second-instance', (_e, argv, cwd) => { const l = parseLaunch(argv, cwd);
 app.on('open-url', (e, url) => { e.preventDefault(); const l = parseLaunch([url]); if (l) void handleLaunch(l) })
 if (!process.env.DB_SCRIPT) app.setAsDefaultProtocolClient('izlix')
 if (gotLock) app.whenReady().then(async () => { await createWindow(); if (pendingLaunch) { const l = pendingLaunch; pendingLaunch = null; await handleLaunch(l) } })
-app.on('before-quit', () => { quitting = true; library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
+app.on('before-quit', () => { quitting = true; speaker.stop(); library?.flush(); favicons?.flush(); thumbs?.flush(); servers?.stopAll(); tor.stop() })
 app.on('window-all-closed', () => app.quit())

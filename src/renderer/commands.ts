@@ -19,6 +19,7 @@ export function buildCommands(): Command[] {
     { id: 'bmbar.toggle', title: t(s.bmBar ? 'cmd.bmBarHide' : 'cmd.bmBarShow'), hint: '⇧⌘B', run: () => { const v = !s.bmBar; writePref('bmBar', v ? '1' : '0'); s.set({ bmBar: v }) } },
     { id: 'rec.toggle', title: t(s.rec.recording ? 'rec.stop' : 'rec.start'), run: () => { if (s.rec.recording) void api.recStop().then((steps: any) => s.set({ rec: { recording: false, tabId: null, steps }, overlay: 'recorder' })); else void api.recStart() } },
     ...(s.rec.steps.length && !s.rec.recording ? [{ id: 'rec.open', title: t('rec.last'), run: () => s.set({ overlay: 'recorder' }) }] : []),
+    { id: 'speak.toggle', title: t(s.speaking ? 'tts.stop' : 'tts.read'), run: () => void api.speak(s.speaking ? 'stop' : 'auto') },
     { id: 'tabsearch.open', title: t('menu.findAllTabs'), hint: '⇧⌘F', run: () => s.set({ overlay: 'tabsearch' }) },
     { id: 'downloads.open', title: t('menu.downloads'), hint: '⇧⌘J', run: () => s.set({ overlay: 'downloads' }) },
     { id: 'pw.generate', title: t('pw.cmdGen'), run: () => { const p = generatePassword({ length: 20 }); void navigator.clipboard.writeText(p).then(() => toast(t('pw.genCopied'))) } },
