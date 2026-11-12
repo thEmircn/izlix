@@ -115,6 +115,17 @@ const upText = await panel.ev('document.body.innerText')
 check('yeni surum bildirimi gorunuyor', /Update available: 9\.9\.9|Yeni sürüm var: 9\.9\.9/.test(upText))
 await sw.ev(`__izlix.checkUpdate(['ext-v0.1.0-alpha.1'])`); await sleep(500)
 check('guncel surumde bildirim kalkar', !/Update available|Yeni sürüm var/.test(await panel.ev('document.body.innerText')))
+// 8) izleme durdurulunca panel bildirir; "Devam" yeniden baslatir
+await sw.ev(`chrome.debugger.detach({ tabId: ${tabId} }).then(() => __izlix.onDetached(${tabId}, 'canceled_by_user'))`); await sleep(900)
+check('izleme durunca panel uyarir', /Tracing stopped|İzleme durduruldu/.test(await panel.ev('document.body.innerText')))
+await panel.ev(`[...document.querySelectorAll('button')].find((b) => /Resume|Devam/.test(b.textContent))?.click()`); await sleep(2500)
+check('Devam ile izleme yeniden basladi', (await sw.ev('JSON.stringify(__izlix.attached())')).includes(String(tabId)))
+check('uyari kalkti', !/Tracing stopped|İzleme durduruldu/.test(await panel.ev('document.body.innerText')))
+// chrome:// sayfasi izlenemez: panel aciklayici hata gosterir
+const bad = await sw.ev(`chrome.tabs.create({ url: 'chrome://version', active: false }).then((t) => t.id)`); await sleep(800)
+await sw.ev(`chrome.tabs.create({ url: 'chrome-extension://${extId}/panel.html?tabId=${bad}', active: false })`); await sleep(2000)
+const badPanel = (await targets()).filter((t) => t.type === 'page' && t.url.includes('tabId=' + bad))[0]
+check('chrome:// icin aciklayici hata', badPanel ? /cannot be inspected|incelenemiyor/.test(await (await ws(badPanel.webSocketDebuggerUrl)).ev('document.body.innerText')) : false)
 const shot = await panel.send('Page.captureScreenshot', { format: 'png' }); if (process.env.SHOT) writeFileSync(process.env.SHOT, Buffer.from(shot.result.data, 'base64'))
 console.log(fails.length ? `\n${fails.length} kontrol basarisiz` : '\nTum kontroller gecti')
 await finish(fails.length ? 1 : 0)

@@ -7,6 +7,7 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 ## [0.1.0-alpha.2] - 2026-11-12
 
 ### Added
+- Chrome extension panel explains when a page cannot be inspected and offers Resume when tracing was stopped.
 - Vue 3 support: the timeline and render tracker work for Vue apps (components added and updated), sharing the input and request tracking with the React bridge.
 - Unread badge for the apps hub on Windows (taskbar overlay dot) and Linux (launcher badge), not only the macOS dock.
 - Choose any folder for encrypted sync (iCloud Drive, Dropbox, OneDrive, Google Drive, Syncthing), not only iCloud Drive.

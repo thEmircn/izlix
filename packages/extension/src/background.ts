@@ -63,7 +63,12 @@ export async function ensureAttached(tabId: number, reload = true): Promise<void
 }
 function release(tabId: number): void { const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() } attached.delete(tabId); tabUrls.delete(tabId); bus.dropTab(tabKey(tabId)) }
 
-chrome.debugger.onDetach.addListener((src) => { if (src.tabId != null) { attached.get(src.tabId)?.interceptor.detach(); attached.delete(src.tabId) } })
+/** Chrome izlemeyi sonlandirdi (kullanici hata ayiklama seridini kapatti, DevTools acildi...): temizle ve panele bildir */
+function onDetached(tabId: number, reason: string): void {
+  const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() }
+  attached.delete(tabId); ports.forEach((p) => p.postMessage({ t: 'detached', tabId, reason }))
+}
+chrome.debugger.onDetach.addListener((src, reason) => { if (src.tabId != null) onDetached(src.tabId, reason) })
 // sayfa adresi degisince kural alan adi denetimi ve Fetch alani yeniden degerlendirilir
 chrome.tabs.onUpdated.addListener((tabId, info) => { const a = attached.get(tabId); if (a && info.url) { tabUrls.set(tabId, info.url); a.interceptor.setPageUrl(info.url); void a.interceptor.refresh() } }) // kullanici seridi kapatti / sekme gitti
 chrome.tabs.onRemoved.addListener((tabId) => release(tabId))
@@ -76,6 +81,7 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
   await rulesReady
   switch (name) {
     case 'getRules': return rulesCfg
+    case 'resume': { const id = Number(args[0]); try { await ensureAttached(id); return true } catch { return false } }
     case 'setRules': await setRules(args[1]); return true
     case 'responseBody': {
       const a = attached.get(Number(String(args[0]).replace('tab-', ''))); if (!a) return null
@@ -122,4 +128,4 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 
 // Test/gelistirme girisi (service worker kapsami sayfalardan erisilemez)
-;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), checkUpdate, setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }
+;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), onDetached, checkUpdate, setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }

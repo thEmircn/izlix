@@ -21,6 +21,7 @@ const rpc = (name: string, ...args: unknown[]): Promise<any> => new Promise((res
 port.onMessage.addListener((m: any) => {
   if (m.t === 'events') { snapshotCache = m.events; snapshotResolve?.(m.events); snapshotResolve = null; if (m.tabId === tabId) useStore.getState().reset(m.events) }
   else if (m.t === 'update') useStore.setState({ updateNotice: m.notice } as any)
+  else if (m.t === 'detached' && m.tabId === tabId) useStore.setState({ detached: m.reason } as any)
   else if (m.t === 'attach-error') useStore.setState({ attachError: m.message } as any)
   else if (m.t === 'ev') evSubs.forEach((fn) => fn(m.e))
   else if (m.t === 'rules') useStore.setState((s) => ({ rules: { ...s.rules, default: m.cfg } }))
@@ -30,6 +31,7 @@ port.onMessage.addListener((m: any) => {
 function follow(id: number): void {
   if (!id || id === tabId && snapshotCache) return
   tabId = id; KEY = `tab-${id}`; snapshotCache = null
+  useStore.setState({ attachError: undefined, detached: undefined } as any)
   useStore.setState({ activeTabId: KEY, tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any] })
   port.postMessage({ t: 'hello', tabId: id })
 }
@@ -61,6 +63,24 @@ useStore.setState({
 
 void rpc('getRules').then((cfg) => useStore.setState((s) => ({ rules: { ...s.rules, default: cfg } })))
 
+/** Izleme baslamadi (chrome:// sayfalari vb.) ya da kullanici Chrome'un hata ayiklama seridini kapatti */
+function StatusBanner() {
+  const err = (useStore as any)((s: any) => s.attachError) as string | undefined
+  const det = (useStore as any)((s: any) => s.detached) as string | undefined
+  const st = { err, det }
+  const tr = lang === 'tr'
+  if (!st.err && !st.det) return null
+  const text = st.err
+    ? (tr ? 'Bu sayfa incelenemiyor (chrome:// ve Web Store sayfalarına izin yok). Normal bir sayfa açın.' : 'This page cannot be inspected (chrome:// pages and the Web Store are not allowed). Open a normal page.')
+    : (tr ? 'İzleme durduruldu.' : 'Tracing stopped.')
+  return (
+    <div role="alert" style={{ position: 'fixed', left: 12, right: 12, top: 12, zIndex: 25, display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12, border: '1px solid var(--g-brd2)', background: 'var(--panel)', boxShadow: 'var(--shadow-s)', fontSize: 12 }}>
+      <span style={{ flex: 1 }}>{text}</span>
+      {st.det && <button className="btn sm primary" onClick={() => void rpc('resume', tabId).then((ok) => { if (ok) useStore.setState({ detached: undefined } as any) })}>{tr ? 'Devam' : 'Resume'}</button>}
+    </div>
+  )
+}
+
 function UpdateBanner() {
   const n = (useStore as any)((s: any) => s.updateNotice) as { latest: string; url: string } | null | undefined
   const [hidden, setHidden] = useState<string | null>(() => { try { return localStorage.getItem('izlix.update.hidden') } catch { return null } })
@@ -85,6 +105,6 @@ function PanelApp() {
     const t = setInterval(() => { if (queue.length) useStore.getState().ingest(queue.splice(0)) }, 50) // olaydan ekrana < 100 ms butcesi
     return () => { removeEventListener('resize', onResize); clearInterval(t); off() }
   }, [])
-  return <div className="panel side-right" style={{ position: 'fixed', inset: 0 }}><Timeline width={size.w} height={size.h} /><UpdateBanner /></div>
+  return <div className="panel side-right" style={{ position: 'fixed', inset: 0 }}><Timeline width={size.w} height={size.h} /><StatusBanner /><UpdateBanner /></div>
 }
 createRoot(document.getElementById('root')!).render(<PanelApp />)
