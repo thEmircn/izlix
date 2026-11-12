@@ -2,6 +2,7 @@
 import { EventBus } from '../../../src/core/bus'
 import { attachCollector, type Collector } from '../../../src/core/collector'
 import { Interceptor } from '../../../src/core/interceptor'
+import { CdpProxy } from '../../../src/core/cdpproxy'
 import { DEFAULT_DOMAINS, type RulesConfig } from '../../../src/shared/rules'
 import { chromeCdp, isAttached } from './chrome-cdp'
 import { createResolver } from './stub-resolver'
@@ -16,6 +17,8 @@ interface Attached { collector: Collector<SourceResolver>; client: CdpClient; in
 const attached = new Map<number, Attached>()
 const tabUrls = new Map<number, string>()
 const ports = new Set<chrome.runtime.Port>()
+// Elements/Storage panelleri: izin listeli CDP koprusu (panel acikken etkin, olaylar panele iletilir)
+const proxy = new CdpProxy((key) => attached.get(Number(key.replace('tab-', '')))?.client ?? null, (id, method, params) => ports.forEach((p) => p.postMessage({ t: 'dt', id, method, params })))
 
 // --- Surum denetimi: GitHub'daki herkese acik release listesinden en yeni eklenti surumu (kullanici verisi gitmez); gunde bir ---
 interface UpdateNotice { latest: string; url: string }
@@ -62,11 +65,11 @@ export async function ensureAttached(tabId: number, reload = true): Promise<void
   await interceptor.refresh()
   if (reload) await chrome.tabs.reload(tabId)
 }
-function release(tabId: number): void { const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() } attached.delete(tabId); tabUrls.delete(tabId); bus.dropTab(tabKey(tabId)) }
+function release(tabId: number): void { proxy.drop(tabKey(tabId)); const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() } attached.delete(tabId); tabUrls.delete(tabId); bus.dropTab(tabKey(tabId)) }
 
 /** Chrome izlemeyi sonlandirdi (kullanici hata ayiklama seridini kapatti, DevTools acildi...): temizle ve panele bildir */
 function onDetached(tabId: number, reason: string): void {
-  const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() }
+  proxy.drop(tabKey(tabId)); const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() }
   attached.delete(tabId); ports.forEach((p) => p.postMessage({ t: 'detached', tabId, reason }))
 }
 chrome.debugger.onDetach.addListener((src, reason) => { if (src.tabId != null) onDetached(src.tabId, reason) })
@@ -103,6 +106,11 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
         return !text.includes('\uFFFD') && !/[\u0000-\u0008\u000E-\u001F]/.test(text) ? text : null
       } catch { return null }
     }
+    case 'dtCall': return proxy.call(String(args[0]), String(args[1]), args[2] as object | undefined).catch(() => null)
+    case 'dtEnable': await proxy.enable(String(args[0]), args[1] as any); return true
+    case 'dtDisable': await proxy.disable(String(args[0]), args[1] as any); return true
+    case 'dtReact': return proxy.reactChain(String(args[0]), Number(args[1])).then((c) => c?.map((x) => ({ name: x.name }))).catch(() => null)
+    case 'dtReactIdx': return proxy.reactIndex(String(args[0]), Number(args[1])).catch(() => null)
     case 'openSource': {
       // sayfa kontrollu veri: yalniz mutlak/guvenli yol VE bu sekmenin source map'lerinden gelen (bilinen) dosya VE sekme yerel gelistirme adresinde
       const { file, line, column, editor } = args[0] as { file: string; line: number; column?: number; editor?: 'vscode' | 'cursor' | 'webstorm' }

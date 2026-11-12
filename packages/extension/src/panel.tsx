@@ -15,6 +15,7 @@ let tabId = fixedTab ?? 0
 let KEY = `tab-${tabId}`
 const port = chrome.runtime.connect({ name: 'izlix-panel' })
 const evSubs = new Set<(e: BusEvent) => void>()
+const dtSubs = new Set<(e: { id: string; method: string; params: unknown }) => void>()
 let snapshotResolve: ((l: BusEvent[]) => void) | null = null
 let snapshotCache: BusEvent[] | null = null
 const pending = new Map<number, (v: unknown) => void>(); let rpcSeq = 0
@@ -24,6 +25,7 @@ port.onMessage.addListener((m: any) => {
   else if (m.t === 'update') useStore.setState({ updateNotice: m.notice } as any)
   else if (m.t === 'detached' && m.tabId === tabId) useStore.setState({ detached: m.reason } as any)
   else if (m.t === 'attach-error') useStore.setState({ attachError: m.message } as any)
+  else if (m.t === 'dt') dtSubs.forEach((fn) => fn({ id: m.id, method: m.method, params: m.params }))
   else if (m.t === 'ev') evSubs.forEach((fn) => fn(m.e))
   else if (m.t === 'rules') useStore.setState((s) => ({ rules: { ...s.rules, default: m.cfg } }))
   else if (m.t === 'rpc') { pending.get(m.id)?.(m.value); pending.delete(m.id) }
@@ -51,12 +53,18 @@ const real: Record<string, (...a: any[]) => any> = {
   track: () => Promise.resolve(),
   setRules: (wsId: string, cfg: unknown) => rpc('setRules', wsId, cfg),
   responseBody: (id: string, requestId: string) => rpc('responseBody', id, requestId),
+  dt: (id: string, method: string, params?: unknown) => rpc('dtCall', id, method, params),
+  dtEnable: (id: string, f: string) => rpc('dtEnable', id, f),
+  dtDisable: (id: string, f: string) => rpc('dtDisable', id, f),
+  dtReact: (id: string, nodeId: number) => rpc('dtReact', id, nodeId),
+  dtReactIndex: (id: string, nodeId: number) => rpc('dtReactIdx', id, nodeId),
+  onDt: (cb: (e: { id: string; method: string; params: unknown }) => void) => { dtSubs.add(cb); return () => dtSubs.delete(cb) },
   openSource: (t: { file: string; line: number; column?: number; editor?: string }) => rpc('openSource', t)
 }
 ;(window as any).izlix = new Proxy(real, { get: (t, p: string) => t[p] ?? ((...a: any[]) => (p.startsWith('on') ? () => {} : Promise.resolve(null))) })
 
 useStore.setState({
-  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
+  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders', 'elements', 'storage'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
   activeTabId: KEY, panelOpen: true, panelTab: 'timeline', activeWorkspaceId: 'default',
   settings: { ...useStore.getState().settings, language: lang, onboarded: true } as any,
   tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any]

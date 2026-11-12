@@ -4,6 +4,9 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Added
+- Chrome extension: Elements and Storage panels, backed by the same allow-listed CDP proxy as the desktop app (now shared in the platform-neutral core).
+
 ## [0.1.0-alpha.2] - 2026-11-12
 
 ### Added
