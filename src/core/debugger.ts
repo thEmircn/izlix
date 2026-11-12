@@ -1,6 +1,6 @@
-import type { WebContents } from 'electron'
+import type { CdpClient } from './cdp-client'
 import type { SourceResolver } from './sources'
-import { formatEval, preview } from '../core/evalformat'
+import { formatEval, preview } from './evalformat'
 
 export interface DbgFrame { id: string; fn: string; url: string; line: number; col: number; orig?: { file: string; line: number }; scopes: { type: string; name?: string; objectId?: string }[] }
 export type DbgEvent =
@@ -14,26 +14,26 @@ export const urlRegexFor = (url: string): string => `^${escapeRe(url.split('?')[
 
 /** Panel acikken Debugger alanini etkinlestirir; kesme noktasi, duraklatma/adimlama, cagri yigini ve kapsam degiskenleri. */
 export class DebuggerService {
-  private active = new Map<string, (_e: unknown, method: string, p: any) => void>()
+  private active = new Map<string, () => void>() // abonelik kapatici
   /** scriptId -> url (Debugger.scriptParsed); duraklamada callFrame.url bos gelebilir */
   private scriptUrls = new Map<string, Map<string, string>>()
 
-  constructor(private getTab: (id: string) => { wc: WebContents; resolver?: SourceResolver } | null, private emit: (tabId: string, e: DbgEvent) => void) {}
+  constructor(private getTab: (id: string) => { client: CdpClient; resolver?: SourceResolver } | null, private emit: (tabId: string, e: DbgEvent) => void) {}
 
-  private wc(tabId: string): WebContents | null { const t = this.getTab(tabId); return t && !t.wc.isDestroyed() ? t.wc : null }
+  private wc(tabId: string): CdpClient | null { return this.getTab(tabId)?.client ?? null }
 
   async enable(tabId: string): Promise<boolean> {
     const t = this.getTab(tabId)
-    if (!t || t.wc.isDestroyed() || this.active.has(tabId)) return !!t
+    if (!t || this.active.has(tabId)) return !!t
     if (t.resolver) t.resolver.holdDebugger = true
-    const onMsg = (_e: unknown, method: string, p: any): void => {
+    const onMsg = (method: string, p: any): void => {
       if (method === 'Debugger.scriptParsed') { let m = this.scriptUrls.get(tabId); if (!m) this.scriptUrls.set(tabId, (m = new Map())); if (p.url) m.set(p.scriptId, p.url) }
       else if (method === 'Debugger.paused') void this.onPaused(tabId, p)
       else if (method === 'Debugger.resumed') this.emit(tabId, { type: 'resumed' })
     }
-    this.active.set(tabId, onMsg); t.wc.debugger.on('message', onMsg)
-    await t.wc.debugger.sendCommand('Debugger.enable').catch(() => {})
-    await t.wc.debugger.sendCommand('Debugger.setAsyncCallStackDepth', { maxDepth: 16 }).catch(() => {})
+    this.active.set(tabId, t.client.onEvent(onMsg))
+    await t.client.send('Debugger.enable').catch(() => {})
+    await t.client.send('Debugger.setAsyncCallStackDepth', { maxDepth: 16 }).catch(() => {})
     return true
   }
 
@@ -41,15 +41,15 @@ export class DebuggerService {
     const t = this.getTab(tabId); const l = this.active.get(tabId)
     if (!l) return
     this.active.delete(tabId); this.scriptUrls.delete(tabId)
-    if (t && !t.wc.isDestroyed()) {
-      t.wc.debugger.removeListener('message', l)
-      await t.wc.debugger.sendCommand('Debugger.setPauseOnExceptions', { state: 'none' }).catch(() => {})
-      await t.wc.debugger.sendCommand('Debugger.resume').catch(() => {})
-      await t.wc.debugger.sendCommand('Debugger.disable').catch(() => {})
+    l()
+    if (t) {
+      await t.client.send('Debugger.setPauseOnExceptions', { state: 'none' }).catch(() => {})
+      await t.client.send('Debugger.resume').catch(() => {})
+      await t.client.send('Debugger.disable').catch(() => {})
     }
     if (t?.resolver) t.resolver.holdDebugger = false
   }
-  drop(tabId: string): void { const l = this.active.get(tabId); const w = this.wc(tabId); if (l && w) w.debugger.removeListener('message', l); this.active.delete(tabId) }
+  drop(tabId: string): void { this.active.get(tabId)?.(); this.active.delete(tabId); this.scriptUrls.delete(tabId) }
 
   private async onPaused(tabId: string, p: any): Promise<void> {
     const t = this.getTab(tabId)
@@ -60,7 +60,7 @@ export class DebuggerService {
     if (p.reason === 'EventListener' || p.reason === 'XHR') {
       const urlOf = (f: any): string => f.url || this.scriptUrls.get(tabId)?.get(f.location.scriptId) || ''
       while (callFrames.length && !urlOf(callFrames[0])) callFrames = callFrames.slice(1)
-      if (!callFrames.length) { await this.wc(tabId)?.debugger.sendCommand('Debugger.resume').catch(() => {}); return }
+      if (!callFrames.length) { await this.wc(tabId)?.send('Debugger.resume').catch(() => {}); return }
     }
     for (const f of callFrames.slice(0, 40)) {
       const loc = f.location
@@ -90,34 +90,34 @@ export class DebuggerService {
     }
     if (!url) return { error: 'no url' }
     try {
-      const r: any = await w.debugger.sendCommand('Debugger.setBreakpointByUrl', { lineNumber: line0, urlRegex: urlRegexFor(url), columnNumber: col0, ...(a.condition ? { condition: a.condition } : {}) })
+      const r: any = await w.send('Debugger.setBreakpointByUrl', { lineNumber: line0, urlRegex: urlRegexFor(url), columnNumber: col0, ...(a.condition ? { condition: a.condition } : {}) })
       return { id: r.breakpointId, url, line: line0 + 1 }
     } catch (e) { return { error: String((e as Error).message ?? e) } }
   }
-  async removeBreakpoint(tabId: string, id: string): Promise<void> { await this.wc(tabId)?.debugger.sendCommand('Debugger.removeBreakpoint', { breakpointId: id }).catch(() => {}) }
+  async removeBreakpoint(tabId: string, id: string): Promise<void> { await this.wc(tabId)?.send('Debugger.removeBreakpoint', { breakpointId: id }).catch(() => {}) }
 
   async control(tabId: string, cmd: 'resume' | 'stepOver' | 'stepInto' | 'stepOut' | 'pause'): Promise<void> {
     const m = { resume: 'Debugger.resume', stepOver: 'Debugger.stepOver', stepInto: 'Debugger.stepInto', stepOut: 'Debugger.stepOut', pause: 'Debugger.pause' }[cmd]
-    await this.wc(tabId)?.debugger.sendCommand(m).catch(() => {})
+    await this.wc(tabId)?.send(m).catch(() => {})
   }
   /** Olay dinleyici kesme noktasi (ornek: 'click'): sayfada o olay islenirken dinleyicinin ilk satirinda durur. */
   async setEventBreakpoint(tabId: string, eventName: string, on: boolean): Promise<boolean> {
     if (!/^[a-z]{2,24}$/.test(eventName)) return false
-    await this.wc(tabId)?.debugger.sendCommand(on ? 'DOMDebugger.setEventListenerBreakpoint' : 'DOMDebugger.removeEventListenerBreakpoint', { eventName }).catch(() => {})
+    await this.wc(tabId)?.send(on ? 'DOMDebugger.setEventListenerBreakpoint' : 'DOMDebugger.removeEventListenerBreakpoint', { eventName }).catch(() => {})
     return true
   }
   /** XHR/fetch kesme noktasi: URL'si verilen dizeyi iceren her istekte, istek gonderilirken durur (bos dize = hepsi). */
   async setXhrBreakpoint(tabId: string, url: string, on: boolean): Promise<boolean> {
     if (url.length > 500) return false
-    await this.wc(tabId)?.debugger.sendCommand(on ? 'DOMDebugger.setXHRBreakpoint' : 'DOMDebugger.removeXHRBreakpoint', { url }).catch(() => {})
+    await this.wc(tabId)?.send(on ? 'DOMDebugger.setXHRBreakpoint' : 'DOMDebugger.removeXHRBreakpoint', { url }).catch(() => {})
     return true
   }
-  async setExceptions(tabId: string, state: 'none' | 'uncaught' | 'all'): Promise<void> { await this.wc(tabId)?.debugger.sendCommand('Debugger.setPauseOnExceptions', { state }).catch(() => {}) }
+  async setExceptions(tabId: string, state: 'none' | 'uncaught' | 'all'): Promise<void> { await this.wc(tabId)?.send('Debugger.setPauseOnExceptions', { state }).catch(() => {}) }
 
   async scope(tabId: string, objectId: string): Promise<ScopeVar[]> {
     const w = this.wc(tabId); if (!w) return []
     try {
-      const r: any = await w.debugger.sendCommand('Runtime.getProperties', { objectId, ownProperties: true, generatePreview: true })
+      const r: any = await w.send('Runtime.getProperties', { objectId, ownProperties: true, generatePreview: true })
       return (r.result ?? []).filter((x: any) => x.value && x.name !== '__proto__' && !/^Symbol\(/.test(x.name)).slice(0, 80)
         .map((x: any) => ({ name: x.name, text: preview(x.value), type: x.value.subtype ?? x.value.type, objectId: x.value.objectId && x.value.type === 'object' ? x.value.objectId : undefined }))
     } catch { return [] }
@@ -125,6 +125,6 @@ export class DebuggerService {
 
   async evalOnFrame(tabId: string, frameId: string, expression: string): Promise<{ ok: boolean; text: string }> {
     const w = this.wc(tabId); if (!w) return { ok: false, text: 'no page' }
-    try { return formatEval(await w.debugger.sendCommand('Debugger.evaluateOnCallFrame', { callFrameId: frameId, expression, generatePreview: true, includeCommandLineAPI: true })) } catch (e) { return { ok: false, text: String((e as Error).message ?? e) } }
+    try { return formatEval(await w.send('Debugger.evaluateOnCallFrame', { callFrameId: frameId, expression, generatePreview: true, includeCommandLineAPI: true })) } catch (e) { return { ok: false, text: String((e as Error).message ?? e) } }
   }
 }

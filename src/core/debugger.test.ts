@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-vi.mock('electron', () => ({}))
 import { DebuggerService, urlRegexFor } from './debugger'
 
 describe('urlRegexFor', () => {
@@ -12,11 +11,11 @@ describe('urlRegexFor', () => {
 describe('DebuggerService', () => {
   const mk = () => {
     const cmds: [string, any][] = []; let listener: any
-    const wc: any = { isDestroyed: () => false, debugger: { sendCommand: async (m: string, p: any) => { cmds.push([m, p]); if (m === 'Debugger.setBreakpointByUrl') return { breakpointId: 'bp1' }; if (m === 'Runtime.getProperties') return { result: [{ name: 'x', value: { type: 'number', value: 3 } }, { name: '__proto__', value: { type: 'object' } }, { name: 'o', value: { type: 'object', objectId: 'obj1', description: 'Object' } }] }; return {} }, on: (_: string, l: any) => { listener = l }, removeListener: vi.fn() } }
+    const wc: any = { send: async (m: string, p: any) => { cmds.push([m, p]); if (m === 'Debugger.setBreakpointByUrl') return { breakpointId: 'bp1' }; if (m === 'Runtime.getProperties') return { result: [{ name: 'x', value: { type: 'number', value: 3 } }, { name: '__proto__', value: { type: 'object' } }, { name: 'o', value: { type: 'object', objectId: 'obj1', description: 'Object' } }] }; return {} }, onEvent: (l: any) => { listener = l; return () => {} }, detach() {} }
     const resolver: any = { holdDebugger: false, resolveFrame: async () => ({ file: '/p/App.tsx', line: 12 }), generatedFor: async (n: string, l: number) => (n === 'App.tsx' ? { url: 'http://a/main.js', line0: l + 100, col0: 4 } : null) }
     const events: any[] = []
-    const svc = new DebuggerService(() => ({ wc, resolver }), (_id, e) => events.push(e))
-    return { svc, cmds, events, resolver, fire: (m: string, p: any) => listener(null, m, p) }
+    const svc = new DebuggerService(() => ({ client: wc, resolver }), (_id, e) => events.push(e))
+    return { svc, cmds, events, resolver, fire: (m: string, p: any) => listener(m, p) }
   }
   it('etkinlestirme resolver.holdDebugger ayarlar; kapatma geri alir ve duraklamayi surdurur', async () => {
     const { svc, cmds, resolver } = mk()

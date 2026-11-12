@@ -15,6 +15,7 @@ let tabId = fixedTab ?? 0
 let KEY = `tab-${tabId}`
 const port = chrome.runtime.connect({ name: 'izlix-panel' })
 const evSubs = new Set<(e: BusEvent) => void>()
+const dbgSubs = new Set<(e: any) => void>()
 const dtSubs = new Set<(e: { id: string; method: string; params: unknown }) => void>()
 let snapshotResolve: ((l: BusEvent[]) => void) | null = null
 let snapshotCache: BusEvent[] | null = null
@@ -25,6 +26,7 @@ port.onMessage.addListener((m: any) => {
   else if (m.t === 'update') useStore.setState({ updateNotice: m.notice } as any)
   else if (m.t === 'detached' && m.tabId === tabId) useStore.setState({ detached: m.reason } as any)
   else if (m.t === 'attach-error') useStore.setState({ attachError: m.message } as any)
+  else if (m.t === 'dbg') dbgSubs.forEach((fn) => fn(m.e))
   else if (m.t === 'dt') dtSubs.forEach((fn) => fn({ id: m.id, method: m.method, params: m.params }))
   else if (m.t === 'ev') evSubs.forEach((fn) => fn(m.e))
   else if (m.t === 'rules') useStore.setState((s) => ({ rules: { ...s.rules, default: m.cfg } }))
@@ -58,6 +60,18 @@ const real: Record<string, (...a: any[]) => any> = {
   seoAudit: (id: string) => rpc('audit', id, 'seo'),
   imageAudit: (id: string) => rpc('audit', id, 'images'),
   linkCheck: (id: string) => rpc('audit', id, 'links'),
+  loadSource: (id: string, url: string) => rpc('srcLoad', id, url),
+  sourcePos: (id: string, url: string, line: number, col: number) => rpc('srcPos', id, { url, line, col }),
+  dbgEnable: (id: string) => rpc('dbgEnable', id),
+  dbgDisable: (id: string) => rpc('dbgDisable', id),
+  dbgSetBp: (id: string, a: unknown) => rpc('dbgSetBp', id, a),
+  dbgRemoveBp: (id: string, bpId: string) => rpc('dbgRemoveBp', id, bpId),
+  dbgControl: (id: string, cmd: string) => rpc('dbgControl', id, cmd),
+  dbgExceptions: (id: string, st: string) => rpc('dbgExceptions', id, st),
+  dbgEventBp: (id: string, kind: string, name: string, on: boolean) => rpc('dbgEventBp', id, kind, name, on),
+  dbgScope: (id: string, objectId: string) => rpc('dbgScope', id, objectId),
+  dbgEval: (id: string, frameId: string, expression: string) => rpc('dbgEval', id, frameId, expression),
+  onDbg: (cb: (e: any) => void) => { dbgSubs.add(cb); return () => dbgSubs.delete(cb) },
   reload: (id: string) => rpc('reload', id),
   cssSnapshot: (id: string) => rpc('cssSnap', id),
   dtEnable: (id: string, f: string) => rpc('dtEnable', id, f),
@@ -70,7 +84,7 @@ const real: Record<string, (...a: any[]) => any> = {
 ;(window as any).izlix = new Proxy(real, { get: (t, p: string) => t[p] ?? ((...a: any[]) => (p.startsWith('on') ? () => {} : Promise.resolve(null))) })
 
 useStore.setState({
-  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders', 'elements', 'storage', 'perf', 'coverage', 'profiler', 'a11y', 'seo'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
+  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders', 'elements', 'storage', 'perf', 'coverage', 'profiler', 'a11y', 'seo', 'sources'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
   activeTabId: KEY, panelOpen: true, panelTab: 'timeline', activeWorkspaceId: 'default',
   settings: { ...useStore.getState().settings, language: lang, onboarded: true } as any,
   tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any]

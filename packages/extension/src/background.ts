@@ -6,6 +6,8 @@ import { CSS_SNAPSHOT } from '../../../src/main/css-snapshot'
 import { A11Y_AUDIT } from '../../../src/main/a11y-audit'
 import { SEO_SCRIPT } from '../../../src/main/seo-script'
 import { IMAGE_AUDIT, LINK_CHECK } from '../../../src/main/page-tools'
+import { DebuggerService } from '../../../src/core/debugger'
+import { loadBundle } from '../../../src/main/source-bundle'
 import { CdpProxy } from '../../../src/core/cdpproxy'
 import { DEFAULT_DOMAINS, type RulesConfig } from '../../../src/shared/rules'
 import { chromeCdp, isAttached } from './chrome-cdp'
@@ -23,6 +25,9 @@ const tabUrls = new Map<number, string>()
 const ports = new Set<chrome.runtime.Port>()
 // Elements/Storage panelleri: izin listeli CDP koprusu (panel acikken etkin, olaylar panele iletilir)
 const proxy = new CdpProxy((key) => attached.get(Number(key.replace('tab-', '')))?.client ?? null, (id, method, params) => ports.forEach((p) => p.postMessage({ t: 'dt', id, method, params })))
+const tabNum = (id: unknown): number => Number(String(id).replace('tab-', ''))
+// Sources paneli: kesme noktasi / adimlama (cekirdek DebuggerService; panel acikken etkin)
+const dbg = new DebuggerService((key) => { const a = attached.get(tabNum(key)); return a ? { client: a.client, resolver: a.collector.resolver } : null }, (id, e) => ports.forEach((p) => p.postMessage({ t: 'dbg', e: { id, ...e } })))
 
 // --- Surum denetimi: GitHub'daki herkese acik release listesinden en yeni eklenti surumu (kullanici verisi gitmez); gunde bir ---
 interface UpdateNotice { latest: string; url: string }
@@ -69,11 +74,11 @@ export async function ensureAttached(tabId: number, reload = true): Promise<void
   await interceptor.refresh()
   if (reload) await chrome.tabs.reload(tabId)
 }
-function release(tabId: number): void { proxy.drop(tabKey(tabId)); const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() } attached.delete(tabId); tabUrls.delete(tabId); bus.dropTab(tabKey(tabId)) }
+function release(tabId: number): void { proxy.drop(tabKey(tabId)); dbg.drop(tabKey(tabId)); const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() } attached.delete(tabId); tabUrls.delete(tabId); bus.dropTab(tabKey(tabId)) }
 
 /** Chrome izlemeyi sonlandirdi (kullanici hata ayiklama seridini kapatti, DevTools acildi...): temizle ve panele bildir */
 function onDetached(tabId: number, reason: string): void {
-  proxy.drop(tabKey(tabId)); const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() }
+  proxy.drop(tabKey(tabId)); dbg.drop(tabKey(tabId)); const a = attached.get(tabId); if (a) { a.interceptor.detach(); a.collector.detach() }
   attached.delete(tabId); ports.forEach((p) => p.postMessage({ t: 'detached', tabId, reason }))
 }
 chrome.debugger.onDetach.addListener((src, reason) => { if (src.tabId != null) onDetached(src.tabId, reason) })
@@ -110,6 +115,23 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
         return !text.includes('\uFFFD') && !/[\u0000-\u0008\u000E-\u001F]/.test(text) ? text : null
       } catch { return null }
     }
+    case 'srcLoad': {
+      // yalniz izlenen bir sekmenin kaynagiyla ayni kokenden http(s) adresleri (eklentinin ag erisimi baska yere kullanilamaz)
+      const url = String(args[1]); const tid = tabNum(args[0])
+      if (!attached.has(tid) || !/^https?:\/\//i.test(url)) return null
+      try { if (new URL(url).origin !== new URL(tabUrls.get(tid) ?? '').origin) return null } catch { return null }
+      return loadBundle(async (u) => { try { if (new URL(u).origin !== new URL(url).origin) return null; const r = await fetch(u); return r.ok ? await r.text() : null } catch { return null } }, url)
+    }
+    case 'srcPos': { const a = attached.get(tabNum(args[0])); const o = args[1] as { url: string; line: number; col: number }; return a ? a.collector.resolver.resolveFrame(undefined, o.line - 1, o.col - 1, o.url).catch(() => null) : null }
+    case 'dbgEnable': return dbg.enable(String(args[0]))
+    case 'dbgDisable': await dbg.disable(String(args[0])); return true
+    case 'dbgSetBp': { const o = args[1] as { url?: string; file?: string; line: number; condition?: string }; return o?.line ? dbg.setBreakpoint(String(args[0]), { url: o.url, file: o.file, line: o.line | 0, condition: o.condition }) : { error: 'no line' } }
+    case 'dbgRemoveBp': await dbg.removeBreakpoint(String(args[0]), String(args[1])); return true
+    case 'dbgControl': { const c = String(args[1]); if (['resume', 'stepOver', 'stepInto', 'stepOut', 'pause'].includes(c)) await dbg.control(String(args[0]), c as any); return true }
+    case 'dbgExceptions': { const st = String(args[1]); if (['none', 'uncaught', 'all'].includes(st)) await dbg.setExceptions(String(args[0]), st as any); return true }
+    case 'dbgEventBp': return args[1] === 'xhr' ? dbg.setXhrBreakpoint(String(args[0]), String(args[2]), !!args[3]) : dbg.setEventBreakpoint(String(args[0]), String(args[2]), !!args[3])
+    case 'dbgScope': return dbg.scope(String(args[0]), String(args[1]))
+    case 'dbgEval': return dbg.evalOnFrame(String(args[0]), String(args[1]), String(args[2]))
     case 'reload': { try { await chrome.tabs.reload(Number(String(args[0]).replace('tab-', ''))); return true } catch { return false } }
     case 'audit': {
       // yalniz sabit betikler (panelden betik metni alinmaz)
