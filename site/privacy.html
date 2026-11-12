@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Izlix privacy policy</title>
+<style>
+:root { color-scheme: dark; }
+body { margin: 0; background: #0a0a0b; color: #ededee; font: 16px/1.65 -apple-system,'Segoe UI',system-ui,sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+h1 { font-size: 34px; letter-spacing: -.03em; margin: 0 0 6px; } h2 { font-size: 20px; margin: 36px 0 8px; letter-spacing: -.01em; }
+p, li { color: #c9c9ce; } a { color: #ff8a55; } code { background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 6px; }
+.dim { color: #8b8b92; font-size: 14px; }
+</style>
+</head>
+<body><main>
+<h1>Privacy policy</h1>
+<p class="dim">Applies to the Izlix desktop app, Izlix for Chrome and the Izlix Browser bundle. Last updated 12 November 2026.</p>
+
+<h2>The short version</h2>
+<p>Izlix works on your computer. It does not have user accounts, does not sell or share data, and does not send what you browse, your requests, your cookies or your passwords anywhere. Optional features that contact the internet are listed below.</p>
+
+<h2>Izlix for Chrome</h2>
+<ul>
+<li><strong>What it reads.</strong> When you open the Izlix panel for a tab, the extension attaches Chrome's debugger to that tab and reads network requests and responses, console messages and rendering events so it can draw the timeline. This data is kept <strong>in memory</strong> for the open tab and discarded when you close the tab or detach.</li>
+<li><strong>What it stores.</strong> Only your request rules, the update-check result and a dismissed-notice flag, in <code>chrome.storage</code> on your device.</li>
+<li><strong>What it sends.</strong> Once a day it requests GitHub's public list of releases (<code>api.github.com</code>) to tell you if a newer version exists. That request contains no information about you or your pages (GitHub sees your IP address, as with any request).</li>
+<li><strong>Sign-in requests.</strong> Request bodies and credential headers of sign-in endpoints are not recorded.</li>
+<li><strong>Permissions.</strong> <code>debugger</code> (read and, with your rules, change requests of the tab you chose), <code>tabs</code>, <code>sidePanel</code>, <code>storage</code>, <code>alarms</code> (daily update check) and access to localhost; other sites only if you grant access.</li>
+</ul>
+
+<h2>Izlix desktop app and Izlix Browser</h2>
+<ul>
+<li><strong>Local data.</strong> Bookmarks, history, notes, settings and request rules are stored on your device. Saved passwords are encrypted with your operating system's keystore and are not saved when no secure keystore exists.</li>
+<li><strong>Telemetry.</strong> Off unless you opt in. If you opt in, only anonymous feature-usage and performance counts are sent; never URLs or page content.</li>
+<li><strong>Update check.</strong> The desktop app asks the npm registry for the newest Electron version to warn about security updates. No personal data is sent.</li>
+<li><strong>Safe-browsing lists.</strong> The malware list is downloaded from a public source; checking a site happens on your device.</li>
+<li><strong>Optional features</strong> contact the services you enable: search suggestions (your search engine), weather and currency widgets, breach checks (a short hash prefix only), translation (Google Translate website) and AI explanations (your own provider and key, with a preview of what will be sent).</li>
+<li><strong>Encrypted sync.</strong> If you turn it on, a file encrypted with your passphrase is written to a folder you choose. Whoever hosts that folder sees only encrypted bytes. Passwords and API keys are never synced.</li>
+<li><strong>The browser engine.</strong> Izlix Browser is a repackaged ungoogled-chromium, which removes Google service connections. Its own privacy behavior is described by that project.</li>
+</ul>
+
+<h2>Children</h2>
+<p>Izlix is a developer tool and is not directed at children.</p>
+
+<h2>Changes and contact</h2>
+<p>Changes to this policy are published on this page and in the project's changelog. Questions or concerns: open an issue at <a href="https://github.com/thEmircn/izlix/issues">github.com/thEmircn/izlix</a>.</p>
+<p><a href="./">Back to Izlix</a></p>
+</main></body></html>

@@ -146,7 +146,10 @@ flowchart LR
 - The malware and look-alike warning is **not** Google Safe Browsing; its coverage is narrower.
 - Some features use macOS-only services for now (Keychain, iCloud Drive sync, read-aloud). See Platform support.
 
-## Security
+## Privacy and security
+
+What Izlix reads, stores and sends is described in the [privacy policy](https://themircn.github.io/izlix/privacy.html).
+
 
 Pages run in sandboxed views with no preload and cannot reach IPC. Camera, microphone, location and notifications are denied by default. Telemetry is off unless you opt in. Sign-in requests are never recorded on the timeline, and exports mask tokens and cookies. To report a vulnerability, please open a private security advisory on GitHub.
 
