@@ -25,8 +25,10 @@ module.exports = async ({ win, sleep, shellEval }) => {
     const img = await win.webContents.capturePage(), file = path.join(dir, name + '.png')
     if (update || !fs.existsSync(file)) { fs.writeFileSync(file, img.toPNG()); out.screens[name] = 'baseline-written'; }
     else { const base = nativeImage.createFromBuffer(fs.readFileSync(file)); const sz = base.getSize(), cz = img.getSize(); out.screens[name] = sz.width !== cz.width || sz.height !== cz.height ? 1 : Number(diff(base, img).toFixed(5)) }
-    win.webContents.send('ui:cmd', cmd); await sleep(250) // ayni komut kapatir/acar; Esc ile kesin kapat
-    await shellEval(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); 1`); await sleep(250)
+    // kesin kapat: Esc gonder, tum katmanlar kalkana kadar bekle (yavas ortamlarda bir sonraki ekran onceki katmani gostermesin)
+    await shellEval(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); 1`)
+    for (let i = 0; i < 25; i++) { if (!(await shellEval(`!!document.querySelector('.overlay')`))) break; await sleep(150); if (i % 5 === 4) await shellEval(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); 1`) }
+    await sleep(250)
   }
   out.maxDiff = Math.max(0, ...Object.values(out.screens).filter((v) => typeof v === 'number'))
   return out
