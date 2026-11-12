@@ -3,6 +3,9 @@ import { EventBus } from '../../../src/core/bus'
 import { attachCollector, type Collector } from '../../../src/core/collector'
 import { Interceptor } from '../../../src/core/interceptor'
 import { CSS_SNAPSHOT } from '../../../src/main/css-snapshot'
+import { A11Y_AUDIT } from '../../../src/main/a11y-audit'
+import { SEO_SCRIPT } from '../../../src/main/seo-script'
+import { IMAGE_AUDIT, LINK_CHECK } from '../../../src/main/page-tools'
 import { CdpProxy } from '../../../src/core/cdpproxy'
 import { DEFAULT_DOMAINS, type RulesConfig } from '../../../src/shared/rules'
 import { chromeCdp, isAttached } from './chrome-cdp'
@@ -108,6 +111,14 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
       } catch { return null }
     }
     case 'reload': { try { await chrome.tabs.reload(Number(String(args[0]).replace('tab-', ''))); return true } catch { return false } }
+    case 'audit': {
+      // yalniz sabit betikler (panelden betik metni alinmaz)
+      const scripts: Record<string, { code: string; async?: boolean; timeout: number }> = {
+        a11y: { code: A11Y_AUDIT, timeout: 2000 }, seo: { code: SEO_SCRIPT, timeout: 2000 }, images: { code: IMAGE_AUDIT, timeout: 2000 }, links: { code: LINK_CHECK, async: true, timeout: 30_000 }
+      }
+      const sc = scripts[String(args[1])]; const a = attached.get(Number(String(args[0]).replace('tab-', ''))); if (!sc || !a) return null
+      try { const r: any = await a.client.send('Runtime.evaluate', { expression: sc.code, returnByValue: true, awaitPromise: !!sc.async, timeout: sc.timeout }); return r.result?.value ?? null } catch { return null }
+    }
     case 'cssSnap': {
       const a = attached.get(Number(String(args[0]).replace('tab-', ''))); if (!a) return null
       try { const r: any = await a.client.send('Runtime.evaluate', { expression: CSS_SNAPSHOT, returnByValue: true, timeout: 2000 }); return r.result?.value ?? null } catch { return null }
