@@ -20,5 +20,11 @@ module.exports = async ({ library, workspaces, shellEval, settings, notes }) => 
   out.bm = library.bookmarks(ws.id).length
   await api(`syncSetup({ pass: 'baska-parola-123' })`)
   out.wrong = (await api('syncNow()')).error
+  // ozel klasor (Dropbox/OneDrive/Syncthing gibi): secilince esitleme oraya yazilir, sifirlaninca iCloud klasorune doner
+  await api(`syncPickDir()`); await api(`syncSetup({ pass: 'cok-gizli-parola' })`)
+  const st = await api('syncState()'); out.customDir = st.custom && st.dir === process.env.DB_SYNC_PICK
+  fs.mkdirSync(path.dirname(process.env.DB_SYNC_PICK), { recursive: true })
+  out.customSync = (await api('syncNow()')).ok; out.customFile = fs.existsSync(path.join(process.env.DB_SYNC_PICK, 'sync.dbsync'))
+  await api('syncPickDir(true)'); out.reset = (await api('syncState()')).custom === false
   return out
 }

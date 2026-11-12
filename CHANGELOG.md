@@ -7,14 +7,13 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 ## [0.1.0-alpha.2] - 2026-11-12
 
 ### Added
+- Choose any folder for encrypted sync (iCloud Drive, Dropbox, OneDrive, Google Drive, Syncthing), not only iCloud Drive.
 - Izlix UI component package (`packages/ui`): Button, Switch, Chip, Field, Dialog, PromptDialog, Segmented, with a gallery.
 - Chrome extension checks the public GitHub release list once a day and shows an update notice in the panel.
 - Visual regression test with baselines for nine screens.
 - Third-party notices (`THIRD_PARTY_NOTICES.md`) generated from the dependency tree, shipped inside the browser bundles.
 - Project website and component gallery on GitHub Pages.
 - Desktop app packages for macOS, Windows and Linux built in CI (unsigned), published on `desktop-v*` tags.
-
-### Added
 - Read aloud now works on Windows (PowerShell speech) and Linux (espeak-ng, espeak or spd-say), not only on macOS.
 
 ### Changed

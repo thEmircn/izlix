@@ -28,7 +28,7 @@ import { DEFAULT_HUB, SERVICES, nextUnread, serviceById, serviceUrl, type HubSet
 import { ThreatService } from './threat'
 import { checkUpdate, updateInfo } from './updatecheck'
 import { migrateLegacyData } from './migrate'
-import { SyncService, deviceName } from './sync'
+import { SyncService, deviceName, icloudDir } from './sync'
 import { mergeBookmarks, mergeNotes, mergeSites, pickSettings, type SyncPayload } from '../shared/sync'
 import { loadDoc as loadDocS, saveDoc as saveDocS } from './docdb'
 import { PasswordService, keychainCipher, plainCipher, type SaveAnswer } from './passwords'
@@ -506,7 +506,13 @@ function registerIpc(): void {
     const n = notes.remove(id); if (!n) return false
     tabs.each((wc) => { if (pageKey(wc.getURL()) === n.url) void wc.executeJavaScript(removeNoteScript(id)).catch(() => {}) }); return true
   })
-  handle(Ch.syncState, null, () => ({ enabled: syncSt.enabled, hasPass: !!syncSt.pass, last: syncSt.last, error: syncSt.error, dir: syncSvc.dir(), icloud: syncSvc.available() }))
+  handle(Ch.syncState, null, () => ({ enabled: syncSt.enabled, hasPass: !!syncSt.pass, last: syncSt.last, error: syncSt.error, dir: syncSvc.dir(), icloud: syncSvc.available(), custom: !!settings.get().syncDir }))
+  handle(Ch.syncPickDir, schemas.syncPickDir, async ({ reset }) => {
+    if (reset) { settings.set({ syncDir: '' }); pushSettings(); return '' }
+    const dir = process.env.DB_SYNC_PICK ?? (await dialog.showOpenDialog(curWin ?? win, { properties: ['openDirectory', 'createDirectory'], title: tr('set.syncPick') })).filePaths[0]
+    if (!dir) return settings.get().syncDir ?? ''
+    settings.set({ syncDir: dir }); pushSettings(); return dir
+  })
   handle(Ch.syncSetup, schemas.syncSetup, (p) => { if (p.clear) syncSt = { enabled: false, last: 0, error: '', pass: '' }; if (p.pass) syncSt.pass = syncCipher().encrypt(p.pass); if (p.enabled !== undefined) syncSt.enabled = p.enabled; saveSyncSt(); return true })
   handle(Ch.syncNow, null, () => runSync())
   handle(Ch.hubOpen, schemas.hubOpen, async ({ id, background, external }) => {
@@ -1189,7 +1195,7 @@ async function createWindow(): Promise<void> {
   perfHist = new PerfHistory(app.getPath('userData'))
   for (const w of workspaces.list()) { const part = partitionFor(w.id); await loadExtensionsInto(session.fromPartition(part), part) }
   syncSt = { ...syncSt, ...(loadDocS<SyncSt>(app.getPath('userData'), 'syncstate') ?? {}) }
-  syncSvc = new SyncService({ build: buildSync, apply: applySync, pass: syncPass })
+  syncSvc = new SyncService({ build: buildSync, apply: applySync, pass: syncPass, dir: () => settings.get().syncDir || icloudDir() })
   if (syncSt.enabled) { setTimeout(() => runSync(), 5000); setInterval(() => { if (syncSt.enabled) runSync() }, 10 * 60_000).unref() }
   ai = new AiService(app.getPath('userData'), process.env.DB_SCRIPT ? plainCipher : keychainCipher, () => (settings.get().ai ?? { provider: 'ollama', model: 'llama3.1' }) as AiConfig)
   widgets = new WidgetService(app.getPath('userData'),

@@ -4738,6 +4738,26 @@
       "wrong",
       "eq",
       "bad-pass"
+    ],
+    [
+      "customDir",
+      "eq",
+      true
+    ],
+    [
+      "customSync",
+      "eq",
+      true
+    ],
+    [
+      "customFile",
+      "eq",
+      true
+    ],
+    [
+      "reset",
+      "eq",
+      true
     ]
   ],
   "mediaperm": [

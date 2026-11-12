@@ -20,6 +20,6 @@ export class SettingsStore {
     if (!this.data.installId) { this.data.installId = Math.random().toString(36).slice(2) + Date.now().toString(36); this.save() }
   }
   get(): Settings { return { ...this.data } }
-  set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen' | 'searchEngine' | 'searchSuggest' | 'adblock' | 'adblockAllow' | 'adblockDev' | 'ambient' | 'stripTracking' | 'ai' | 'budgets' | 'widgets' | 'focus' | 'apps' | 'shortcuts' | 'editor' | 'httpsOnly' | 'spellcheck' | 'cookieBanners' | 'stripTrackingDev' | 'sleepMinutes' | 'ambientDev' | 'extensions' | 'hub' | 'safeBrowsing'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
+  set(p: Partial<Pick<Settings, 'telemetry' | 'onboarded' | 'language' | 'autoOpen' | 'searchEngine' | 'searchSuggest' | 'adblock' | 'adblockAllow' | 'adblockDev' | 'ambient' | 'stripTracking' | 'ai' | 'budgets' | 'widgets' | 'focus' | 'apps' | 'shortcuts' | 'editor' | 'httpsOnly' | 'spellcheck' | 'cookieBanners' | 'stripTrackingDev' | 'sleepMinutes' | 'ambientDev' | 'extensions' | 'hub' | 'safeBrowsing' | 'syncDir'>>): Settings { Object.assign(this.data, p); this.save(); return this.get() }
   private save(): void { saveDoc(this.dir, 'settings', this.data) }
 }

@@ -37,7 +37,7 @@ export function Settings({ onClose }: { onClose(): void }) {
   useEffect(() => { void api.aiPreview().then((p: { provider: string; hasKey: boolean }) => setAiHas((h) => ({ ...h, [p.provider]: p.hasKey }))) }, [aiCfg.provider])
   const loadPw = (): void => { void api.pwList().then((l: any) => setPw(l ?? { logins: [], never: [] })) }
   useEffect(loadPw, [])
-  const [sy, setSy] = useState<{ enabled: boolean; hasPass: boolean; last: number; error: string; dir: string; icloud: boolean } | null>(null); const [syPass, setSyPass] = useState(''); const [syBusy, setSyBusy] = useState(false)
+  const [sy, setSy] = useState<{ enabled: boolean; hasPass: boolean; last: number; error: string; dir: string; icloud: boolean; custom: boolean } | null>(null); const [syPass, setSyPass] = useState(''); const [syBusy, setSyBusy] = useState(false)
   const loadSy = (): void => { void api.syncState().then(setSy) }
   useEffect(loadSy, [])
   const [upd, setUpd] = useState<{ electron: string; chromium: string; latest: string; newer: boolean; checked: number; error: boolean } | null>(null)
@@ -108,7 +108,12 @@ export function Settings({ onClose }: { onClose(): void }) {
           <div className="srow" style={{ display: 'block' }} data-testid="drm-row"><div className="stitle">{t('set.drm')}</div><div className="shint" data-testid="drm-status">{drm === 'check' ? '…' : drm === 'yes' ? t('set.drmYes') : t('set.drmNo')}</div></div>
           <div className="srow" style={{ display: 'block' }} data-testid="sync-section">
             <div className="stitle">{t('set.sync')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.syncHint')}</div>
-            {sy && !sy.icloud && <div className="shint" style={{ color: 'var(--warn, #f5b94a)' }}>{t('set.syncNoIcloud')}</div>}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '4px 0 6px', flexWrap: 'wrap' }}>
+              <code style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={sy?.dir}>{sy?.dir}</code>
+              <button className="btn sm" data-testid="sync-pick" onClick={() => void api.syncPickDir().then(loadSy)}>{t('set.syncPick')}</button>
+              {sy?.custom && <button className="btn sm" onClick={() => void api.syncPickDir(true).then(loadSy)}>{t('set.syncReset')}</button>}
+            </div>
+            {sy && !sy.icloud && <div className="shint" style={{ color: 'var(--warn, #f5b94a)' }}>{t(sy.custom ? 'set.syncNoDir' : 'set.syncNoIcloud')}</div>}
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '6px 0' }}>
               <input type="password" value={syPass} placeholder={sy?.hasPass ? t('set.syncPassSet') : t('set.syncPass')} onChange={(e) => setSyPass(e.target.value)} style={{ flex: 1 }} />
               <button className="btn" disabled={syPass.length < 8} onClick={() => void api.syncSetup({ pass: syPass }).then(() => { setSyPass(''); loadSy() })}>{t('set.syncSave')}</button>

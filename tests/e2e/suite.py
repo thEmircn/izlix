@@ -48,7 +48,8 @@ def run(name):
     ud = tempfile.mkdtemp(prefix='ud.', dir=TMPD)
     env = {k: v for k, v in os.environ.items() if k != 'ELECTRON_RUN_AS_NODE'}
     env.update(DB_USER_DATA=ud, DB_SCRIPT=os.path.join(ROOT, name + '.cjs'), DB_DUMP=out, DB_URL='', DB_TESTAPP=TESTAPP)
-    if name == 'sync': env['DB_ICLOUD_DIR'] = ud + '/icloud/Izlix'
+    if name == 'sync':
+        env['DB_ICLOUD_DIR'] = ud + '/icloud/Izlix'; env['DB_SYNC_PICK'] = ud + '/Dropbox/Izlix'
     if name == 'threat':
         open(ud + '/threat.txt', 'w').write('# test\n127.0.0.1\tmalware-test.invalid\n')
         env['DB_THREAT_LIST'] = ud + '/threat.txt'

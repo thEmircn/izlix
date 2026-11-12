@@ -70,7 +70,7 @@ Builds are unsigned alpha builds; see the notes on each release for the first-la
 
 ## It is also a real browser
 
-Tabs and groups · vertical tabs · bookmarks and history · download manager · built-in password manager (macOS Keychain) · private and Tor tabs · ad and tracker blocker · HTTPS-only · malware and look-alike site warning · translate · reader mode with read-aloud · page notes and highlights · picture-in-picture · multi-window with shared tabs · optional end-to-end encrypted iCloud Drive sync · and an **Apps Hub** for WhatsApp, Telegram, Meet, YouTrack, YouTube and Instagram with unread counts.
+Tabs and groups · vertical tabs · bookmarks and history · download manager · built-in password manager (macOS Keychain) · private and Tor tabs · ad and tracker blocker · HTTPS-only · malware and look-alike site warning · translate · reader mode with read-aloud · page notes and highlights · picture-in-picture · multi-window with shared tabs · optional end-to-end encrypted sync through any folder you choose (iCloud Drive, Dropbox, OneDrive, Syncthing) · and an **Apps Hub** for WhatsApp, Telegram, Meet, YouTrack, YouTube and Instagram with unread counts.
 
 <p align="center">
   <img src="docs/screenshots/hub.png" alt="Apps hub" width="70%">
