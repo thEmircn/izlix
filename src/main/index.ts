@@ -45,7 +45,7 @@ import { FaviconStore } from './favicons'
 import { ThumbStore } from './thumbs'
 import { TorService } from './tor'
 import { remoteUrl, parseRemote } from '../shared/suggest-remote'
-import { app, systemPreferences, net, screen, desktopCapturer, powerMonitor, Notification, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
+import { app, nativeImage, systemPreferences, net, screen, desktopCapturer, powerMonitor, Notification, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, nativeTheme, session, shell } from 'electron'
 import { join } from 'node:path'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { execFile } from 'node:child_process'
@@ -167,7 +167,18 @@ let lastBadge = -1
 function updateBadge(): void {
   const n = tabs.list().tabs.reduce((a, t) => a + (t.service ? t.unread ?? 0 : 0), 0)
   if (n === lastBadge) return; lastBadge = n
-  if (process.platform === 'darwin' && !process.env.DB_SCRIPT) app.dock?.setBadge(n ? (n > 99 ? '99+' : String(n)) : '')
+  if (process.env.DB_SCRIPT) return
+  try {
+    if (process.platform === 'darwin') app.dock?.setBadge(n ? (n > 99 ? '99+' : String(n)) : '')
+    else if (process.platform === 'linux') app.setBadgeCount(n) // Unity/KDE baslatici rozeti
+    else if (process.platform === 'win32') {
+      // gorev cubugu simgesi uzerinde turuncu nokta (sayi cizilemez; aciklama metninde sayi var)
+      const px = Buffer.alloc(16 * 16 * 4)
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const inside = (x - 7.5) ** 2 + (y - 7.5) ** 2 <= 49, o = (y * 16 + x) * 4; px[o] = 43; px[o + 1] = 106; px[o + 2] = 255; px[o + 3] = inside ? 255 : 0 } // BGRA
+      const dot = nativeImage.createFromBitmap(px, { width: 16, height: 16 })
+      for (const w of shellWins.values()) if (!w.isDestroyed()) w.setOverlayIcon(n ? dot : null, n ? `${n} unread` : '')
+    }
+  } catch { /* rozet kritik degil */ }
 }
 const loadedParts = new Set<string>()
 /** kayitli eklentileri bir oturuma yukler (gizli/Tor oturumlari haric); hatali olan sessizce atlanir */
