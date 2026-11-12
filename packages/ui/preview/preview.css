@@ -1,0 +1,10 @@
+/* onizleme sayfasi: uygulamanin kendi kabugu (native.css'in sabit body'si ve secilemez metni) bu sayfada kaydirmayi engellemesin */
+html, body { overflow: auto !important; user-select: text; }
+body { position: static !important; background: var(--bg); }
+.pv-page { padding: 28px 32px 80px; max-width: 1500px; margin: 0 auto; }
+.pv-page header h1 { margin: 0 0 4px; font-size: 22px; } .pv-page header p { margin: 0 0 20px; color: var(--dim); }
+.pv-sec { margin: 34px 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+.pv-grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.pv-frame { margin: 0; } .pv-frame figcaption { font: 600 11.5px var(--mono); color: var(--dim); margin: 0 0 6px 2px; }
+.pv-stage { position: relative; overflow: hidden; transform: translateZ(0); border: 1px solid var(--line2); border-radius: 12px; background: var(--bg); }
+.pv-kit { padding: 18px; display: grid; gap: 16px; } .pv-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }

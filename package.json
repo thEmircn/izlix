@@ -14,6 +14,7 @@
     "build:demo": "vite build -c samples/demo-src/vite.config.ts",
     "e2e": "electron-vite build && python3 tests/e2e/suite.py",
     "update-electron": "npm install electron@latest --save-exact=false && npm run build && npx vitest run",
+    "preview:components": "node packages/ui/preview/build.mjs && python3 -m http.server 5188 -d packages/ui/preview/dist",
     "build:ext": "node packages/extension/build.mjs",
     "test:ext": "node packages/extension/build.mjs && node packages/extension/tests/e2e.mjs",
     "typecheck:ext": "tsc --noEmit -p packages/extension",
