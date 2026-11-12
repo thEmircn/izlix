@@ -122,3 +122,42 @@ select { line-height: calc(var(--ctl-h) - 2px); padding-top: 0 !important; paddi
 .pctl button { border-radius: 6px; }
 .rail.seg2.dock button, .rail.seg2.dock button.on { border-radius: 6px !important; }
 .rail.seg2.dock button.on { background: rgba(var(--ov),.14) !important; }
+
+/* ===== macOS 2. gecis: yuzeyler, listeler, tablolar, bos durumlar ===== */
+/* panel kabugu: daha az yuvarlak, hafif golge, ince cizgi (NSPanel) */
+.panel, .dashboard, .home { border-radius: 10px; border: var(--hairline) solid rgba(var(--ov),.18); box-shadow: 0 10px 30px rgba(0,0,0,.28), 0 0 0 .5px rgba(0,0,0,.25); }
+.phead { padding-top: 10px; } .ptitle { margin-bottom: 6px; } .ptitle h3 { font-size: 15px; font-weight: 600; }
+/* kartlar: cerceve ve cam yok; duz, hafif dolgulu gruplu yuzey */
+.tile, .lab-sec, .sw-card, .vcard, .mcard, .net-stats .stat, .card, .tile.hero, .wcard, .hub-block {
+  background: rgba(var(--ov),.045); border: 0 !important; border-radius: 10px; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; transform: none !important;
+}
+.stat span { font-size: 11px !important; font-weight: 400; color: var(--dim); }
+.stat b, .net-stats .stat b { font-size: 17px !important; font-weight: 600 !important; letter-spacing: -.01em; }
+.net-stats { gap: 8px; padding: 8px 12px 10px; }
+.net-stats .stat { padding: 8px 12px; gap: 2px; }
+/* durum etiketi: kucuk yuvarlak kare (NSTextField bezel gibi), kapsul degil */
+.pill { height: 17px; display: inline-flex; align-items: center; justify-content: center; min-width: 34px; padding: 0 6px; border-radius: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; border: 0; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; }
+.pill.ok { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
+.pill.client { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.pill.server, .pill.failed { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
+/* tablo/liste: baslik 11px yari kalin, satirlar 24 px, seritli zemin, secimde macOS vurgusu */
+.net-head, .tbl th { height: 24px; font-size: 11px; font-weight: 600; color: var(--dim); background: rgba(var(--c-surf),.9); border-bottom: var(--hairline) solid var(--line2); text-transform: none; letter-spacing: 0; }
+.net-row { height: 24px; font-size: 12px; border-bottom: 0; animation: none; }
+.net-row:nth-child(even) { background: rgba(var(--ov),.028); }
+.net-row:hover { background: rgba(var(--ov),.07); }
+.net-row.sel, .net-row.sel:hover { background: var(--sel-bg); color: var(--sel-fg); }
+.net-row.sel .num, .net-row.sel .name i { color: rgba(255,255,255,.8); }
+.tbl td { padding: 4px 10px; border-bottom: 0; } .tbl tbody tr:nth-child(even) td { background: rgba(var(--ov),.028); }
+.con-row { border-bottom: 0; } .con-row:nth-child(even) { background: rgba(var(--ov),.025); }
+/* bos durumlar: kesikli kutu yerine yalin, ortali ikincil metin */
+.empty-hint, .hub-empty, .fw-note, .bx { border: 0 !important; background: transparent !important; border-radius: 0; color: var(--dim); }
+.empty-hint { padding: 28px 18px; margin: 0; }
+/* araç çubuğundaki düz metin düğmeleri (Pick, Refresh, HAR, Clear...): itme düğmesi görünümü */
+.net-bar > button:not(.fchip):not(.iconbtn):not(.btn), .net-bar button.link, .net-bar .link { height: var(--ctl-h); padding: 0 10px; border-radius: var(--ctl-r); border: var(--hairline) solid var(--ctl-brd); background: var(--ctl-bg); box-shadow: var(--ctl-shadow); color: var(--fg); font-size: 13px; text-decoration: none; }
+.net-bar > button:not(.fchip):not(.iconbtn):hover { background: var(--ctl-bg-hover); }
+/* kısa/açılır menüler araç çubuğunda */
+.net-bar .popup, .net-select, .net-throttle { height: var(--ctl-h); border-radius: var(--ctl-r); background: var(--ctl-bg); border: var(--hairline) solid var(--ctl-brd); box-shadow: var(--ctl-shadow); font-size: 13px; padding: 0 6px 0 9px; }
+/* yatay ayirici cizgiler incelsin */
+hr, .rail-sep { border: 0; background: var(--line2); }
+.panel * { scrollbar-width: thin; }
+.net-row .pill { justify-self: start; }
