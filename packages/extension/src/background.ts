@@ -2,6 +2,7 @@
 import { EventBus } from '../../../src/core/bus'
 import { attachCollector, type Collector } from '../../../src/core/collector'
 import { Interceptor } from '../../../src/core/interceptor'
+import { CSS_SNAPSHOT } from '../../../src/main/css-snapshot'
 import { CdpProxy } from '../../../src/core/cdpproxy'
 import { DEFAULT_DOMAINS, type RulesConfig } from '../../../src/shared/rules'
 import { chromeCdp, isAttached } from './chrome-cdp'
@@ -105,6 +106,11 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
         const text = new TextDecoder().decode(Uint8Array.from(atob(r.body), (c) => c.charCodeAt(0)))
         return !text.includes('\uFFFD') && !/[\u0000-\u0008\u000E-\u001F]/.test(text) ? text : null
       } catch { return null }
+    }
+    case 'reload': { try { await chrome.tabs.reload(Number(String(args[0]).replace('tab-', ''))); return true } catch { return false } }
+    case 'cssSnap': {
+      const a = attached.get(Number(String(args[0]).replace('tab-', ''))); if (!a) return null
+      try { const r: any = await a.client.send('Runtime.evaluate', { expression: CSS_SNAPSHOT, returnByValue: true, timeout: 2000 }); return r.result?.value ?? null } catch { return null }
     }
     case 'dtCall': return proxy.call(String(args[0]), String(args[1]), args[2] as object | undefined).catch(() => null)
     case 'dtEnable': await proxy.enable(String(args[0]), args[1] as any); return true

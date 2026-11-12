@@ -54,6 +54,8 @@ const real: Record<string, (...a: any[]) => any> = {
   setRules: (wsId: string, cfg: unknown) => rpc('setRules', wsId, cfg),
   responseBody: (id: string, requestId: string) => rpc('responseBody', id, requestId),
   dt: (id: string, method: string, params?: unknown) => rpc('dtCall', id, method, params),
+  reload: (id: string) => rpc('reload', id),
+  cssSnapshot: (id: string) => rpc('cssSnap', id),
   dtEnable: (id: string, f: string) => rpc('dtEnable', id, f),
   dtDisable: (id: string, f: string) => rpc('dtDisable', id, f),
   dtReact: (id: string, nodeId: number) => rpc('dtReact', id, nodeId),
@@ -64,7 +66,7 @@ const real: Record<string, (...a: any[]) => any> = {
 ;(window as any).izlix = new Proxy(real, { get: (t, p: string) => t[p] ?? ((...a: any[]) => (p.startsWith('on') ? () => {} : Promise.resolve(null))) })
 
 useStore.setState({
-  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders', 'elements', 'storage', 'perf'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
+  allowedPanels: ['timeline', 'raw', 'network', 'console', 'renders', 'elements', 'storage', 'perf', 'coverage', 'profiler'], // olay verisiyle calisan paneller (diger paneller ilerleyen surumlerde)
   activeTabId: KEY, panelOpen: true, panelTab: 'timeline', activeWorkspaceId: 'default',
   settings: { ...useStore.getState().settings, language: lang, onboarded: true } as any,
   tabs: [{ id: KEY, workspaceId: 'default', title: '', url: '', loading: false, canGoBack: false, canGoForward: false } as any]
