@@ -1,0 +1,34 @@
+/* Uygulama hissi: kabuk bir web sayfasi gibi degil masaustu uygulamasi gibi davranir.
+   - arayuz ogeleri secilmez, surukleme/sag tik web davranisi yok
+   - dugme/sekme/liste ogelerinde ok imleci (macOS gibi); yalniz gercek baglantilarda el
+   - icerik alanlari (konsol, ag ayrintisi, kod, girdiler) secilebilir kalir (gelistirici araci) */
+html, body { user-select: none; -webkit-user-select: none; cursor: default; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; -webkit-touch-callout: none; }
+button, [role=tab], [role=switch], [role=menuitem], [role=option], .chip, .tab, .tgl, .seg b, .seg2 button, .rail button, .icon-btn, .newtab, .ahead, .fchip, .lane-chip, .rchip, .hsort, .arw, .arw-s, select, summary, label { cursor: default !important; }
+a[href], button.link, .stlink, .ln { cursor: pointer; }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, [contenteditable=true] { user-select: text; -webkit-user-select: text; cursor: text; }
+/* icerik: secilebilir */
+pre, code, .codebody, .st-body, .con-row, .net-row, .stack, .stack-trace, .jt, .jsontree, .hookrow, .repl-pair, .vcard, .shint, td { user-select: text; -webkit-user-select: text; }
+.st-body, .con-row, .net-row, .codebody, pre, code { cursor: auto; }
+/* surukleme: gorsel/SVG tarayici surukleme golgesi olusturmaz */
+img, svg, a { -webkit-user-drag: none; }
+/* odak halkasi yalniz klavye ile (fare tiklamasinda cerceve cikmaz) */
+:focus:not(:focus-visible) { outline: none !important; }
+/* metin imleci: girdi disinda gorunmez */
+html { caret-color: transparent; } input, textarea, [contenteditable=true] { caret-color: var(--ac); }
+/* baglanti gorunumu: arayuzde alti cizgisiz, vurgulu */
+button.link, .link { text-decoration: none; } button.link:hover, .link:hover { color: var(--fg); }
+/* sayfa gibi kayma yok: yalniz kendi kaydirma alanlari kayar */
+body { position: fixed; inset: 0; }
+
+/* baglantilar: alti cizgisiz; uzerine gelince cizgi (web sayfasi gibi surekli cizili degil) */
+a, a:visited { text-decoration: none; color: inherit; } a:hover, .stlink:hover { text-decoration: underline; text-underline-offset: 2px; }
+.stlink { text-decoration: none; }
+/* alt arac cubugu: yuzen hap yerine pencereye oturan duz cubuk (Xcode/Finder alt cubugu gibi) */
+.pmain { padding-bottom: 46px; }
+.rail.seg2.dock { left: 0; right: 0; bottom: 0; transform: none; width: auto; max-width: none; justify-content: center; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 5px 8px; background: rgba(var(--c-surf),.82); box-shadow: none; animation: none; }
+.rail.dock button { border-radius: 7px; }
+/* panel basligi: devasa web basligi yerine uygulama basligi olcegi */
+.ptitle h3 { font-size: 15px; letter-spacing: -.01em; animation: none; }
+.panel.side-bottom .ptitle h3 { font-size: 14px; }
+/* tiklanabilir kaynak/zincir baglantilari: vurgu rengi (alti cizgi yerine) */
+.rchain a, td a, .tl-detail a { color: var(--ac); }
