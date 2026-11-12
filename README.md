@@ -31,6 +31,8 @@
 
 Builds are unsigned alpha builds; see the notes on each release for the first-launch steps on your OS.
 
+**Docs:** [Getting started](docs/getting-started.md) · [Request rules](docs/request-rules.md) · [Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md)
+
 ## See · Find · Change
 
 <table>
