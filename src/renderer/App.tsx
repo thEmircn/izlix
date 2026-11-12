@@ -200,7 +200,7 @@ export function App() {
   const targetRatio = s.panelOpen && !s.dashboard ? s.panelRatio : 0 // panel kapaliyken sayfa tam genislik
   const ratio = useTween(targetRatio, 240) // yumusak acilip kapanma
   const panelVisible = (s.panelOpen && !s.dashboard) || ratio > 0.005
-  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side, sideW }) }, [s.dock, ratio, s.split, chromeH, side, sideW])
+  useEffect(() => { void window.izlix.setLayout({ dock: s.dock, panelRatio: Math.min(0.8, Math.max(0, ratio)), chromeHeight: Math.min(200, Math.max(40, Math.round(chromeH))), split: s.split === undefined ? undefined : Math.min(0.8, Math.max(0.2, s.split)), side, sideW: Math.min(400, Math.max(0, Math.round(sideW))) }) }, [s.dock, ratio, s.split, chromeH, side, sideW])
 
   const layout = computeLayout(size.w, size.h, { dock: s.dock, panelRatio: ratio, chromeHeight: chromeH, split: s.split, side, sideW })
   const setDock = (d: DevToolsDock): void => { writePref('dock', d); s.set({ dock: d }) }

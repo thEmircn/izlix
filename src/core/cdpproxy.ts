@@ -55,7 +55,7 @@ export class CdpProxy {
     if (!isAllowedMethod(method)) throw new Error(`izinli olmayan CDP yontemi: ${method}`)
     const w = this.wc(tabId)
     if (!w) return null
-    return w.send(method, params ?? {})
+    try { return await w.send(method, params ?? {}) } catch { return null } // hedef kapandi/gezinme sirasinda: panel bos sonuc alir, ana surec hata vermez
   }
 
   async enable(tabId: string, f: Feature): Promise<void> {
