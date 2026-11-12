@@ -14,6 +14,9 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Project website and component gallery on GitHub Pages.
 - Desktop app packages for macOS, Windows and Linux built in CI (unsigned), published on `desktop-v*` tags.
 
+### Added
+- Read aloud now works on Windows (PowerShell speech) and Linux (espeak-ng, espeak or spd-say), not only on macOS.
+
 ### Changed
 - Windows and Linux: keyboard shortcut labels show "Ctrl+Shift+F" instead of macOS symbols, and the tab strip no longer reserves space for macOS window buttons.
 - Chrome extension: the toolbar button opens the side panel natively, tracing starts when the panel opens, and the panel follows the active tab.
