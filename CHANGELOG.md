@@ -15,6 +15,7 @@ All notable changes to Izlix are documented here. The format follows [Keep a Cha
 - Desktop app packages for macOS, Windows and Linux built in CI (unsigned), published on `desktop-v*` tags.
 
 ### Changed
+- Windows and Linux: keyboard shortcut labels show "Ctrl+Shift+F" instead of macOS symbols, and the tab strip no longer reserves space for macOS window buttons.
 - Chrome extension: the toolbar button opens the side panel natively, tracing starts when the panel opens, and the panel follows the active tab.
 - The macOS browser bundle is named and iconified as Izlix; the Linux bundle includes a desktop entry.
 - Design tokens and motion preferences live in one file; "reduce motion" is respected.

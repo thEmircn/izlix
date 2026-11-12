@@ -1,3 +1,4 @@
+import { K } from './platform'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { highlightLine, initState, langOf, type HlState } from '../shared/highlight'
@@ -219,7 +220,7 @@ export function Sources({ events }: { events: BusEvent[] }) {
                 <button className="btn sm" title="F8" onClick={() => void window.izlix.dbgControl(tabId, 'resume')}>{t('dbg.resume')}</button>
                 <button className="btn sm" title="F10" onClick={() => void window.izlix.dbgControl(tabId, 'stepOver')}>{t('dbg.over')}</button>
                 <button className="btn sm" title="F11" onClick={() => void window.izlix.dbgControl(tabId, 'stepInto')}>{t('dbg.into')}</button>
-                <button className="btn sm" title="⇧F11" onClick={() => void window.izlix.dbgControl(tabId, 'stepOut')}>{t('dbg.out')}</button>
+                <button className="btn sm" title={K('⇧F11')} onClick={() => void window.izlix.dbgControl(tabId, 'stepOut')}>{t('dbg.out')}</button>
               </>
             ) : <span className="dimtxt">{t('dbg.hint')}</span>}
             <span style={{ flex: 1 }} />

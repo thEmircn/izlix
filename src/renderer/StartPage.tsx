@@ -1,3 +1,4 @@
+import { K } from './platform'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore, useT, wsName } from './store'
 import { originKey } from '../shared/favicon'
@@ -110,8 +111,8 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
         <div className="hub-brand"><span className="hub-logo" /><b>Izlix</b></div>
         <button className="hub-new" onClick={() => api.createTab()}><Plus />{t('tab.new')}<kbd className="kbd">⌘T</kbd></button>
         <div className="hub-priv">
-          <button onClick={() => api.createTab(undefined, 'incognito')} title="⇧⌘N"><span className="priv-dot" />{t('hub.private')}</button>
-          <button className="tor" onClick={() => api.createTab(undefined, 'tor')} title="⌥⇧⌘N"><span className="priv-dot" />{t('hub.tor')}</button>
+          <button onClick={() => api.createTab(undefined, 'incognito')} title={K('⇧⌘N')}><span className="priv-dot" />{t('hub.private')}</button>
+          <button className="tor" onClick={() => api.createTab(undefined, 'tor')} title={K('⌥⇧⌘N')}><span className="priv-dot" />{t('hub.tor')}</button>
         </div>
         <nav className="hub-nav">
           {nav.map((x) => <button key={x.id} className={x.id === sec ? 'on' : ''} onClick={() => { setSec(x.id); setQ('') }}>{x.icon}<span>{x.label}</span>{x.n > 0 && <em><Roll text={x.n} /></em>}</button>)}
@@ -122,7 +123,7 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
           <button className="ghost" onClick={() => void api.createWorkspace('', null)}><IcFolder />{t('ws.fromFolder')}</button>
         </div>
         <div className="hub-foot">
-          <button onClick={() => s.set({ overlay: 'palette' })}><kbd className="kbd">⌘K</kbd>{t('home.palette')}</button>
+          <button onClick={() => s.set({ overlay: 'palette' })}><kbd className="kbd">{K('⌘K')}</kbd>{t('home.palette')}</button>
           <button onClick={() => s.set({ overlay: 'settings' })}><IcGear />{t('hub.settings')}</button>
         </div>
       </aside>

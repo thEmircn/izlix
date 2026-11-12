@@ -1,3 +1,4 @@
+import { K } from './platform'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 // Sade yardimci bilesenler: hover'da hafifce belirginlesen kart ve tus etiketi.
@@ -7,7 +8,7 @@ export function Spotlight({ children, className = '', onClick, style, selected }
   return <div className={`spot ${selected ? 'sel' : ''} ${className}`} onClick={onClick} style={style}>{children}</div>
 }
 
-export const Kbd = ({ children }: { children: ReactNode }) => <kbd className="kbd">{children}</kbd>
+export const Kbd = ({ children }: { children: ReactNode }) => <kbd className="kbd">{typeof children === 'string' ? K(children) : children}</kbd>
 
 /** Kayan gostergeli segmentli kontrol: secili sekmenin arkasindaki hap yumusakca yer degistirir. */
 export function Seg<T extends string>({ items, value, onChange, small }: { items: { key: T; label: ReactNode }[]; value: T; onChange(k: T): void; small?: boolean }) {
