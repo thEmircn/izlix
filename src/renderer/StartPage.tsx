@@ -6,6 +6,7 @@ import { Fav, Roll } from './ui'
 import { SuggestList, useSuggestions } from './Suggest'
 import { weatherLabel, type Rate, type Reminder, type Weather } from '../shared/widgets'
 import type { Sug } from '../shared/suggest'
+import { Logo } from './Logo'
 import { IcBookmark, IcClock, IcFolder, IcGear, IcHome, IcLayers, IcServer, Plus } from './icons'
 
 type Section = 'home' | 'servers' | 'bookmarks' | 'history' | 'sessions'
@@ -108,7 +109,7 @@ export function StartPage({ style, tabId }: { style: React.CSSProperties; tabId:
   return (
     <div className="start hub" style={style}>
       <aside className="hub-side">
-        <div className="hub-brand"><span className="hub-logo" /><b>Izlix</b></div>
+        <div className="hub-brand"><Logo size={24} /><b>Izlix</b></div>
         <button className="hub-new" onClick={() => api.createTab()}><Plus />{t('tab.new')}<kbd className="kbd">⌘T</kbd></button>
         <div className="hub-priv">
           <button onClick={() => api.createTab(undefined, 'incognito')} title={K('⇧⌘N')}><span className="priv-dot" />{t('hub.private')}</button>

@@ -184,7 +184,7 @@ export function Select({ value, onChange, children, className, style, disabled, 
   walk(children)
   const native = (window as any).izlix?.nativeMenus === true
   if (!native) return <select value={String(value)} onChange={(e) => onChange({ target: { value: e.target.value } })} className={className} style={style} disabled={disabled} title={title} aria-label={ariaLabel}>{children}</select>
-  const cur = opts.find((o) => o.value === String(value))
+  const cur = opts.find((o) => o.value === String(value)) ?? opts[0]
   return (
     <button type="button" className={`popup ${className ?? ''}`} style={style} disabled={disabled} title={title} aria-label={ariaLabel} aria-haspopup="menu"
       onClick={(e) => {

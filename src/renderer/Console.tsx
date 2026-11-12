@@ -78,7 +78,7 @@ function Line({ r, open, onToggle, editor }: { r: ConsoleRow; open: boolean; onT
   const expandable = !!(r.stack || r.origin)
   return (
     <div className={`con-row lv-${r.level} ${open ? 'open' : ''}`}>
-      <div className="con-main" onClick={expandable ? onToggle : undefined} style={{ cursor: expandable ? 'pointer' : 'default' }}>
+      <div className="con-main" onClick={expandable ? onToggle : undefined} role={expandable ? 'button' : undefined} tabIndex={expandable ? 0 : undefined} aria-expanded={expandable ? open : undefined} onKeyDown={expandable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } } : undefined} style={{ cursor: expandable ? 'pointer' : 'default' }}>
         <i className="lvdot" />
         <span className="ts">{time(r.ts)}</span>
         <span className="msg">{r.text}</span>

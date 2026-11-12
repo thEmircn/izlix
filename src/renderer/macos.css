@@ -161,3 +161,26 @@ select { line-height: calc(var(--ctl-h) - 2px); padding-top: 0 !important; paddi
 hr, .rail-sep { border: 0; background: var(--line2); }
 .panel * { scrollbar-width: thin; }
 .net-row .pill { justify-self: start; }
+
+/* --- sekme simgesi yedegi: favicon yoksa harf karosu / kure (bos kahverengi kare olmasin) --- */
+.tab-fav-fb { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 4px; color: #fff; font: 600 10px/1 -apple-system, 'SF Pro Text', system-ui, sans-serif; flex: none; vertical-align: -3px; margin-right: 6px; }
+.tab-fav-globe { width: 15px; height: 15px; margin-right: 6px; color: var(--dim); flex: none; vertical-align: -3px; }
+.vside.collapsed .tab span.t { font-size: 0; } .vside.collapsed .tab .tab-fav, .vside.collapsed .tab .tab-fav-fb, .vside.collapsed .tab .tab-fav-globe { margin: 0; width: 18px; height: 18px; }
+.vside.collapsed .tab span.t::first-letter { font-size: 0; }
+.tab:focus-visible, .net-row:focus-visible, .con-main:focus-visible { outline: 2px solid var(--ac); outline-offset: -2px; border-radius: 6px; }
+
+/* --- erisilebilirlik: sistem tercihleri --- */
+@media (prefers-reduced-transparency: reduce) {
+  .panel, .dashboard, .home, .dialog, .toast, .vside, .rail.seg2.dock, .start { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--bg) !important; }
+  :root { --panel: var(--bg); }
+}
+@media (prefers-contrast: more) {
+  :root { --dim: color-mix(in srgb, var(--fg) 78%, var(--bg)); --line: rgba(var(--ov), .28); --line2: rgba(var(--ov), .4); --ctl-brd: rgba(var(--ov), .45); }
+  .btn, .popup, input:not([type=checkbox]):not([type=radio]), textarea, select { border-width: 1px; }
+  :focus-visible { outline: 3px solid var(--ac) !important; outline-offset: 2px; }
+}
+@media (forced-colors: active) {
+  .btn, .popup, .tab, .net-row.sel, .rail.dock button.on { forced-color-adjust: auto; border: 1px solid ButtonText; }
+  .net-row.sel { background: Highlight; color: HighlightText; }
+}
+.vside.collapsed .tab span.t { display: flex !important; align-items: center; justify-content: center; flex: none !important; width: 100% !important; max-width: none !important; overflow: visible !important; }

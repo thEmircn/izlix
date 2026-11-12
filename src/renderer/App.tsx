@@ -1,4 +1,5 @@
 import { originKey } from '../shared/favicon'
+import { TabIcon } from './Logo'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Sug } from '../shared/suggest'
 import { inSet, isLoopbackHost, siteOf } from '../shared/adblock'
@@ -237,12 +238,12 @@ export function App() {
   }
   const cardOut = (): void => { clearTimeout(cardTimer.current); void api.tabCard(null) }
   const tabEl = (tb: (typeof s.tabs)[number]): React.ReactElement => (
-          <div key={tb.id} draggable style={tb.group ? { ['--gc' as any]: GROUP_COLORS[s.groups.find((g) => g.id === tb.group)?.color ?? 'grey'] } : undefined} className={`tab nodrag ${tb.group ? 'grouped' : ''} ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
+          <div key={tb.id} draggable style={tb.group ? { ['--gc' as any]: GROUP_COLORS[s.groups.find((g) => g.id === tb.group)?.color ?? 'grey'] } : undefined} role="tab" aria-selected={tb.id === s.activeTabId} tabIndex={tb.id === s.activeTabId ? 0 : -1} aria-label={tb.title && tb.title !== 'New Tab' ? tb.title : t('tab.untitled')} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void api.activateTab(tb.id) } else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); void api.closeTab(tb.id) } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); const i = s.tabs.findIndex((x) => x.id === tb.id); const n = s.tabs[(i + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1) + s.tabs.length) % s.tabs.length]; if (n) void api.activateTab(n.id) } }} className={`tab nodrag ${tb.group ? 'grouped' : ''} ${tb.winId !== undefined && tb.winId !== s.winId ? 'away' : ''} ${tb.sleeping ? 'sleeping' : ''} ${tb.pinned ? 'pinned' : ''} ${tb.private ? `private ${tb.private}` : ''} ${tb.split ? 'split' : ''} ${tb.id === s.activeTabId ? 'active' : ''} ${dragTab === tb.id ? 'dragging' : ''} ${overTab === tb.id && dragTab !== tb.id ? 'dropping' : ''}`}
             onDragStart={(e) => { setDragTab(tb.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', tb.id) }}
             onDragOver={(e) => { if (dragTab) { e.preventDefault(); setOverTab(tb.id) } }}
             onDrop={(e) => { e.preventDefault(); if (dragTab && dragTab !== tb.id) { const idx = s.tabs.findIndex((x) => x.id === tb.id); void api.moveTab(dragTab, idx) } setDragTab(null); setOverTab(null) }}
             onDragEnd={() => { setDragTab(null); setOverTab(null) }} onMouseEnter={(e) => cardIn(tb.id, e.currentTarget)} onMouseLeave={cardOut} onClick={() => { cardOut(); void api.activateTab(tb.id) }} onContextMenu={(e) => { e.preventDefault(); void api.tabMenu(tb.id) }} title={tb.url}>
-            <span className="t">{!tb.private && s.favicons[originKey(tb.url) ?? ''] && <img className="tab-fav" alt="" src={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
+            <span className="t">{!tb.private && <TabIcon url={tb.url} title={tb.title} favicon={s.favicons[originKey(tb.url) ?? '']} />}{tb.private && <i className="priv-dot" title={t(tb.private === 'tor' ? 'tab.tor' : 'tab.private')} />}{tb.loading && <Spinner style={{ marginRight: 6, verticalAlign: -1 }} />}{!tb.title || tb.title === 'New Tab' ? t('tab.untitled') : tb.title}</span>
             {(tb.audible || tb.muted) && <button className={`tab-audio ${tb.muted ? 'muted' : ''}`} aria-label={t(tb.muted ? 'ctx.unmute' : 'ctx.mute')} title={t(tb.muted ? 'ctx.unmute' : 'ctx.mute')} onClick={(e) => { e.stopPropagation(); void api.muteTab(tb.id, !tb.muted) }}>{tb.muted ? <IcMuted /> : <IcSpeaker />}</button>}
             {!tb.pinned && <button className="tab-hop" aria-label={t('tab.hopTip')} title={t(tb.winId !== undefined && tb.winId !== s.winId ? 'tab.hopBack' : 'tab.hopTip')} onClick={(e) => { e.stopPropagation(); void api.hopTab(tb.id) }}><IcHop /></button>}
             {!tb.pinned && <button aria-label={t('tab.close')} onClick={(e) => { e.stopPropagation(); void api.closeTab(tb.id) }}><Close /></button>}
@@ -276,14 +277,14 @@ export function App() {
       {vertical ? (
         <div className={`vside drag ${s.sideCollapsed ? 'collapsed' : ''}`} style={{ width: sideW }}>
           <div className="vside-sec">{!s.sideCollapsed && t('side.tabs')}</div>
-          <div className="vside-list">{renderTabs()}</div>
+          <div className="vside-list" role="tablist" aria-orientation="vertical" aria-label={t('side.tabs')}>{renderTabs()}</div>
           <div className="vside-foot nodrag">
             <button className="vnew" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus />{!s.sideCollapsed && <span>{t('tab.new')}</span>}</button>
             <button className="vcollapse" aria-label={t('side.collapse')} title={t('side.collapse')} onClick={() => { writePref('sideCollapsed', s.sideCollapsed ? '0' : '1'); s.set({ sideCollapsed: !s.sideCollapsed }) }}><Back style={{ transform: s.sideCollapsed ? 'rotate(180deg)' : undefined }} /></button>
           </div>
         </div>
       ) : (
-        <div className="tabstrip drag">
+        <div className="tabstrip drag" role="tablist" aria-label={t('side.tabs')}>
           {renderTabs()}
           <button className="nodrag newtab" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus /></button>
         </div>

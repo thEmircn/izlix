@@ -1,4 +1,5 @@
 import { useStore, useT } from './store'
+import { Logo } from './Logo'
 import { Kbd, Spotlight } from './ui'
 
 /** İlk açılış: değer vaadi, demo ve telemetri izni (varsayılan: izin yok, hiçbir şey gönderilmez). */
@@ -11,7 +12,7 @@ export function Welcome({ onClose }: { onClose(): void }) {
   return (
     <div className="overlay" style={{ paddingTop: '8vh' }}>
       <div className="dialog welcome" role="dialog" aria-label={t('welcome.title')} style={{ width: 'min(680px, 94vw)', padding: 28, gap: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 26, letterSpacing: -0.4, fontWeight: 600 }}>{t('welcome.title')}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><Logo size={44} title="Izlix" /><h1 style={{ margin: 0, fontSize: 26, letterSpacing: -0.4, fontWeight: 600 }}>{t('welcome.title')}</h1></div>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--dim)', maxWidth: 520 }}>{t('welcome.body')}</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {cards.map(([num, title, desc]) => (

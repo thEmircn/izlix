@@ -64,13 +64,13 @@ export function Settings({ onClose }: { onClose(): void }) {
             <Segmented small value={settings.theme ?? 'system'} onChange={(v) => void api.setSettings({ theme: v as 'system' | 'light' | 'dark' })} items={[{ key: 'system', label: t('set.themeSystem') }, { key: 'light', label: t('set.themeLight') }, { key: 'dark', label: t('set.themeDark') }]} />
           </Row>
           <Row title={t('set.language')}>
-            <Select value={settings.language} onChange={(e) => void api.setSettings({ language: e.target.value as Language })}><option value="en">English</option><option value="tr">Türkçe</option></Select>
+            <Select aria-label={t('set.language')} value={settings.language} onChange={(e) => void api.setSettings({ language: e.target.value as Language })}><option value="en">English</option><option value="tr">Türkçe</option></Select>
           </Row>
           <Row title={t('set.search')} hint={t('set.searchHint')}>
-            <Select value={settings.searchEngine ?? 'duckduckgo'} onChange={(e) => void api.setSettings({ searchEngine: e.target.value })}>{ENGINES.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</Select>
+            <Select aria-label={t('set.search')} value={settings.searchEngine ?? 'duckduckgo'} onChange={(e) => void api.setSettings({ searchEngine: e.target.value })}>{ENGINES.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</Select>
           </Row>
           <Row title={t('set.adblock')} hint={t('set.adblockHint')}>
-            <Select value={settings.adblock ?? 'ads'} onChange={(e) => void api.setSettings({ adblock: e.target.value })}><option value="off">{t('ad.lvl.off')}</option><option value="ads">{t('ad.lvl.ads')}</option><option value="strict">{t('ad.lvl.strict')}</option></Select>
+            <Select aria-label={t('set.adblock')} value={settings.adblock ?? 'ads'} onChange={(e) => void api.setSettings({ adblock: e.target.value })}><option value="off">{t('ad.lvl.off')}</option><option value="ads">{t('ad.lvl.ads')}</option><option value="strict">{t('ad.lvl.strict')}</option></Select>
           </Row>
           <Row title={t('set.import')} hint={t('set.importHint')}>
             <button className="btn" onClick={() => void api.importChrome().then((r: { bookmarks: number; history: number } | null) => toast(r ? t('imp.done', { b: r.bookmarks, h: r.history }) : t('imp.none')))}>{t('set.importBtn')}</button>
@@ -82,7 +82,7 @@ export function Settings({ onClose }: { onClose(): void }) {
             <button className="btn" onClick={() => void api.defaultBrowser(true).then((ok: boolean) => toast(t(ok ? 'def.ok' : 'def.ask')))}>{t('set.defaultBtn')}</button>
           </Row>
           <Row title={t('set.sleep')} hint={t('set.sleepHint')}>
-            <Select value={settings.sleepMinutes ?? 30} onChange={(e) => void api.setSettings({ sleepMinutes: Number(e.target.value) })}>{[0, 10, 30, 60, 180].map((m) => <option key={m} value={m}>{m === 0 ? t('ad.lvl.off') : t('set.sleepMin', { n: m })}</option>)}</Select>
+            <Select aria-label={t('set.sleep')} value={settings.sleepMinutes ?? 30} onChange={(e) => void api.setSettings({ sleepMinutes: Number(e.target.value) })}>{[0, 10, 30, 60, 180].map((m) => <option key={m} value={m}>{m === 0 ? t('ad.lvl.off') : t('set.sleepMin', { n: m })}</option>)}</Select>
           </Row>
           <Row title={t('set.strip')} hint={t('set.stripHint')}><Switch on={settings.stripTracking !== false} label={t('set.strip')} onChange={(v) => void api.setSettings({ stripTracking: v })} /></Row>
           <Row title={t('set.consent')} hint={t('set.consentHint')}><Switch on={settings.cookieBanners !== false} label={t('set.consent')} onChange={(v) => void api.setSettings({ cookieBanners: v })} /></Row>
@@ -174,7 +174,7 @@ export function Settings({ onClose }: { onClose(): void }) {
           <div className="srow" style={{ display: 'block' }}>
             <div className="stitle">{t('set.ai')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('set.aiHint')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8, alignItems: 'center' }}>
-              <Select value={aiCfg.provider} onChange={(e) => { const p = e.target.value as 'ollama' | 'anthropic' | 'openai'; void api.setSettings({ ai: { provider: p, model: { ollama: 'llama3.1', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o-mini' }[p] } }) }}><option value="ollama">Ollama (local)</option><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></Select>
+              <Select aria-label={t('set.https')} value={aiCfg.provider} onChange={(e) => { const p = e.target.value as 'ollama' | 'anthropic' | 'openai'; void api.setSettings({ ai: { provider: p, model: { ollama: 'llama3.1', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o-mini' }[p] } }) }}><option value="ollama">Ollama (local)</option><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></Select>
               <input defaultValue={aiCfg.model} key={aiCfg.provider} placeholder={t('set.aiModel')} onBlur={(e) => { if (e.target.value.trim()) void api.setSettings({ ai: { ...aiCfg, model: e.target.value.trim() } }) }} />
               {aiCfg.provider === 'ollama' ? <><span className="shint">{t('set.aiEndpoint')}</span><input defaultValue={aiCfg.endpoint ?? ''} placeholder="http://127.0.0.1:11434" onBlur={(e) => void api.setSettings({ ai: { ...aiCfg, endpoint: e.target.value.trim() || undefined } })} /></>
                 : <><span className="shint">{t('set.aiKey')}</span><div style={{ display: 'flex', gap: 6 }}><input type="password" value={aiKey} placeholder={aiHas[aiCfg.provider] ? t('set.aiKeySaved') : 'sk-…'} onChange={(e) => setAiKey(e.target.value)} style={{ flex: 1 }} /><button className="btn" onClick={() => void api.aiKey(aiCfg.provider, aiKey).then((r: { hasKey: boolean }) => { setAiHas({ ...aiHas, [aiCfg.provider]: r.hasKey }); setAiKey(''); toast(t('site.saved')) })}>{t('site.save')}</button></div></>}
@@ -183,13 +183,13 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.tabLayout')} hint={t('set.tabLayoutHint')}>
-            <Select value={tabLayout} onChange={(e) => { writePref('tabLayout', e.target.value); set({ tabLayout: e.target.value as 'top' | 'side' }); share({ tabLayout: e.target.value }) }}><option value="top">{t('tabl.top')}</option><option value="side">{t('tabl.side')}</option></Select>
+            <Select aria-label={t('set.tabLayout')} value={tabLayout} onChange={(e) => { writePref('tabLayout', e.target.value); set({ tabLayout: e.target.value as 'top' | 'side' }); share({ tabLayout: e.target.value }) }}><option value="top">{t('tabl.top')}</option><option value="side">{t('tabl.side')}</option></Select>
           </Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>
-            <Select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }); share({ editor: e.target.value }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></Select>
+            <Select aria-label={t('set.editor')} value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }); share({ editor: e.target.value }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></Select>
           </Row>
           <Row title={t('set.dock')} hint={t('set.dockHint')}>
-            <Select value={dock} onChange={(e) => { writePref('dock', e.target.value); set({ dock: e.target.value as DevToolsDock }); share({ dock: e.target.value }) }}><option value="off">{t('dock.off')}</option><option value="right">{t('dock.right')}</option><option value="bottom">{t('dock.bottom')}</option></Select>
+            <Select aria-label={t('set.dock')} value={dock} onChange={(e) => { writePref('dock', e.target.value); set({ dock: e.target.value as DevToolsDock }); share({ dock: e.target.value }) }}><option value="off">{t('dock.off')}</option><option value="right">{t('dock.right')}</option><option value="bottom">{t('dock.bottom')}</option></Select>
           </Row>
           <Row title={t('set.autoOpen')} hint={t('set.autoOpenHint')}><Switch on={settings.autoOpen} label={t('set.autoOpen')} onChange={(v) => void api.setSettings({ autoOpen: v })} /></Row>
           <Row title={t('set.telemetry')} hint={t('set.telemetryHint')}><Switch on={settings.telemetry === 'granted'} label={t('set.telemetry')} onChange={(v) => void api.setSettings({ telemetry: v ? 'granted' : 'denied' })} /></Row>

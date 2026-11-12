@@ -140,7 +140,7 @@ function Row({ r, gql, t0, span, now, selected, onClick }: { r: NetRow; gql?: st
   const width = Math.max(0.6, ((end - r.start) / span) * 100)
   const dur = r.durationMs ?? (r.end == null && !r.failed ? Math.round(now - r.start) : null)
   return (
-    <div className={`net-row ${selected ? 'sel' : ''} ${cls}`} onClick={onClick}>
+    <div className={`net-row ${selected ? 'sel' : ''} ${cls}`} role="row" tabIndex={0} aria-selected={selected} onClick={onClick} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick() } }}>
       <span className={`m m-${r.method}`}>{r.method}</span>
       <span className="name" title={r.url}>{r.name}{gql && <u className="gqltag">{gql}</u>}<i>{r.host}</i>{r.modified && <u className="mod">{tNow('ev.modified')}</u>}</span>
       <span className={`pill ${cls}`}>{r.failed ? 'failed' : r.type === 'ws' && r.closed ? 'closed' : r.status ?? '···'}</span>
