@@ -239,6 +239,12 @@ const focusServer = new FocusServer((a) => {
   else settings.set({ focus: { ...f, snooze: { ...(f.snooze ?? {}), [a.site]: Date.now() + a.minutes * 60_000 } } })
   pushSettings()
 })
+/** Pencere zemini: macOS'ta saydam + vibrancy (cam); Windows 11'de Mica; Windows 10/Linux'ta opak koyu (saydam zemin beyaza dusmesin) */
+function windowChrome(): Partial<Electron.BrowserWindowConstructorOptions> {
+  if (process.platform === 'darwin') return { backgroundColor: '#00000000' }
+  if (process.platform === 'win32') return { backgroundColor: '#0a0a0b', backgroundMaterial: 'mica' as const }
+  return { backgroundColor: '#0a0a0b' }
+}
 let updNotified = ''
 let threat: ThreatService
 /** zararli/taklit site uyari sayfasi; sorun yoksa (veya ozellik kapaliysa) null */
@@ -1168,7 +1174,7 @@ async function openWindow(opts: { app?: boolean } = {}): Promise<number> {
   // uygulama penceresi: kucuk, ekranin ortasinda, konumu hatirlanmaz
   const appDef = { width: Math.min(1100, wa.width - 80), height: Math.min(760, wa.height - 80), x: wa.x + Math.floor((wa.width - Math.min(1100, wa.width - 80)) / 2) + (shellWins.size % 5) * 24, y: wa.y + 50 + (shellWins.size % 5) * 24 }
   const { maximized, ...b } = opts.app ? { ...appDef, maximized: false } : restoreWindowState(def, 'window2')
-  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: opts.app ? 480 : 900, minHeight: opts.app ? 360 : 600, titleBarStyle: 'hiddenInset', backgroundColor: '#00000000', vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: opts.app ? 480 : 900, minHeight: opts.app ? 360 : 600, titleBarStyle: 'hiddenInset', ...windowChrome(), vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
   w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {})
   if (maximized && !quiet) w.maximize()
   if (quiet) { w.setOpacity(0); w.setIgnoreMouseEvents(true); w.showInactive() }
@@ -1188,7 +1194,7 @@ async function createWindow(): Promise<void> {
   if (quiet && process.platform === 'darwin') app.setActivationPolicy('accessory')
   const { maximized, ...ws0 } = restoreWindowState({ width: 1500, height: 900 })
   win = new BrowserWindow({
-    ...ws0, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', backgroundColor: '#00000000', vibrancy: 'under-window', visualEffectState: 'active', // macOS cam: masaustu bulanik gorunur, shell kartlari saydam
+    ...ws0, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', ...windowChrome(), vibrancy: 'under-window', visualEffectState: 'active', // macOS cam: masaustu bulanik gorunur, shell kartlari saydam
     
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   })

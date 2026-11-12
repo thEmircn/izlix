@@ -60,6 +60,10 @@ jobs:
       - run: npm run build
       - name: Run a few end-to-end scripts under a virtual display
         run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py hub sync ext threat permissions history bookmarks groups tracking sites notes netexport statepanel
+      - name: Capture screens for review (Linux)
+        run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py visual
+      - uses: actions/upload-artifact@v4
+        with: { name: screens-linux, path: tests/visual/baseline/linux }
 
   desktop-smoke-native:
     name: Desktop app smoke test (${{ matrix.os }})
@@ -79,3 +83,12 @@ jobs:
       - name: Run self-contained end-to-end scripts
         env: { PYTHONUTF8: '1' }
         run: python tests/e2e/suite.py hub sync ext threat permissions history bookmarks groups tracking sites notes netexport statepanel
+
+      - name: Capture screens for review (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        env: { PYTHONUTF8: '1' }
+        run: python tests/e2e/suite.py visual
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with: { name: screens-windows, path: tests/visual/baseline/win32 }
