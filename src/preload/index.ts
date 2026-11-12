@@ -13,7 +13,8 @@ export const api = {
   // testlerde (DB_SCRIPT) gercek <select> kalir: betikler degerini dogrudan ayarlar; yerel menu bloklayici olurdu
   nativeMenus: !process.argv.includes('--izlix-test'),
   popupMenu: (items: { label: string; checked?: boolean; enabled?: boolean }[], x: number, y: number): Promise<number | null> => call(Ch.popupMenu, { items, x, y }),
-  openSettingsWindow: () => call(Ch.settingsWin),
+  openSettingsWindow: (arg?: 'main') => call(Ch.settingsWin, arg),
+  testMode: process.argv.includes('--izlix-test'),
   createTab: (url?: string, priv?: 'incognito' | 'tor') => call(Ch.tabsCreate, { url, private: priv }),
   closeTab: (id: string) => call(Ch.tabsClose, { id }),
   activateTab: (id: string) => call(Ch.tabsActivate, { id }),

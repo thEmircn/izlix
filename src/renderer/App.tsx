@@ -111,7 +111,7 @@ export function App() {
           case 'rules.open': st.set({ overlay: 'rules' }); break
           case 'marker.open': st.set({ overlay: 'marker' }); break
           case 'shortcuts.open': st.set({ overlay: st.overlay === 'shortcuts' ? null : 'shortcuts' }); break
-          case 'settings.open': st.set({ overlay: 'settings' }); break
+          case 'settings.open': if (window.izlix.testMode || !window.izlix.openSettingsWindow) st.set({ overlay: 'settings' }); else void window.izlix.openSettingsWindow(); break
           case 'find.open': st.set({ find: { open: true, active: 0, total: 0 } }); break
           case 'panel.side.left': case 'panel.side.right': case 'panel.side.bottom': st.set({ panelSide: cmd.slice(11) as PanelSide, panelOpen: true, dashboard: false }); break
           case 'panel.toggle': st.set({ panelOpen: !st.panelOpen, dashboard: false }); break
@@ -168,6 +168,13 @@ export function App() {
 
   useEffect(() => { void window.izlix.setSettings({ editor: s.editor }) }, [s.editor])
   useEffect(() => { if (s.appWin) s.set({ panelOpen: false, dashboard: false }) }, [s.appWin])
+  // Ayarlar penceresinden gelen yerel tercihler (yerlesim, editor, dock) ve komutlar
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return
+    const ch = new BroadcastChannel('izlix-prefs')
+    ch.onmessage = (e) => { if (e.data && typeof e.data === 'object') useStore.getState().set(e.data as never) }
+    return () => ch.close()
+  }, [])
   // tema degisince renk gecisi yumusak olsun (ilk yuklemede degil)
   const themePref = s.settings.theme ?? 'system'
   const themeSeen = useRef(themePref)

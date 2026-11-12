@@ -32,3 +32,10 @@ a, a:visited { text-decoration: none; color: inherit; } a:hover, .stlink:hover {
 .panel.side-bottom .ptitle h3 { font-size: 14px; }
 /* tiklanabilir kaynak/zincir baglantilari: vurgu rengi (alti cizgi yerine) */
 .rchain a, td a, .tl-detail a { color: var(--ac); }
+
+/* Ayarlar penceresi: overlay/dialog degil, pencerenin kendisi */
+html.settings-win body { position: static; }
+html.settings-win .overlay { position: static; display: block; padding: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; height: 100vh; }
+html.settings-win .dialog { width: 100% !important; max-width: none; height: 100vh; max-height: none; border-radius: 0; border: 0; box-shadow: none; background: transparent; animation: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+html.settings-win .dialog > div:first-child { padding-top: 30px !important; -webkit-app-region: drag; }
+html.settings-win .dialog button, html.settings-win .dialog select, html.settings-win .dialog input { -webkit-app-region: no-drag; }

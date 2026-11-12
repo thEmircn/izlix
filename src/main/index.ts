@@ -97,7 +97,7 @@ const shellWins = new Map<number, BrowserWindow>()
 /** o an IPC cagrisini yapan pencere (acilir menuler/diyaloglar icin) */
 let curWin: BrowserWindow | null = null
 let quitting = false
-const senderWin = (wc: Electron.WebContents): BrowserWindow | undefined => { for (const w of shellWins.values()) if (!w.isDestroyed() && w.webContents === wc) return w }
+const senderWin = (wc: Electron.WebContents): BrowserWindow | undefined => { for (const w of shellWins.values()) if (!w.isDestroyed() && w.webContents === wc) return w; if (settingsWin && !settingsWin.isDestroyed() && settingsWin.webContents === wc) return settingsWin }
 let tabs: TabManager
 let workspaces: WorkspaceStore
 let rules: RuleStore
@@ -193,7 +193,8 @@ async function loadExtensionAll(dir: string): Promise<{ ok: boolean; error?: str
   for (const part of loadedParts.size ? loadedParts : new Set(['persist:ws-default'])) { try { await session.fromPartition(part).loadExtension(dir) } catch (e) { last = String(e).replace(/^Error:\s*/, '').slice(0, 200) } }
   return last ? { ok: false, error: last } : { ok: true }
 }
-const pushSettings = (): void => send(Ch.settingsState, settings.get())
+let settingsWin: BrowserWindow | null = null
+const pushSettings = (): void => { send(Ch.settingsState, settings.get()); if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send(Ch.settingsState, settings.get()) }
 const pushRules = (): void => send(Ch.rulesState, rules.all())
 const pushSessions = (): void => send(Ch.sessState, sessions.all())
 const pushLibrary = (): void => send(Ch.libState, { bookmarks: Object.fromEntries(workspaces.list().map((w) => [w.id, library.bookmarks(w.id)])), downloads: downloads.list() })
@@ -205,7 +206,7 @@ function handle<S extends z.ZodType>(channel: string, schema: S | null, fn: (arg
     // yalnizca shell penceresi cagirabilir (DevTools veya baska webContents degil)
     const sw = senderWin(e.sender)
     if (!sw) throw new Error(`yetkisiz IPC gondereni: ${channel}`)
-    curWin = sw; tabs?.setCurrent(sw.id)
+    curWin = sw; if (shellWins.has(sw.id)) tabs?.setCurrent(sw.id)
     if (!schema) return fn(undefined as z.infer<S>)
     const r = schema.safeParse(raw)
     if (!r.success) throw new Error(`gecersiz IPC mesaji: ${channel}`)
@@ -628,6 +629,10 @@ function registerIpc(): void {
     const m = Menu.buildFromTemplate(items.map((it, i) => ({ label: it.label, type: 'checkbox' as const, checked: !!it.checked, enabled: it.enabled !== false, click: () => finish(i) })))
     m.popup({ window: curWin ?? win, x: Math.round(x), y: Math.round(y), callback: () => finish(null) })
   }))
+  handle(Ch.settingsWin, z.enum(['main']).optional(), (arg) => {
+    if (arg === 'main') { const m = win && !win.isDestroyed() ? win : null; if (m) { m.show(); m.focus() }; if (settingsWin && !settingsWin.isDestroyed()) settingsWin.close(); return true }
+    void openSettingsWindow(); return true
+  })
   handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.spellcheck !== undefined) tabs.each((wc) => wc.session.setSpellCheckerEnabled(p.spellcheck!)); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.theme) applyTheme(p.theme); if (p.language && p.language !== before) installMenu((cmd) => sendFocused(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
   handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
   handle(Ch.demoOpen, null, async () => {
@@ -1193,6 +1198,20 @@ async function openWindow(opts: { app?: boolean } = {}): Promise<number> {
   await w.loadURL((process.env.ELECTRON_RENDERER_URL ?? 'app://shell/index.html') + (opts.app ? '?app=1' : ''))
   pushWorkspaces(); pushTabs(); pushRules(); pushLibrary(); pushSessions(); pushSettings()
   return id
+}
+
+/** Ayarlar: macOS'ta oldugu gibi ana pencereden bagimsiz, tek ornekli ayri pencere (ayni arayuz kodu, #settings yolu) */
+async function openSettingsWindow(): Promise<void> {
+  if (settingsWin && !settingsWin.isDestroyed()) { settingsWin.show(); settingsWin.focus(); return }
+  const w = new BrowserWindow({
+    width: 640, height: 740, minWidth: 560, minHeight: 460, title: tr('set.title'), titleBarStyle: 'hiddenInset', ...windowChrome(), vibrancy: 'under-window', visualEffectState: 'active', show: false,
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false, additionalArguments: process.env.DB_SCRIPT ? ['--izlix-test'] : [] }
+  })
+  settingsWin = w
+  w.on('closed', () => { if (settingsWin === w) settingsWin = null })
+  w.once('ready-to-show', () => w.show())
+  lockShell(w, [process.env.ELECTRON_RENDERER_URL ?? 'app://shell/'])
+  await w.loadURL((process.env.ELECTRON_RENDERER_URL ?? 'app://shell/index.html') + '#settings')
 }
 
 /** Tema: nativeTheme kaynagi ayarlanir; kabuk ve eklenti CSS'i prefers-color-scheme ile ayni kaynagi izler. Opak pencerelerin zemini de guncellenir. */

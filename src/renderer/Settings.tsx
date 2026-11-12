@@ -20,6 +20,9 @@ export function Settings({ onClose }: { onClose(): void }) {
   const tabLayout = useStore((s) => s.tabLayout)
   const set = useStore((s) => s.set)
   const api = window.izlix
+  // ayri pencerede calisirken yerel (ana pencereye ait) durumlari oraya da ilet
+  const inWindow = document.documentElement.classList.contains('settings-win')
+  const share = (patch: Record<string, unknown>): void => { if (inWindow) { try { const ch = new BroadcastChannel('izlix-prefs'); ch.postMessage(patch); ch.close() } catch { /* yok say */ } } }
   const [perms, setPerms] = useState<{ origin: string; permission: string; decision: string }[]>([])
   const [pw, setPw] = useState<{ logins: { origin: string; username: string; ts: number }[]; never: string[]; available?: boolean }>({ logins: [], never: [] })
   const [scText, setScText] = useState((settings.shortcuts ?? []).map((x) => `${x.key} ${x.url}`).join('\n'))
@@ -156,7 +159,7 @@ export function Settings({ onClose }: { onClose(): void }) {
             <textarea value={fSites} spellCheck={false} rows={3} placeholder="youtube.com&#10;twitter.com" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setFSites(e.target.value)} onBlur={() => saveFocus()} />
             <div className="shint" style={{ margin: '8px 0 4px' }}>{t('set.focusLimits')}</div>
             <textarea value={fLimits} spellCheck={false} rows={2} placeholder="reddit.com 30" style={{ width: '100%', fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12 }} onChange={(e) => setFLimits(e.target.value)} onBlur={() => saveFocus()} />
-            <div style={{ marginTop: 8 }}><button className="btn" onClick={() => set({ overlay: 'usage' })}>{t('usage.open')}</button></div>
+            <div style={{ marginTop: 8 }}><button className="btn" onClick={() => { if (inWindow) { share({ overlay: 'usage' }); void api.openSettingsWindow('main') } else set({ overlay: 'usage' }) }}>{t('usage.open')}</button></div>
           </div>
           <div className="srow" style={{ display: 'block' }}>
             <div className="stitle">{t('budget.title')}</div><div className="shint" style={{ marginBottom: 6 }}>{t('budget.hint')}</div>
@@ -180,13 +183,13 @@ export function Settings({ onClose }: { onClose(): void }) {
           <Row title={t('set.ambient')} hint={t('set.ambientHint')}><Switch on={settings.ambient !== false} label={t('set.ambient')} onChange={(v) => void api.setSettings({ ambient: v })} /></Row>
           <Row title={t('set.suggest')} hint={t('set.suggestHint')}><Switch on={settings.searchSuggest !== false} label={t('set.suggest')} onChange={(v) => void api.setSettings({ searchSuggest: v })} /></Row>
           <Row title={t('set.tabLayout')} hint={t('set.tabLayoutHint')}>
-            <Select value={tabLayout} onChange={(e) => { writePref('tabLayout', e.target.value); set({ tabLayout: e.target.value as 'top' | 'side' }) }}><option value="top">{t('tabl.top')}</option><option value="side">{t('tabl.side')}</option></Select>
+            <Select value={tabLayout} onChange={(e) => { writePref('tabLayout', e.target.value); set({ tabLayout: e.target.value as 'top' | 'side' }); share({ tabLayout: e.target.value }) }}><option value="top">{t('tabl.top')}</option><option value="side">{t('tabl.side')}</option></Select>
           </Row>
           <Row title={t('set.editor')} hint={t('set.editorHint')}>
-            <Select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></Select>
+            <Select value={editor} onChange={(e) => { writePref('editor', e.target.value); set({ editor: e.target.value as Editor }); share({ editor: e.target.value }) }}><option value="vscode">VS Code</option><option value="cursor">Cursor</option><option value="webstorm">WebStorm</option></Select>
           </Row>
           <Row title={t('set.dock')} hint={t('set.dockHint')}>
-            <Select value={dock} onChange={(e) => { writePref('dock', e.target.value); set({ dock: e.target.value as DevToolsDock }) }}><option value="off">{t('dock.off')}</option><option value="right">{t('dock.right')}</option><option value="bottom">{t('dock.bottom')}</option></Select>
+            <Select value={dock} onChange={(e) => { writePref('dock', e.target.value); set({ dock: e.target.value as DevToolsDock }); share({ dock: e.target.value }) }}><option value="off">{t('dock.off')}</option><option value="right">{t('dock.right')}</option><option value="bottom">{t('dock.bottom')}</option></Select>
           </Row>
           <Row title={t('set.autoOpen')} hint={t('set.autoOpenHint')}><Switch on={settings.autoOpen} label={t('set.autoOpen')} onChange={(v) => void api.setSettings({ autoOpen: v })} /></Row>
           <Row title={t('set.telemetry')} hint={t('set.telemetryHint')}><Switch on={settings.telemetry === 'granted'} label={t('set.telemetry')} onChange={(v) => void api.setSettings({ telemetry: v ? 'granted' : 'denied' })} /></Row>
