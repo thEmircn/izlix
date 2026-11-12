@@ -1,4 +1,4 @@
-import { Roll } from './ui'
+import { Segmented } from '../../packages/ui/src'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BusEvent } from '../shared/events'
 import { LEVEL_ORDER, buildConsoleRows, type ConsoleRow, type Level } from '../shared/console'
@@ -39,14 +39,17 @@ export function Console({ events }: { events: BusEvent[] }) {
   return (
     <div className="con">
       <div className="net-bar">
-        <div className="chips">
-          {LEVEL_ORDER.map((l) => (
-            <button key={l} className={`fchip lv-${l} ${levels.has(l) ? 'on' : ''}`} onClick={() => toggle(l)}>{t(`lv.${l}` as any)}<em><Roll text={counts[l] ?? 0} /></em></button>
-          ))}
-        </div>
+        {(() => {
+          const sel = levels.size === LEVEL_ORDER.length ? 'all' : ([...levels][0] as string)
+          const n = (l: Level): string => (counts[l] ? ` ${counts[l]}` : '')
+          return (
+            <Segmented small label="Level" value={sel} onChange={(k) => setLevels(new Set(k === 'all' ? LEVEL_ORDER : [k as Level]))}
+              items={[{ key: 'all', label: t('con.all' as any) }, ...LEVEL_ORDER.map((l) => ({ key: l as string, label: t(`lv.${l}` as any) + n(l) }))]} />
+          )
+        })()}
         <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
         <input className="search" placeholder={t('con.search')} value={q} onChange={(e) => setQ(e.target.value)} />
-        <button className="btn" onClick={() => { setClearedAt(Date.now()); setOpen(null) }}>{t('net.clear')}</button>
+        <button className="btn iconbtn" aria-label={t('net.clear')} title={t('net.clear')} onClick={() => { setClearedAt(Date.now()); setOpen(null) }}><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><circle cx="7" cy="7" r="5.5" /><path d="m4.5 9.5 5-5" /></svg></button>
       </div>
       <div className="con-list" ref={listRef} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40 }}>
         {rows.map((r) => <Line key={r.id} r={r} open={open === r.id} onToggle={() => setOpen(open === r.id ? null : r.id)} editor={editor} />)}
