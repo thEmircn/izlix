@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client'
 import { useEffect, useState } from 'react'
 import '../../../src/renderer/styles.css'
+import '../../../src/renderer/native.css'
+import '../../../src/renderer/macos.css'
 import type { BusEvent } from '../../../src/shared/events'
 import { useStore } from '../../../src/renderer/store'
 import { Timeline } from '../../../src/renderer/Timeline'

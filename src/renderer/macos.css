@@ -68,3 +68,26 @@ select { line-height: calc(var(--ctl-h) - 2px); padding-top: 0 !important; paddi
 .popup:disabled { opacity: .45; }
 .popup-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .popup svg { flex: none; opacity: .65; }
+
+/* --- yan cubuk (Finder/Safari kenar cubugu): saydam, bolum basligi, yuvarlak secili satir --- */
+.vside { background: rgba(var(--c-surf), .0); border-right: var(--hairline) solid var(--line2); backdrop-filter: none; padding: 40px 10px 10px; }
+.vside-sec { padding: 0 8px 4px; font-size: 11px; font-weight: 600; color: var(--dim); }
+.vside .tab { height: 28px; border-radius: 6px; padding: 0 6px 0 8px; font-size: 13px; color: var(--fg); background: transparent; border: 0; box-shadow: none; }
+.vside .tab:hover { background: rgba(var(--ov), .06); }
+.vside .tab.active { background: color-mix(in srgb, var(--ac) 24%, transparent); color: var(--fg); font-weight: 500; }
+.vside .tab.active::after, .vside .tab.active::before { display: none; }
+.vside .vnew, .vside .vcollapse { height: 28px; border-radius: 6px; border: 0; background: transparent; font-size: 13px; color: var(--dim); } .vside .vnew:hover, .vside .vcollapse:hover { background: rgba(var(--ov), .06); color: var(--fg); }
+/* arac cubugu: pencere basligiyla butunlesik (Safari/Xcode) */
+.toolbar { border-bottom: var(--hairline) solid var(--line2); }
+
+/* --- panel gezinmesi: alt hap yerine ustte arac cubugu (Xcode gezgin cubugu gibi) --- */
+.rail.seg2.dock, .panel.side-bottom .rail.dock { top: 0; bottom: auto; left: 0; right: 0; border-top: 0; border-bottom: var(--hairline) solid var(--line2); padding: 5px 8px; }
+.pmain, .panel.side-bottom .pmain { padding-top: 42px; padding-bottom: 0; }
+/* panel gezinme cubugu: sade ikon dugmeleri, secili olan dolgulu yuvarlak kare (NSToolbar item) */
+.rail.dock { gap: 1px; justify-content: flex-start; padding-left: 12px; }
+.rail.dock button { height: 26px; border-radius: 6px; padding: 0 8px; font-size: 12px; background: transparent; box-shadow: none; }
+.rail.dock button.on { background: rgba(var(--ov),.14) !important; color: var(--fg); font-weight: 500; }
+.rail.dock button.on::before, .rail.dock button.on::after { display: none; }
+.rail.dock button.on svg { filter: none; color: var(--ac); }
+.rail.dock button:hover svg { transform: none; }
+.rail.dock .rail-sep { height: 14px; background: var(--line2); }

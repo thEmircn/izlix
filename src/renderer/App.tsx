@@ -275,6 +275,7 @@ export function App() {
       <>
       {vertical ? (
         <div className={`vside drag ${s.sideCollapsed ? 'collapsed' : ''}`} style={{ width: sideW }}>
+          <div className="vside-sec">{!s.sideCollapsed && t('side.tabs')}</div>
           <div className="vside-list">{renderTabs()}</div>
           <div className="vside-foot nodrag">
             <button className="vnew" aria-label={t('tab.new')} onClick={() => api.createTab()}><Plus />{!s.sideCollapsed && <span>{t('tab.new')}</span>}</button>
