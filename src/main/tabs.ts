@@ -678,7 +678,7 @@ export class TabManager {
   private focusGuard(url: string): string { return this.hooks.focusBlock?.(url) ?? url }
   /** Her pencerenin aktif sekmesi (kullanim takibi): adres, gizli mi, pencere odakta mi, ust katman acik mi */
   visibleTabs(): { tabId: string; url: string; private: boolean; focused: boolean; overlay: boolean }[] {
-    return [...this.ctxs.values()].flatMap((c) => { const e = c.activeId ? this.tabs.get(c.activeId) : undefined; return e && !e.view.webContents.isDestroyed() ? [{ tabId: e.info.id, url: e.view.webContents.getURL(), private: !!e.info.private, focused: c.win.isFocused(), overlay: c.overlayOpen }] : [] })
+    return [...this.ctxs.values()].flatMap((c) => { if (c.win.isDestroyed()) return []; const e = c.activeId ? this.tabs.get(c.activeId) : undefined; return e && !e.view.webContents.isDestroyed() ? [{ tabId: e.info.id, url: e.view.webContents.getURL(), private: !!e.info.private, focused: c.win.isFocused(), overlay: c.overlayOpen }] : [] })
   }
   private tidy(url: string): string { const st = this.hooks.stripTracking?.(); return st?.on ? cleanTrackingParams(url, st.dev) : url }
   /** HTTPS-only: http adresi yukseltilebiliyorsa yukseltilir (Tor sekmesi ve bu sekmede hata verip dusurulen alan adlari haric) */

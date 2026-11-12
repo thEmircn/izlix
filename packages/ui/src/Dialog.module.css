@@ -1,4 +1,4 @@
-.overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(6,6,8,.55); backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1); animation: fadeIn var(--dur-med) var(--ease-out) both; }
+.overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(var(--c-scrim),.55); backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1); animation: fadeIn var(--dur-med) var(--ease-out) both; }
 .overlay[data-state="closed"] { animation: fadeOut var(--dur-fast) var(--ease-out) both; pointer-events: none; }
 .panel { display: flex; flex-direction: column; max-height: 86vh; width: min(var(--dlg-w, 520px), 94vw); border-radius: 16px; border: 1px solid var(--g-brd2); background: var(--panel); box-shadow: var(--shadow-l), var(--g-hi); color: var(--fg); animation: pop var(--dur-slow) var(--spring) both; }
 .overlay[data-state="closed"] .panel { animation: popOut var(--dur-fast) var(--ease-out) both; }

@@ -1,3 +1,12 @@
+/* Mikro etkilesimler: basma geri bildirimi, odak halkasi gecisi, tema gecisinde yumusak renk degisimi */
+button, .btn, .chip, .tab, .icon-btn, .rail button { transition-property: background-color, color, border-color, box-shadow, transform, opacity; transition-duration: var(--dur-fast); transition-timing-function: var(--ease-out); }
+button:not(:disabled):active, .btn:not(:disabled):active, .chip:active, .icon-btn:active { transform: scale(.96); }
+.tab:active { transform: scale(.985); }
+:focus-visible { transition: outline-offset var(--dur-fast) var(--ease-out); }
+.net-row, .con-row, .rowitem { transition: background-color var(--dur-fast) var(--ease-out); }
+/* tema degisince (App .theming sinifini 450 ms ekler) tum yuzeyler birlikte yumusakca gecer */
+html.theming, html.theming *, html.theming *::before, html.theming *::after { transition: background-color .35s var(--ease-out), color .35s var(--ease-out), border-color .35s var(--ease-out), fill .35s var(--ease-out), stroke .35s var(--ease-out) !important; }
+
 /* Hareket tercihi: sistem "hareketi azalt" diyorsa animasyonlar ve gecisler fiilen kapanir (erisilebilirlik). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }

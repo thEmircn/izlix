@@ -253,7 +253,7 @@ function Lanes(props: {
         <defs>
           {(['exact', 'estimated'] as const).map((c) => (
             <marker key={c} id={`ar-${c}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M0,0 L8,4 L0,8 z" fill={c === 'exact' ? '#e4e4e7' : '#8b8b92'} />
+              <path d="M0,0 L8,4 L0,8 z" fill={c === 'exact' ? 'var(--fg2)' : 'var(--dim)'} />
             </marker>
           ))}
           <marker id="ar-hot" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff6a2b" /></marker>
@@ -263,13 +263,13 @@ function Lanes(props: {
           <g key={l}>
             <rect x={PAD_L - 4} y={i * LANE_H + 2} width={Math.max(0, W - PAD_L - PAD_R + 8)} height={LANE_H - 4} rx={9} fill={i % 2 ? 'rgba(255,255,255,.012)' : 'rgba(255,255,255,.028)'} />
             <circle cx={12} cy={laneY(l)} r={3.5} fill={COLOR[l]} />
-            <text x={22} y={laneY(l) + 3.5} fill="#a1a1aa" fontSize={10.5} fontFamily="ui-monospace, Menlo, monospace" style={{ textTransform: 'uppercase', letterSpacing: '.05em' }}>{laneName(l)}</text>
+            <text x={22} y={laneY(l) + 3.5} fill="var(--dim)" fontSize={10.5} fontFamily="ui-monospace, Menlo, monospace" style={{ textTransform: 'uppercase', letterSpacing: '.05em' }}>{laneName(l)}</text>
           </g>
         ))}
         {ticks.map((t) => (
           <g key={t}>
             <line x1={x(t)} x2={x(t)} y1={0} y2={bodyH} stroke="rgba(255,255,255,.05)" strokeDasharray="2 5" />
-            <text x={x(t) + 3} y={H - 6} fill="#6b6b73" fontSize={10} fontFamily="ui-monospace, Menlo, monospace">{fmtT(t - from)}</text>
+            <text x={x(t) + 3} y={H - 6} fill="var(--dim)" fontSize={10} fontFamily="ui-monospace, Menlo, monospace">{fmtT(t - from)}</text>
           </g>
         ))}
         {/* yogun seritler: yogunluk cubuklari */}
@@ -293,7 +293,7 @@ function Lanes(props: {
           const hot = selected != null && chain.has(e.id) && chain.has(lk.from)
           return (
             <path className={`${many ? '' : 'link'} ${hot ? 'hot' : ''}`} key={`${lk.from}-${e.id}`} d={`M${a.x},${a.y} C${mx},${a.y} ${mx},${b.y} ${b.x - 6},${b.y}`}
-              fill="none" stroke={hot ? '#ff6a2b' : lk.certainty === 'exact' ? '#e4e4e7' : '#8b8b92'} strokeWidth={hot ? 1.8 : 1.1}
+              fill="none" stroke={hot ? '#ff6a2b' : lk.certainty === 'exact' ? 'var(--fg2)' : 'var(--dim)'} strokeWidth={hot ? 1.8 : 1.1}
               strokeDasharray={hot ? '6 4' : lk.certainty === 'estimated' ? '4 3' : undefined} markerEnd={`url(#ar-${hot ? 'hot' : lk.certainty})`}
               opacity={selected == null ? 0.55 : hot ? 1 : 0.12}>
               <title>{lk.type} ({lk.certainty === 'exact' ? 'exact' : 'estimated'})</title>
@@ -308,8 +308,8 @@ function Lanes(props: {
           return (
             <g key={e.id} opacity={selected != null && !inChain ? 0.35 : 1}>
               {(e.kind === 'error' || isSel) && <circle cx={p.x} cy={p.y} r={r + 5} fill={isSel ? 'rgba(255,106,43,.25)' : 'rgba(255,92,92,.22)'} />}
-              {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="#ffb454" strokeWidth={2} strokeDasharray="3 2" />}
-              <circle className={many ? '' : 'node'} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={isSel ? '#fff' : '#0f0f11'} strokeWidth={isSel ? 2 : 1.5}
+              {e.payload.modified && <circle cx={p.x} cy={p.y} r={r + 4} fill="none" stroke="var(--t-amber)" strokeWidth={2} strokeDasharray="3 2" />}
+              <circle className={many ? '' : 'node'} cx={p.x} cy={p.y} r={r} fill={COLOR[l]} stroke={isSel ? 'var(--fg)' : 'var(--bg)'} strokeWidth={isSel ? 2 : 1.5}
                 style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(e.id)} onContextMenu={(ev) => { ev.preventDefault(); ev.stopPropagation(); onSelect(e.id); onMenu?.(e, ev.clientX, ev.clientY) }}>
                 <title>{label(e)}</title>
               </circle>
@@ -318,16 +318,16 @@ function Lanes(props: {
         })}
         {markers.map((m) => (
           <g key={m.id} className="marker" style={{ cursor: 'pointer' }} onMouseDown={(ev) => ev.stopPropagation()} onClick={() => onSelect(m.id)}>
-            <line x1={x(m.ts)} x2={x(m.ts)} y1={0} y2={bodyH} stroke="#fbbf24" strokeWidth={1.5} strokeDasharray="4 3" opacity={selected === m.id ? 1 : 0.75} />
-            <path d={`M${x(m.ts)},0 l10,4 l-10,4 z`} fill="#fbbf24" /><title>{String(m.payload.text)}</title>
-            <text x={x(m.ts) + 13} y={9} fill="#fbbf24" fontSize={10}>{String(m.payload.text).slice(0, 24)}</text>
+            <line x1={x(m.ts)} x2={x(m.ts)} y1={0} y2={bodyH} stroke="var(--t-amber)" strokeWidth={1.5} strokeDasharray="4 3" opacity={selected === m.id ? 1 : 0.75} />
+            <path d={`M${x(m.ts)},0 l10,4 l-10,4 z`} fill="var(--t-amber)" /><title>{String(m.payload.text)}</title>
+            <text x={x(m.ts) + 13} y={9} fill="var(--t-amber)" fontSize={10}>{String(m.payload.text).slice(0, 24)}</text>
           </g>
         ))}
         {drag && <rect x={Math.min(...drag)} y={0} width={Math.abs(drag[1] - drag[0])} height={bodyH} fill="#ff6a2b" opacity={0.12} stroke="#ff6a2b" strokeOpacity={0.5} />}
         {/* capraz imlec */}
         <g ref={hlRef} style={{ opacity: 0, pointerEvents: 'none', transition: 'opacity .1s' }}>
           <line ref={hlLine} y1={0} y2={bodyH} stroke="rgba(255,255,255,.3)" strokeDasharray="3 3" />
-          <rect ref={hlBg} y={H - 18} height={15} rx={5} fill="#26262b" /><text ref={hlText} y={H - 7} fill="#e4e4e7" fontSize={10} fontFamily="ui-monospace, Menlo, monospace" />
+          <rect ref={hlBg} y={H - 18} height={15} rx={5} fill="var(--panel)" /><text ref={hlText} y={H - 7} fill="var(--fg2)" fontSize={10} fontFamily="ui-monospace, Menlo, monospace" />
         </g>
       </svg>
     </div>
@@ -374,19 +374,19 @@ function Detail(props: { ev?: Ev; byId: Map<number, Ev>; onOpen(f: string, l: nu
   if (!ev) return <div style={{ padding: 8, opacity: 0.6 }}>{t('tl.hint')}</div>
   const p = ev.payload
   const OpenBtn = (a: { file?: string; line?: number; col?: number }) =>
-    a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: '#f4f4f5' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
+    a.file && a.line ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(a.file!, a.line!, a.col) }} style={{ color: 'var(--fg)' }}>{a.file.split('/').slice(-2).join('/')}:{a.line}</a> : null
   return (
     <div style={{ padding: 8, overflow: 'auto', flex: 1, borderTop: '1px solid var(--line)' }}>
-      <div><b style={{ color: ev.kind === 'marker' ? '#fbbf24' : COLOR[(laneOf(ev, true) ?? 'input')] }}>{laneName(ev.kind)}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
+      <div><b style={{ color: ev.kind === 'marker' ? 'var(--t-amber)' : COLOR[(laneOf(ev, true) ?? 'input')] }}>{laneName(ev.kind)}</b> #{ev.id} · {ev.source} · {label(ev)}</div>
       <Chain ev={ev} byId={byId} onSelect={onSelect} />
       {ev.kind === 'request' && <QuickRules ev={ev} byId={byId} />}
       {ev.links.map((l) => (
         <div key={l.from} style={{ opacity: 0.85 }}>
           ← <a href="#" onClick={(e) => { e.preventDefault(); onSelect(l.from) }} style={{ color: '#ddd' }}>#{l.from} {byId.get(l.from) ? label(byId.get(l.from)!) : ''}</a>{' '}
-          <span style={{ color: l.certainty === 'exact' ? '#a3e635' : '#ffb454' }}>{l.type} · {l.certainty === 'exact' ? t('tl.exact') : t('tl.estimated')}</span>
+          <span style={{ color: l.certainty === 'exact' ? 'var(--t-lime)' : 'var(--t-amber)' }}>{l.type} · {l.certainty === 'exact' ? t('tl.exact') : t('tl.estimated')}</span>
         </div>
       ))}
-      {p.modified && <div style={{ color: '#ffb454' }}>{t('tl.modified', { kinds: p.modified.kinds.join(' + ') })}{p.modified.mocked ? t('tl.mockedRes') : ''}</div>}
+      {p.modified && <div style={{ color: 'var(--t-amber)' }}>{t('tl.modified', { kinds: p.modified.kinds.join(' + ') })}{p.modified.mocked ? t('tl.mockedRes') : ''}</div>}
       {p.origin && <div>{t('tl.source')}: <OpenBtn file={p.origin.file} line={p.origin.line} col={p.origin.column} /> {p.origin.component && <span>({p.origin.component})</span>}</div>}
       {ev.kind === 'render' && (
         <table className="tbl" style={{ marginTop: 6 }}>
@@ -436,7 +436,7 @@ export function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; o
   if (steps.length < 2 && !effects.length) return null
   const row = (e: Ev, tag: string, color: string, dt?: number, exact?: boolean): React.ReactElement => (
     <div key={e.id + tag} style={{ display: 'flex', gap: 6, alignItems: 'baseline', paddingLeft: 4 }}>
-      <span style={{ color: exact === false ? '#ffb454' : '#a3e635', width: 10 }}>{exact === false ? '┄' : '│'}</span>
+      <span style={{ color: exact === false ? 'var(--t-amber)' : 'var(--t-lime)', width: 10 }}>{exact === false ? '┄' : '│'}</span>
       <span style={{ color: 'var(--dim)', minWidth: 48 }}>{dt != null ? `+${dt} ms` : ''}</span>
       <a href="#" onClick={(x) => { x.preventDefault(); onSelect(e.id) }} style={{ color }}>{laneName(e.kind)} #{e.id} {label(e)}</a>
     </div>
@@ -445,7 +445,7 @@ export function Chain({ ev, byId, onSelect }: { ev: Ev; byId: Map<number, Ev>; o
     <div style={{ margin: '6px 0', padding: '4px 6px', border: '1px solid var(--line)', borderRadius: 6 }}>
       {steps.length >= 2 && <>
         <div style={{ color: 'var(--dim)' }}>{t('tl.chain')}</div>
-        {steps.map((s) => row(s.ev, 'c', s.ev.id === ev.id ? '#fff' : COLOR[laneOf(s.ev, true) ?? 'input'], s.dtMs, s.via ? s.via.certainty === 'exact' : undefined))}
+        {steps.map((s) => row(s.ev, 'c', s.ev.id === ev.id ? 'var(--fg)' : COLOR[laneOf(s.ev, true) ?? 'input'], s.dtMs, s.via ? s.via.certainty === 'exact' : undefined))}
       </>}
       {effects.length > 0 && <>
         <div style={{ color: 'var(--dim)', marginTop: 4 }}>{t('tl.effects')}</div>

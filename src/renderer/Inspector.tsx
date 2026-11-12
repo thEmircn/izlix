@@ -9,13 +9,13 @@ const ROW_H = 20
 
 const Val = ({ v, depth = 0 }: { v: any; depth?: number }): React.ReactElement => {
   if (v && typeof v === 'object' && '$' in v) return <i style={{ color: '#9aa' }}>{v.$}</i>
-  if (v === null) return <span style={{ color: '#a1a1aa' }}>null</span>
-  if (typeof v === 'string') return <span style={{ color: '#d6b98a' }}>"{v}"</span>
+  if (v === null) return <span style={{ color: 'var(--dim)' }}>null</span>
+  if (typeof v === 'string') return <span style={{ color: 'var(--t-tan)' }}>"{v}"</span>
   if (typeof v === 'number' || typeof v === 'boolean') return <span style={{ color: '#f78c6c' }}>{String(v)}</span>
   if (Array.isArray(v)) return v.length ? <div style={{ paddingLeft: depth ? 12 : 0 }}>{v.map((x, i) => <div key={i}>{i}: <Val v={x} depth={depth + 1} /></div>)}</div> : <span>[]</span>
   if (v && typeof v === 'object') {
     const ks = Object.keys(v)
-    return ks.length ? <div style={{ paddingLeft: depth ? 12 : 0 }}>{ks.map((k) => <div key={k}><span style={{ color: '#e4e4e7' }}>{k}</span>: <Val v={v[k]} depth={depth + 1} /></div>)}</div> : <span>{'{}'}</span>
+    return ks.length ? <div style={{ paddingLeft: depth ? 12 : 0 }}>{ks.map((k) => <div key={k}><span style={{ color: 'var(--fg2)' }}>{k}</span>: <Val v={v[k]} depth={depth + 1} /></div>)}</div> : <span>{'{}'}</span>
   }
   return <span>{String(v)}</span>
 }
@@ -115,7 +115,7 @@ export function Inspector({ height }: { height: number }) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div className="cmp-bar" style={{ padding: '8px 10px' }}>
         <button className={`btn ${picking ? 'primary' : ''}`} onClick={() => void startPick()}>{t('el.pick')}</button>
-        <input placeholder={t('insp.search')} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: '#121214', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
+        <input placeholder={t('insp.search')} value={filter} onChange={(e) => setFilter(e.target.value)} style={{ flex: 1, background: 'var(--code-bg)', border: '1px solid var(--line)', borderRadius: 5, padding: '2px 8px' }} />
         <label><input type="checkbox" checked={hideMin} onChange={(e) => setHideMin(e.target.checked)} /> {t('insp.hideMin')}</label>
         <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {t('insp.auto')}</label>
         <button className="btn" onClick={() => void refresh()}>{t('insp.refresh')}</button>
@@ -128,8 +128,8 @@ export function Inspector({ height }: { height: number }) {
             const row = counts.get(n.t != null ? `t${n.t}` : `n:${n.name}`)
             return (
               <div key={n.id} onClick={() => void pick(n)} style={{ position: 'absolute', top: (first + i) * ROW_H, height: ROW_H, left: 0, right: 0, paddingLeft: 8 + (filter ? 0 : Math.min(n.depth, 40) * 10), whiteSpace: 'nowrap', cursor: 'default', background: sel?.id === n.id ? 'rgba(255,255,255,.1)' : undefined, lineHeight: `${ROW_H}px` }}>
-                <span style={{ color: '#e4e4e7' }}>{n.name}</span>{n.key != null && <span style={{ color: '#d6b98a' }}> key="{n.key}"</span>}
-                {row && <span style={{ color: row.renders > 5 ? '#ffb454' : 'var(--dim)' }}> ×{row.renders}</span>}
+                <span style={{ color: 'var(--fg2)' }}>{n.name}</span>{n.key != null && <span style={{ color: 'var(--t-tan)' }}> key="{n.key}"</span>}
+                {row && <span style={{ color: row.renders > 5 ? 'var(--t-amber)' : 'var(--dim)' }}> ×{row.renders}</span>}
               </div>
             )
           })}
@@ -145,14 +145,14 @@ export function Inspector({ height }: { height: number }) {
             <div style={{ marginTop: 6, color: 'var(--dim)' }}>props</div>
             {Object.keys(detail.propsRaw ?? {}).length > 0
               ? <div>{Object.entries(detail.propsRaw as Record<string, string>).map(([k, raw]) => (
-                  <div key={k} className="hookrow"><span style={{ color: '#e4e4e7' }}>{k}</span>: <input className="hookinp" defaultValue={raw} spellCheck={false} title={t('insp.editHook')}
+                  <div key={k} className="hookrow"><span style={{ color: 'var(--fg2)' }}>{k}</span>: <input className="hookinp" defaultValue={raw} spellCheck={false} title={t('insp.editHook')}
                     onKeyDown={(e) => { if (e.key === 'Enter') void editProp(k, (e.target as HTMLInputElement).value) }} onBlur={(e) => { if (e.target.value !== raw) void editProp(k, e.target.value) }} /></div>
                 ))}</div>
               : <Val v={detail.props} />}
             {detail.state !== undefined && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>state</div><Val v={detail.state} /></>}
             {detail.hooks?.length > 0 && <><div style={{ marginTop: 6, color: 'var(--dim)' }}>hooks</div>
               {detail.hooks.map((h: any) => (
-                <div key={h.index} className="hookrow">#{h.index} <span style={{ color: '#a1a1aa' }}>{h.kind}</span>{' '}
+                <div key={h.index} className="hookrow">#{h.index} <span style={{ color: 'var(--dim)' }}>{h.kind}</span>{' '}
                   {h.kind === 'state' && h.raw != null
                     ? <input className="hookinp" defaultValue={h.raw} spellCheck={false} title={t('insp.editHook')}
                         onKeyDown={(e) => { if (e.key === 'Enter') void editHook(h.index, (e.target as HTMLInputElement).value) }}

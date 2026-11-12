@@ -243,8 +243,8 @@ const focusServer = new FocusServer((a) => {
 /** Pencere zemini: macOS'ta saydam + vibrancy (cam); Windows 11'de Mica; Windows 10/Linux'ta opak koyu (saydam zemin beyaza dusmesin) */
 function windowChrome(): Partial<Electron.BrowserWindowConstructorOptions> {
   if (process.platform === 'darwin') return { backgroundColor: '#00000000' }
-  if (process.platform === 'win32') return { backgroundColor: '#0a0a0b', backgroundMaterial: 'mica' as const }
-  return { backgroundColor: '#0a0a0b' }
+  if (process.platform === 'win32') return { backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0b' : '#f5f5f7', backgroundMaterial: 'mica' as const }
+  return { backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0b' : '#f5f5f7' }
 }
 let updNotified = ''
 let threat: ThreatService
@@ -621,7 +621,7 @@ function registerIpc(): void {
   })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.settingsGet, null, () => settings.get())
-  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.spellcheck !== undefined) tabs.each((wc) => wc.session.setSpellCheckerEnabled(p.spellcheck!)); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.language && p.language !== before) installMenu((cmd) => sendFocused(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
+  handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.spellcheck !== undefined) tabs.each((wc) => wc.session.setSpellCheckerEnabled(p.spellcheck!)); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.theme) applyTheme(p.theme); if (p.language && p.language !== before) installMenu((cmd) => sendFocused(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
   handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
   handle(Ch.demoOpen, null, async () => {
     const port = await demo.start()
@@ -1188,9 +1188,16 @@ async function openWindow(opts: { app?: boolean } = {}): Promise<number> {
   return id
 }
 
+/** Tema: nativeTheme kaynagi ayarlanir; kabuk ve eklenti CSS'i prefers-color-scheme ile ayni kaynagi izler. Opak pencerelerin zemini de guncellenir. */
+function applyTheme(pref: 'system' | 'light' | 'dark'): void {
+  nativeTheme.themeSource = pref
+  if (process.platform !== 'darwin') for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#0a0a0b' : '#f5f5f7')
+}
+nativeTheme.on('updated', () => { if (process.platform !== 'darwin') for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#0a0a0b' : '#f5f5f7') })
+
 async function createWindow(): Promise<void> {
   // Test modu (DB_SCRIPT): kullaniciyi rahatsiz etme — Dock'a dusme, one gelme, gorunmez (opacity 0) ama render ediliyor. DB_VISIBLE=1 ile normal gorunur.
-  nativeTheme.themeSource = 'dark' // cam (vibrancy) her zaman koyu
+  applyTheme((settings ?? new SettingsStore()).get().theme ?? 'system') // cam (vibrancy) ve prefers-color-scheme secilen temayi izler
   const quiet = !!process.env.DB_SCRIPT && !process.env.DB_VISIBLE
   if (quiet && process.platform === 'darwin') app.setActivationPolicy('accessory')
   const { maximized, ...ws0 } = restoreWindowState({ width: 1500, height: 900 })

@@ -5,7 +5,7 @@ module.exports = async ({ tabs, sleep, shellEval: se, pageEval, rules }) => {
   await new Promise((r) => srv.listen(5204, '127.0.0.1', r))
   await tabs.create({ url: 'localhost:5204', workspaceId: 'default' }); await sleep(1800)
   await pageEval(`fetch('/api/x'); 1`); await sleep(1500)
-  const rightClick = () => shellEval(`(()=>{const c=[...document.querySelectorAll('.tl-svg circle.node')].filter(x=>x.getAttribute('fill')==='#f4f4f5').pop(); if(!c) return false; const r=c.getBoundingClientRect(); c.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:r.x+4,clientY:r.y+4})); return true})()`)
+  const rightClick = () => shellEval(`(()=>{const c=[...document.querySelectorAll('.tl-svg circle.node')].filter(x=>x.getAttribute('fill')==='var(--ln-request)').pop(); if(!c) return false; const r=c.getBoundingClientRect(); c.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:r.x+4,clientY:r.y+4})); return true})()`)
   out.dispatched = await rightClick(); await sleep(500)
   out.items = await shellEval(`[...document.querySelectorAll('.ctxmenu .ctx-item')].map(b=>b.textContent)`)
   // Ag'da goster

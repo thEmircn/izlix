@@ -65,7 +65,7 @@ export function Perf({ events }: { events: BusEvent[] }) {
           <div key={k} className={`mcard ${leakHint(series[k] ?? []) ? 'leak' : ''}`}>
             <div className="vname">{label}{leakHint(series[k] ?? []) && <em className="leakbadge">{t('perf.leak')}</em>}</div>
             <div className="vnum" style={{ fontSize: 20 }}>{f(cur(k))}</div>
-            <Spark values={series[k] ?? []} color={leakHint(series[k] ?? []) ? '#f87171' : '#d4d4d8'} />
+            <Spark values={series[k] ?? []} color={leakHint(series[k] ?? []) ? 'var(--t-red2)' : 'var(--fg2)'} />
           </div>
         ))}
       </div>

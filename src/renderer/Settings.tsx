@@ -4,7 +4,7 @@ import { parseLimits, siteList } from '../shared/usage'
 import { BUDGET_KEYS, DEFAULT_BUDGET, unitOf } from '../shared/budgets'
 import { useEffect, useState } from 'react'
 import type { DevToolsDock, Editor, Language } from '../shared/events'
-import { Switch } from '../../packages/ui/src'
+import { Segmented, Switch } from '../../packages/ui/src'
 import { useStore, useT, writePref, toast } from './store'
 import { Kbd } from './ui'
 
@@ -57,6 +57,9 @@ export function Settings({ onClose }: { onClose(): void }) {
       <div className="dialog" role="dialog" aria-label={t('set.title')} style={{ width: 'min(560px, 92vw)' }} onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center' }}><b style={{ flex: 1, fontSize: 14 }}>{t('set.title')}</b><Kbd>⌘,</Kbd></div>
         <div style={{ overflow: 'auto', padding: '4px 18px 14px' }}>
+          <Row title={t('set.theme')}>
+            <Segmented small value={settings.theme ?? 'system'} onChange={(v) => void api.setSettings({ theme: v as 'system' | 'light' | 'dark' })} items={[{ key: 'system', label: t('set.themeSystem') }, { key: 'light', label: t('set.themeLight') }, { key: 'dark', label: t('set.themeDark') }]} />
+          </Row>
           <Row title={t('set.language')}>
             <select value={settings.language} onChange={(e) => void api.setSettings({ language: e.target.value as Language })}><option value="en">English</option><option value="tr">Türkçe</option></select>
           </Row>

@@ -65,7 +65,7 @@ check('panel Timeline basligini gosteriyor', /Timeline/.test(text))
 const evCount = await sw.ev(`__izlix.bus.snapshot('tab-${tabId}').length`)
 check('olaylar toplandi', evCount >= 10, `(${evCount} olay)`)
 // zincir: render olayini sec (SVG daire) ve nedensellik zinciri metnini ara
-await panel.ev(`[...document.querySelectorAll('svg circle')].filter(c=>c.getAttribute('fill')==='#ffb454').pop()?.dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(500)
+await panel.ev(`[...document.querySelectorAll('svg circle')].filter(c=>c.getAttribute('fill')==='var(--ln-render)').pop()?.dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(500)
 const chainText = await panel.ev('document.body.innerText')
 check('nedensellik zinciri: girdi -> istek -> yanit -> render', /Cause chain|Neden zinciri/i.test(chainText) && /click button#load/.test(chainText) && /GET \/api\/items/.test(chainText) && /200 \/api\/items/.test(chainText) && /render #\d+ commit/.test(chainText))
 // 3b) click-to-source: bilesen konumu source map'ten cozulur, kaynak baglantisi editor URL'si uretir

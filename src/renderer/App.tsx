@@ -168,6 +168,16 @@ export function App() {
 
   useEffect(() => { void window.izlix.setSettings({ editor: s.editor }) }, [s.editor])
   useEffect(() => { if (s.appWin) s.set({ panelOpen: false, dashboard: false }) }, [s.appWin])
+  // tema degisince renk gecisi yumusak olsun (ilk yuklemede degil)
+  const themePref = s.settings.theme ?? 'system'
+  const themeSeen = useRef(themePref)
+  useEffect(() => {
+    if (themeSeen.current === themePref) return
+    themeSeen.current = themePref
+    document.documentElement.classList.add('theming')
+    const h = window.setTimeout(() => document.documentElement.classList.remove('theming'), 450)
+    return () => window.clearTimeout(h)
+  }, [themePref])
   useEffect(() => { void window.izlix.getSettings().then((st: any) => { useStore.getState().set({ settings: st, ...(st.onboarded ? {} : { overlay: 'welcome' as const }) }) }) }, [])
   // sekme degisince o sekmenin olay gecmisini yukle
   useEffect(() => { if (s.activeTabId) window.izlix.snapshot(s.activeTabId).then((l: any) => useStore.getState().ingest(l)) }, [s.activeTabId])
@@ -275,7 +285,7 @@ export function App() {
         <button aria-label={t('nav.back')} disabled={!active?.canGoBack} onClick={nav(api.back)}><Back /></button>
         <button aria-label={t('nav.forward')} disabled={!active?.canGoForward} onClick={nav(api.forward)}><Forward /></button>
         <button aria-label={t('nav.reload')} disabled={!active} onClick={nav(api.reload)}><Reload /></button>
-        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? '#fbbf24' : undefined }} onClick={() => { if (active) void api.toggleBookmark(active.id).then((on: boolean) => toast(t(on ? 'toast.bookmarked' : 'toast.unbookmarked'))) }}><Star filled={bookmarked} /></button>
+        <button aria-label={t('bookmark')} title={t('bookmark.title')} disabled={!active?.url} style={{ color: bookmarked ? 'var(--t-amber)' : undefined }} onClick={() => { if (active) void api.toggleBookmark(active.id).then((on: boolean) => toast(t(on ? 'toast.bookmarked' : 'toast.unbookmarked'))) }}><Star filled={bookmarked} /></button>
         <form style={{ flex: 1, display: 'flex' }} onSubmit={(e) => { e.preventDefault(); setTyped(null); if (active) void api.go(active.id, addr); (document.activeElement as HTMLElement)?.blur() }}>
  <input ref={addrRef} className="addr" value={addr} placeholder={t('addr.placeholder')} spellCheck={false} autoComplete="off"
             onFocus={(e) => { setEditing(true); e.target.select() }} onBlur={() => { setEditing(false); setTyped(null) }}

@@ -3,7 +3,7 @@ import { translate } from './i18n'
 
 export const LANES = ['input', 'hmr', 'request', 'response', 'render', 'console', 'error'] as const
 export type Lane = (typeof LANES)[number]
-export const LANE_COLOR: Record<Lane, string> = { input: '#a1a1aa', hmr: '#2dd4bf', request: '#f4f4f5', response: '#a3e635', render: '#ffb454', console: '#71717a', error: '#ff5c5c' }
+export const LANE_COLOR: Record<Lane, string> = { input: 'var(--ln-input)', hmr: 'var(--ln-hmr)', request: 'var(--ln-request)', response: 'var(--ln-response)', render: 'var(--ln-render)', console: 'var(--ln-console)', error: 'var(--ln-error)' }
 
 export const shortUrl = (u: string): string => { try { const x = new URL(u); return x.pathname + x.search } catch { return u } }
 

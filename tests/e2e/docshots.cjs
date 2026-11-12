@@ -10,7 +10,7 @@ module.exports = async ({ tabs, win, sleep, click, shellEval, shot }) => {
   await click('#load')
   for (let i = 1; i <= 16; i++) { await sleep(170); await shot(fdir + '/f' + String(i).padStart(2, '0') + '.png') }
   await sleep(600)
-  await shellEval(`[...document.querySelectorAll('svg circle')].filter(c=>c.getAttribute('fill')==='#ffb454').pop()?.dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(500)
+  await shellEval(`[...document.querySelectorAll('svg circle')].filter(c=>c.getAttribute('fill')==='var(--ln-render)').pop()?.dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(500)
   await shot(dir + '/timeline.png')
   win.webContents.send('ui:cmd', 'palette.open'); await sleep(600)
   await shot(dir + '/palette.png')

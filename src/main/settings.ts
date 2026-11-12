@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Settings } from '../shared/events'
 import { DEFAULT_HUB } from '../shared/services'
 
-const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr', searchEngine: 'duckduckgo', searchSuggest: true, adblock: 'ads', extensions: [], safeBrowsing: true, hub: DEFAULT_HUB, adblockAllow: [], adblockDev: false, ambient: true, stripTracking: true, ai: { provider: 'ollama', model: 'llama3.1' }, budgets: {}, widgets: {}, focus: { on: false, sites: [], limits: {} }, apps: [], shortcuts: [], editor: 'vscode', httpsOnly: true, spellcheck: true, cookieBanners: true, stripTrackingDev: false, sleepMinutes: 30, ambientDev: false, installId: '', autoOpen: false }
+const DEFAULTS: Settings = { telemetry: 'unset', onboarded: false, language: 'tr', theme: 'system', searchEngine: 'duckduckgo', searchSuggest: true, adblock: 'ads', extensions: [], safeBrowsing: true, hub: DEFAULT_HUB, adblockAllow: [], adblockDev: false, ambient: true, stripTracking: true, ai: { provider: 'ollama', model: 'llama3.1' }, budgets: {}, widgets: {}, focus: { on: false, sites: [], limits: {} }, apps: [], shortcuts: [], editor: 'vscode', httpsOnly: true, spellcheck: true, cookieBanners: true, stripTrackingDev: false, sleepMinutes: 30, ambientDev: false, installId: '', autoOpen: false }
 
 export class SettingsStore {
   private data: Settings
