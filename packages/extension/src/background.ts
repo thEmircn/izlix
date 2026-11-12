@@ -39,7 +39,8 @@ chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'izlix-update') void c
 // --- Request Rules: kurallar kalici (chrome.storage), her izlenen sekmede ayni cekirdek Interceptor calisir ---
 let rulesCfg: RulesConfig = { rules: [], domains: DEFAULT_DOMAINS }
 let projectRoot: string | null = null
-void chrome.storage.local.get('izlix.root').then((r) => { projectRoot = (r['izlix.root'] as string) ?? null })
+let editorPref: 'vscode' | 'cursor' | 'webstorm' = 'vscode'
+void chrome.storage.local.get(['izlix.root', 'izlix.editor']).then((r) => { projectRoot = (r['izlix.root'] as string) || null; if (r['izlix.editor']) editorPref = r['izlix.editor'] as typeof editorPref })
 const rulesReady = chrome.storage.local.get('izlix.rules').then((r) => { if (r['izlix.rules']) rulesCfg = r['izlix.rules'] as RulesConfig })
 async function setRules(cfg: RulesConfig): Promise<void> {
   rulesCfg = { rules: cfg.rules ?? [], domains: cfg.domains?.length ? cfg.domains : DEFAULT_DOMAINS }
@@ -81,6 +82,15 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
   await rulesReady
   switch (name) {
     case 'getRules': return rulesCfg
+    case 'getPrefs': return { root: projectRoot ?? '', editor: editorPref }
+    case 'setPrefs': {
+      const { root, editor } = args[0] as { root: string; editor: string }
+      const r = String(root ?? '').trim()
+      projectRoot = r && isSafeSourcePath(r) ? r.replace(/[\\/]+$/, '') : null // yalniz mutlak ve .. icermeyen
+      if (editor === 'vscode' || editor === 'cursor' || editor === 'webstorm') editorPref = editor
+      await chrome.storage.local.set({ 'izlix.root': projectRoot ?? '', 'izlix.editor': editorPref })
+      return { root: projectRoot ?? '', editor: editorPref }
+    }
     case 'resume': { const id = Number(args[0]); try { await ensureAttached(id); return true } catch { return false } }
     case 'setRules': await setRules(args[1]); return true
     case 'responseBody': {
@@ -99,7 +109,7 @@ async function rpc(name: string, args: any[]): Promise<unknown> {
       if (!isSafeSourcePath(file)) return false
       const ok = [...attached.entries()].some(([tid, a]) => a.collector.resolver.knownFiles.has(file) && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(tabUrls.get(tid) ?? ''))
       if (!ok) return false
-      const url = editorUrl(editor ?? 'vscode', file, Math.max(1, line | 0), Math.max(1, (column ?? 1) | 0))
+      const url = editorUrl(editor ?? editorPref, file, Math.max(1, line | 0), Math.max(1, (column ?? 1) | 0))
       ;(globalThis as any).__izlixLastEditorUrl = url
       if (!(globalThis as any).__izlixTestMode) { const t = await chrome.tabs.create({ url, active: false }); setTimeout(() => { if (t.id != null) void chrome.tabs.remove(t.id).catch(() => {}) }, 1500) }
       return true
@@ -128,4 +138,4 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 
 // Test/gelistirme girisi (service worker kapsami sayfalardan erisilemez)
-;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), onDetached, checkUpdate, setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }
+;(globalThis as any).__izlix = { knownFiles: (tid: number) => attached.get(tid)?.collector.resolver.knownFiles ?? new Set<string>(), onDetached, prefs: () => ({ root: projectRoot, editor: editorPref }), checkUpdate, setTestMode: (v: boolean) => { (globalThis as any).__izlixTestMode = v }, lastEditorUrl: () => (globalThis as any).__izlixLastEditorUrl, ensureAttached, bus, isAttached, attached: () => [...attached.keys()], setRules, rules: () => rulesCfg }

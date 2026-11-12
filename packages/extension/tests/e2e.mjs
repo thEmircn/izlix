@@ -126,6 +126,16 @@ const bad = await sw.ev(`chrome.tabs.create({ url: 'chrome://version', active: f
 await sw.ev(`chrome.tabs.create({ url: 'chrome-extension://${extId}/panel.html?tabId=${bad}', active: false })`); await sleep(2000)
 const badPanel = (await targets()).filter((t) => t.type === 'page' && t.url.includes('tabId=' + bad))[0]
 check('chrome:// icin aciklayici hata', badPanel ? /cannot be inspected|incelenemiyor/.test(await (await ws(badPanel.webSocketDebuggerUrl)).ev('document.body.innerText')) : false)
+// 9) ayarlar: proje klasoru ve editor kaydedilir; mutlak olmayan klasor reddedilir
+await panel.ev(`document.querySelector('[data-testid=ext-settings]').click()`); await sleep(500)
+check('ayarlar penceresi acildi', await panel.ev(`!!document.querySelector('[role=dialog] input')`))
+check('baslangicta proje klasoru bos', (await sw.ev(`__izlix.prefs().root === null`)) === true)
+await panel.ev(`(async () => { const i = document.querySelector('[role=dialog] input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, '/Users/you/my-app'); i.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((r) => setTimeout(r, 100)); [...document.querySelectorAll('[role=dialog] button')].find((b) => /Save|Kaydet/.test(b.textContent)).click() })()`); await sleep(700)
+check('proje klasoru kaydedildi', (await sw.ev(`__izlix.prefs().root`)) === '/Users/you/my-app')
+await panel.ev(`[...document.querySelectorAll('[role=dialog] [role=tab]')].find((b) => /Cursor/.test(b.textContent)).click()`); await sleep(300)
+await panel.ev(`[...document.querySelectorAll('[role=dialog] button')].find((b) => /Save|Kaydet/.test(b.textContent)).click()`); await sleep(600)
+check('editor kaydedildi (Cursor)', (await sw.ev(`__izlix.prefs().editor`)) === 'cursor')
+await panel.ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`); await sleep(400)
 const shot = await panel.send('Page.captureScreenshot', { format: 'png' }); if (process.env.SHOT) writeFileSync(process.env.SHOT, Buffer.from(shot.result.data, 'base64'))
 console.log(fails.length ? `\n${fails.length} kontrol basarisiz` : '\nTum kontroller gecti')
 await finish(fails.length ? 1 : 0)

@@ -4,6 +4,7 @@ import '../../../src/renderer/styles.css'
 import type { BusEvent } from '../../../src/shared/events'
 import { useStore } from '../../../src/renderer/store'
 import { Timeline } from '../../../src/renderer/Timeline'
+import { Button, Dialog, Field, Segmented } from '../../../packages/ui/src'
 
 /** Panel bir uzantidir: kabuk API'sinin (window.izlix) yalnizca gereken kismi gercek, gerisi guvenli no-op. */
 // test/tanilama: yakalanmamis hatalari say
@@ -81,6 +82,30 @@ function StatusBanner() {
   )
 }
 
+/** Ayarlar: proje klasoru (kok-goreli kaynak yollari icin) ve editor */
+function SettingsButton() {
+  const [open, setOpen] = useState(false), [root, setRoot] = useState(''), [editor, setEditor] = useState<'vscode' | 'cursor' | 'webstorm'>('vscode'), [msg, setMsg] = useState('')
+  const tr = lang === 'tr'
+  useEffect(() => { if (open) void rpc('getPrefs').then((p: any) => { setRoot(p.root); setEditor(p.editor); setMsg('') }) }, [open])
+  const save = (): void => { void rpc('setPrefs', { root, editor }).then((p: any) => { setRoot(p.root); setMsg(root.trim() && !p.root ? (tr ? 'Klasör mutlak bir yol olmalı.' : 'The folder must be an absolute path.') : (tr ? 'Kaydedildi.' : 'Saved.')) }) }
+  return (
+    <>
+      <button type="button" aria-label={tr ? 'Ayarlar' : 'Settings'} data-testid="ext-settings" onClick={() => setOpen(true)} style={{ position: 'fixed', left: 14, bottom: 24, zIndex: 20, width: 34, height: 34, borderRadius: 11, border: '1px solid var(--g-brd)', background: 'var(--panel)', color: 'var(--dim)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M2 4.5h7M12 4.5h2M2 11.5h2M7 11.5h7" /><circle cx="10.5" cy="4.5" r="1.6" /><circle cx="5.5" cy="11.5" r="1.6" /></svg>
+      </button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={tr ? 'Ayarlar' : 'Settings'} width={420}
+        footer={<><Button onClick={() => setOpen(false)}>{tr ? 'Kapat' : 'Close'}</Button><Button variant="primary" onClick={save}>{tr ? 'Kaydet' : 'Save'}</Button></>}>
+        <div style={{ display: 'grid', gap: 14 }}>
+          <Field label={tr ? 'Proje klasörü' : 'Project folder'} placeholder="/Users/you/my-app" value={root} onChange={(e) => setRoot(e.target.value)} hint={tr ? 'Kaynak yolları kök-göreliyse (Next.js, webpack) gerekir; Vite için gerekmez.' : 'Needed when source paths are root-relative (Next.js, webpack); not needed for Vite.'} />
+          <div style={{ display: 'grid', gap: 5 }}><span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--dim)' }}>{tr ? 'Editör' : 'Editor'}</span>
+            <Segmented label="Editor" items={[{ key: 'vscode' as const, label: 'VS Code' }, { key: 'cursor' as const, label: 'Cursor' }, { key: 'webstorm' as const, label: 'WebStorm' }]} value={editor} onChange={(k) => setEditor(k)} /></div>
+          {msg && <div role="status" style={{ fontSize: 12, color: 'var(--dim)' }}>{msg}</div>}
+        </div>
+      </Dialog>
+    </>
+  )
+}
+
 function UpdateBanner() {
   const n = (useStore as any)((s: any) => s.updateNotice) as { latest: string; url: string } | null | undefined
   const [hidden, setHidden] = useState<string | null>(() => { try { return localStorage.getItem('izlix.update.hidden') } catch { return null } })
@@ -105,6 +130,6 @@ function PanelApp() {
     const t = setInterval(() => { if (queue.length) useStore.getState().ingest(queue.splice(0)) }, 50) // olaydan ekrana < 100 ms butcesi
     return () => { removeEventListener('resize', onResize); clearInterval(t); off() }
   }, [])
-  return <div className="panel side-right" style={{ position: 'fixed', inset: 0 }}><Timeline width={size.w} height={size.h} /><StatusBanner /><UpdateBanner /></div>
+  return <div className="panel side-right" style={{ position: 'fixed', inset: 0 }}><Timeline width={size.w} height={size.h} /><StatusBanner /><UpdateBanner /><SettingsButton /></div>
 }
 createRoot(document.getElementById('root')!).render(<PanelApp />)
