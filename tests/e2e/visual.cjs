@@ -11,6 +11,10 @@ module.exports = async ({ win, sleep, shellEval }) => {
     ['settings', 'settings.open'], ['palette', 'palette.open'], ['hub', 'svch.open'], ['shortcuts', 'shortcuts.open'],
     ['history', 'history.open'], ['bookmarks', 'bm.open'], ['downloads', 'downloads.open'], ['usage', 'usage.open'], ['notes', 'notes.open']
   ]
+  win.setContentSize(1470, 900) // ekran duzeninden bagimsiz sabit boyut (taban cizgileri 1470x900 @2x)
+  // taban cizgileri macOS Retina (2x) ekranda alindi: pencere 1x ekranda (harici monitor) acildiysa piksel boyutu farkli olur, karsilastirma anlamsiz
+  const sf = require('electron').screen.getDisplayMatching(win.getBounds()).scaleFactor
+  if (process.platform === 'darwin' && sf !== 2 && !update) return { platform: process.platform, screens: {}, maxDiff: 0, skipped: `scaleFactor ${sf} != 2` }
   await sleep(1500)
   await shellEval(`[...document.querySelectorAll('.dialog button')].find(b=>b.textContent==='Allow')?.click(); 1`).catch(() => {}); await sleep(300)
   await shellEval(`[...document.querySelectorAll('.dialog button')].find(b=>/Skip|Atla/.test(b.textContent))?.click(); 1`).catch(() => {}); await sleep(400)
