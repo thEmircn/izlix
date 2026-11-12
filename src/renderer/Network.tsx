@@ -7,7 +7,7 @@ import { SENSITIVE_KEYS } from '../shared/mask'
 import { sortRows, type SortKey, typeBreakdown, replayExpression, toCurl, toFetch, buildNetworkRows, formatBytes, formatMs, statusClass, type NetRow, type NetType } from '../shared/network'
 import { Chain, QuickRules } from './Timeline'
 import { Close } from './icons'
-import { Seg, Roll } from './ui'
+import { Seg, Roll, Select } from './ui'
 import { JwtList } from './Jwt'
 import { findJwts } from '../shared/jwt'
 import { toast, useStore, useT, writePref, tNow } from './store'
@@ -84,12 +84,12 @@ export function Network({ events, byId }: { events: BusEvent[]; byId: Map<number
         </div>
         <input className="search" placeholder={t('net.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="tgl"><input type="checkbox" checked={preserve} onChange={(e) => { writePref('preserveLog', e.target.checked ? '1' : '0'); useStore.getState().set({ preserveLog: e.target.checked }) }} />{t('net.preserve')}</label>
-        <select className="net-select net-export" aria-label={t('net.export')} title={t('net.export')} value="" onChange={(e) => { const v = e.target.value as 'msw' | 'postman' | 'openapi'; e.target.value = ''; if (v) void doExport(v) }}>
+        <Select className="net-select net-export" aria-label={t('net.export')} title={t('net.export')} value="" onChange={(e) => { const v = e.target.value as 'msw' | 'postman' | 'openapi'; e.target.value = ''; if (v) void doExport(v) }}>
           <option value="">{t('net.export')}</option><option value="msw">MSW handlers</option><option value="postman">Postman</option><option value="openapi">OpenAPI</option>
-        </select>
-        <select className="net-throttle" aria-label={t('net.throttle')} title={t('net.throttle')} value={netThrottle} onChange={(e) => tabId && void window.izlix.setEmulation(tabId, { network: e.target.value || null })}>
+        </Select>
+        <Select className="net-throttle" aria-label={t('net.throttle')} title={t('net.throttle')} value={netThrottle} onChange={(e) => tabId && void window.izlix.setEmulation(tabId, { network: e.target.value || null })}>
           <option value="">{t('net.noThrottle')}</option>{NETWORK_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
+        </Select>
         <label className="tgl"><input type="checkbox" checked={noCache} onChange={(e) => tabId && void window.izlix.setCacheDisabled(tabId, e.target.checked)} />{t('net.noCache')}</label>
         <button className="btn" onClick={() => tabId && void window.izlix.saveHar(tabId).then((p: string | null) => p && toast(t('toast.har', { p: p.split('/').pop() ?? '' })))}>HAR</button>
         <button className="btn" onClick={() => { setClearedAt(Date.now()); set({ selectedEventId: null }) }}>{t('net.clear')}</button>

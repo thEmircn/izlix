@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { originKey } from '../shared/favicon'
 import { useStore, useT } from './store'
 import { IcBookmark, IcFolder } from './icons'
-import { Kbd } from './ui'
+import { Kbd, Select } from './ui'
 
 export const BM_H = 30
 interface Bm { url: string; title: string; folder?: string }
@@ -68,7 +68,7 @@ export function BookmarkManager({ onClose }: { onClose(): void }) {
                 <span className="hist-ic">{favicons[originKey(b.url) ?? ''] ? <img alt="" src={favicons[originKey(b.url) ?? '']} /> : <i />}</span>
                 <input className="bm-t" defaultValue={b.title} aria-label={t('bm.titleCol')} onBlur={(e) => { if (e.target.value !== b.title) void api.bmUpdate({ url: b.url, title: e.target.value }) }} />
                 <input className="bm-u" defaultValue={b.url} spellCheck={false} onBlur={(e) => { if (e.target.value !== b.url) void api.bmUpdate({ url: b.url, newUrl: e.target.value }) }} />
-                <select value={b.folder ?? ''} aria-label={t('bm.folderCol')} onChange={(e) => void api.bmUpdate({ url: b.url, folder: e.target.value || null })}><option value="">{t('bm.root')}</option>{folders.map((f) => <option key={f} value={f}>{f}</option>)}</select>
+                <Select value={b.folder ?? ''} aria-label={t('bm.folderCol')} onChange={(e) => void api.bmUpdate({ url: b.url, folder: e.target.value || null })}><option value="">{t('bm.root')}</option>{folders.map((f) => <option key={f} value={f}>{f}</option>)}</Select>
                 <button className="hist-x" style={{ opacity: 1 }} aria-label={t('bm.delete')} title={t('bm.delete')} onClick={() => void api.bmRemove(b.url)}>×</button>
               </div>
             ))}

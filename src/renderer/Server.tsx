@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Select } from './ui'
 import { toast, useStore, useT } from './store'
 
 interface Info { rootDir: string | null; pm: string; scripts: { name: string; cmd: string; likely: boolean }[]; status: 'idle' | 'starting' | 'running' | 'exited'; script?: string; url?: string; exitCode?: number | null; lines: string[] }
@@ -38,9 +39,9 @@ export function Server() {
       <div className="net-bar">
         <span className={`srvstat ${info.status}`}><i className="vdot" />{t(`srv.${info.status}` as any)}{info.url ? ` · ${info.url.replace(/^https?:\/\//, '')}` : ''}</span>
         <span style={{ flex: 1 }} />
-        <select value={script} disabled={running} onChange={(e) => setScript(e.target.value)}>
+        <Select value={script} disabled={running} onChange={(e) => setScript(e.target.value)}>
           {info.scripts.map((s) => <option key={s.name} value={s.name}>{info.pm} run {s.name}</option>)}
-        </select>
+        </Select>
         {running
           ? <button className="btn" onClick={() => void window.izlix.serverStop(wsId)}>{t('srv.stop')}</button>
           : <button className="btn primary" onClick={() => { setLines([]); void window.izlix.serverStart(wsId, script).then((ok: boolean) => { if (!ok) toast(t('srv.failed')) }) }}>{t('srv.start')}</button>}

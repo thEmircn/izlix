@@ -621,6 +621,13 @@ function registerIpc(): void {
   })
   handle(Ch.downloadShow, schemas.downloadShow, ({ id }) => downloads.show(id))
   handle(Ch.settingsGet, null, () => settings.get())
+  // Yerel acilir menu (NSMenu): <select> yerine macOS'un kendi popup'i; secilen dizin ya da iptalde null doner
+  handle(Ch.popupMenu, schemas.popupMenu, ({ items, x, y }) => new Promise<number | null>((resolve) => {
+    let done = false
+    const finish = (v: number | null): void => { if (!done) { done = true; resolve(v) } }
+    const m = Menu.buildFromTemplate(items.map((it, i) => ({ label: it.label, type: 'checkbox' as const, checked: !!it.checked, enabled: it.enabled !== false, click: () => finish(i) })))
+    m.popup({ window: curWin ?? win, x: Math.round(x), y: Math.round(y), callback: () => finish(null) })
+  }))
   handle(Ch.settingsSet, schemas.settingsSet, (p) => { const before = settings.get().language; settings.set(p); if (p.adblock !== undefined || p.adblockAllow !== undefined) tabs.refreshRules(); if (p.spellcheck !== undefined) tabs.each((wc) => wc.session.setSpellCheckerEnabled(p.spellcheck!)); if (p.ambient !== undefined) tabs.each((wc) => void wc.executeJavaScript(`window.__dbAmbient&&(window.__dbAmbient.on=${p.ambient})`).catch(() => {})); if (p.theme) applyTheme(p.theme); if (p.language && p.language !== before) installMenu((cmd) => sendFocused(Ch.cmd, cmd), settings.get().language); pushSettings(); return settings.get() })
   handle(Ch.track, schemas.track, ({ name, props }) => { if ((TELEMETRY_EVENTS as readonly string[]).includes(name)) telemetry.track(name as TelemetryEvent, props) })
   handle(Ch.demoOpen, null, async () => {
@@ -1175,7 +1182,7 @@ async function openWindow(opts: { app?: boolean } = {}): Promise<number> {
   // uygulama penceresi: kucuk, ekranin ortasinda, konumu hatirlanmaz
   const appDef = { width: Math.min(1100, wa.width - 80), height: Math.min(760, wa.height - 80), x: wa.x + Math.floor((wa.width - Math.min(1100, wa.width - 80)) / 2) + (shellWins.size % 5) * 24, y: wa.y + 50 + (shellWins.size % 5) * 24 }
   const { maximized, ...b } = opts.app ? { ...appDef, maximized: false } : restoreWindowState(def, 'window2')
-  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: opts.app ? 480 : 900, minHeight: opts.app ? 360 : 600, titleBarStyle: 'hiddenInset', ...windowChrome(), vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  const w = new BrowserWindow({ ...b, ...(quiet ? { show: false, focusable: false } : {}), minWidth: opts.app ? 480 : 900, minHeight: opts.app ? 360 : 600, titleBarStyle: 'hiddenInset', ...windowChrome(), vibrancy: 'under-window', visualEffectState: 'active', webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false, additionalArguments: process.env.DB_SCRIPT ? ['--izlix-test'] : [] } })
   w.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {})
   if (maximized && !quiet) w.maximize()
   if (quiet) { w.setOpacity(0); w.setIgnoreMouseEvents(true); w.showInactive() }
@@ -1204,7 +1211,7 @@ async function createWindow(): Promise<void> {
   win = new BrowserWindow({
     ...ws0, ...(quiet ? { show: false, focusable: false } : {}), minWidth: 900, minHeight: 600, titleBarStyle: 'hiddenInset', ...windowChrome(), vibrancy: 'under-window', visualEffectState: 'active', // macOS cam: masaustu bulanik gorunur, shell kartlari saydam
     
-    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false }
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false, additionalArguments: process.env.DB_SCRIPT ? ['--izlix-test'] : [] }
   })
   win.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {}) // kabuk (arayuz) yakinlastirilamaz; yalnizca sayfalar
   if (maximized && !quiet) win.maximize()

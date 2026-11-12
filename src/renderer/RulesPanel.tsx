@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { parseRulesJson, newRule, type Rule, type RuleAction, type RulesConfig } from '../shared/rules'
 import { useStore, useT, toast } from './store'
+import { Select } from './ui'
 import { Trash } from './icons'
 
 const TYPES: RuleAction['type'][] = ['mock', 'delay', 'status', 'redirect', 'headers', 'block']
@@ -64,16 +65,16 @@ export function RulesPanel({ onClose }: { onClose(): void }) {
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input type="checkbox" aria-label={t('rr.enabled')} checked={r.enabled} onChange={(e) => upd(r.id, { enabled: e.target.checked })} />
                 <input style={{ width: 150 }} value={r.name} onChange={(e) => upd(r.id, { name: e.target.value })} />
-                <select value={r.method ?? ''} onChange={(e) => upd(r.id, { method: e.target.value || undefined })}>
+                <Select value={r.method ?? ''} onChange={(e) => upd(r.id, { method: e.target.value || undefined })}>
                   <option value="">{t('rr.allMethods')}</option>{['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => <option key={m}>{m}</option>)}
-                </select>
+                </Select>
                 <input style={{ flex: 1 }} placeholder={t('rr.pattern')} value={r.urlPattern} onChange={(e) => upd(r.id, { urlPattern: e.target.value })} />
                 <button className="btn" aria-label={t('rr.delete')} onClick={() => setCfg((c) => ({ ...c, rules: c.rules.filter((x) => x.id !== r.id) }))}><Trash /></button>
               </div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                <select value={r.action.type} onChange={(e) => upd(r.id, { action: defaultAction(e.target.value as RuleAction['type']) })}>
+                <Select value={r.action.type} onChange={(e) => upd(r.id, { action: defaultAction(e.target.value as RuleAction['type']) })}>
                   {TYPES.map((t) => <option key={t}>{t}</option>)}
-                </select>
+                </Select>
                 <ActionFields a={r.action} onChange={(action) => upd(r.id, { action })} />
               </div>
             </div>

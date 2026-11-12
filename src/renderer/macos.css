@@ -59,3 +59,12 @@ input.addr { height: 28px; padding: 0 14px; border-radius: 8px; border: var(--ha
 input.addr:focus { text-align: left; border-color: var(--ac); box-shadow: 0 0 0 3px var(--focus-ring); }
 .toolbar select { height: 26px; line-height: 24px; padding-top: 0; padding-bottom: 0; }
 select { line-height: calc(var(--ctl-h) - 2px); padding-top: 0 !important; padding-bottom: 0 !important; }
+
+/* yerel acilir menu dugmesi (NSPopUpButton gorunumu) */
+.popup { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 64px; max-width: 100%; height: var(--ctl-h); padding: 0 6px 0 9px; border-radius: var(--ctl-r); border: var(--hairline) solid var(--ctl-brd); background: var(--ctl-bg); color: var(--fg); font: inherit; font-size: 13px; box-shadow: var(--ctl-shadow); text-align: left; }
+.popup:hover:not(:disabled) { background: var(--ctl-bg-hover); }
+.popup:active:not(:disabled) { background: var(--ctl-bg-active); box-shadow: none; }
+.popup:focus-visible { outline: none; box-shadow: var(--ctl-shadow), 0 0 0 3px var(--focus-ring); }
+.popup:disabled { opacity: .45; }
+.popup-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.popup svg { flex: none; opacity: .65; }

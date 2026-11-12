@@ -15,7 +15,7 @@ import { AiDialog } from './AiDialog'
 import { BudgetChip } from './BudgetChip'
 import { RecorderDialog } from './RecorderDialog'
 import { BookmarkManager, BookmarkBar, BM_H } from './Bookmarks'
-import { Roll } from './ui'
+import { Roll, Select } from './ui'
 import { GROUP_COLORS } from '../shared/groups'
 import { GroupChip } from './GroupChip'
 import { SuggestList, useSuggestions } from './Suggest'
@@ -344,10 +344,10 @@ export function App() {
             <Download />{' '}{busyDl ? t('dl.busy', { n: busyDl }) : t('dl.count', { n: s.downloads.length })}
           </button>
         )}
-        <select aria-label={t('workspace')} value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
+        <Select aria-label={t('workspace')} value={s.activeWorkspaceId} onChange={(e) => { if (e.target.value === '__new') void api.createWorkspace('', null); else void api.switchWorkspace(e.target.value) }}>
           {s.workspaces.map((w) => <option key={w.id} value={w.id}>{wsName(w)}</option>)}
           <option value="__new">{t('ws.fromFolder')}</option>
-        </select>
+        </Select>
         {s.detected.length > 0 && (
           <button className="chip srv-chip" title={s.detected.map((d) => `:${d.port} ${d.framework ?? ''}`).join('\n')} onClick={() => (s.detected.length === 1 ? api.createTab(`localhost:${s.detected[0].port}`) : s.set({ overlay: 'palette' }))}>
             <i className="dot" />{s.detected[0].port}{s.detected[0].framework ? ` ${s.detected[0].framework}` : ''}{s.detected.length > 1 ? <b>+{s.detected.length - 1}</b> : null}

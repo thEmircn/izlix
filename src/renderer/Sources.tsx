@@ -4,7 +4,7 @@ import type { BusEvent } from '../shared/events'
 import { highlightLine, initState, langOf, type HlState } from '../shared/highlight'
 import { buildNetworkRows } from '../shared/network'
 import { toast, useStore, useT } from './store'
-import { Seg } from './ui'
+import { Seg, Select } from './ui'
 import { groupHits, searchFiles, type SearchHit } from '../shared/srcsearch'
 
 interface OrigSource { name: string; content: string | null }
@@ -224,9 +224,9 @@ export function Sources({ events }: { events: BusEvent[] }) {
               </>
             ) : <span className="dimtxt">{t('dbg.hint')}</span>}
             <span style={{ flex: 1 }} />
-            <select className="mini-select" value={exc} title={t('dbg.excTitle')} onChange={(e) => { const v = e.target.value as 'none' | 'uncaught' | 'all'; setExc(v); void window.izlix.dbgExceptions(tabId, v) }}>
+            <Select className="mini-select" value={exc} title={t('dbg.excTitle')} onChange={(e) => { const v = e.target.value as 'none' | 'uncaught' | 'all'; setExc(v); void window.izlix.dbgExceptions(tabId, v) }}>
               <option value="none">{t('dbg.excNone')}</option><option value="uncaught">{t('dbg.excUncaught')}</option><option value="all">{t('dbg.excAll')}</option>
-            </select>
+            </Select>
           </div>
         )}
         {cond && <div className="dbgbar"><span className="dimtxt">{t('dbg.condition', { n: cond.line })}</span>

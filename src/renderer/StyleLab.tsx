@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { attrMap, keyOf, selectorOf, type DomNode } from '../shared/dom'
 import { cssRule, parseInline, px, rgbToHex, stringifyInline, toTailwind, type Props } from '../shared/stylelab'
+import { Select } from './ui'
 import { toast, useStore, useT } from './store'
 
 type Dt = (m: string, p?: Record<string, unknown>) => Promise<any>
@@ -60,7 +61,7 @@ export function StyleLab({ nodeId, dt, node, root, tabId }: { nodeId: number; dt
     <label className="lab-sl"><span>{label}</span><input type="range" min={min} max={max} step={step} value={Number(num(p)) || 0} onChange={(e) => set(p, `${e.target.value}${unit}`)} /><code>{num(p) || 0}{unit}</code></label>
   )
   const Sel = ({ p, label, opts }: { p: string; label: string; opts: string[] }) => (
-    <label className="lab-s"><span>{label}</span><select value={opts.includes(val(p)) ? val(p) : ''} onChange={(e) => set(p, e.target.value)}><option value="">{val(p) || '—'}</option>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
+    <label className="lab-s"><span>{label}</span><Select value={opts.includes(val(p)) ? val(p) : ''} onChange={(e) => set(p, e.target.value)}><option value="">{val(p) || '—'}</option>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</Select></label>
   )
   const Col = ({ p, label }: { p: string; label: string }) => (
     <label className="lab-c"><span>{label}</span><input type="color" value={rgbToHex(val(p))} onChange={(e) => set(p, e.target.value)} /><code>{rgbToHex(val(p))}</code></label>

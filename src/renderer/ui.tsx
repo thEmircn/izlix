@@ -1,5 +1,5 @@
 import { K } from './platform'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Children, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 // Sade yardimci bilesenler: hover'da hafifce belirginlesen kart ve tus etiketi.
 
@@ -175,4 +175,24 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
 /** Site ikonu varsa gosterir, yoksa harf avatarini (children) */
 export function Fav({ icon, children }: { icon?: string; children: React.ReactNode }): React.ReactElement {
   return icon ? <img className="fav-img" alt="" src={icon} draggable={false} /> : <>{children}</>
+}
+
+/** <select> yerine macOS'un yerel acilir menusu (NSMenu). Ayni arayuz: value/onChange(e.target.value)/<option>. Yerel menu yoksa (eklenti, onizleme) normal select. */
+export function Select({ value, onChange, children, className, style, disabled, title, 'aria-label': ariaLabel }: { value: string | number; onChange(e: { target: { value: string } }): void; children: ReactNode; className?: string; style?: CSSProperties; disabled?: boolean; title?: string; 'aria-label'?: string }) {
+  const opts: { value: string; label: string; disabled?: boolean }[] = []
+  const walk = (n: ReactNode): void => { Children.forEach(n, (c) => { if (isValidElement(c)) { const p = c.props as { value?: string | number; children?: ReactNode; disabled?: boolean }; if (c.type === 'option') opts.push({ value: String(p.value ?? (typeof p.children === 'string' ? p.children : '')), label: Array.isArray(p.children) ? p.children.join('') : String(p.children ?? ''), disabled: p.disabled }); else walk(p.children) } }) }
+  walk(children)
+  const native = (window as any).izlix?.nativeMenus === true
+  if (!native) return <select value={String(value)} onChange={(e) => onChange({ target: { value: e.target.value } })} className={className} style={style} disabled={disabled} title={title} aria-label={ariaLabel}>{children}</select>
+  const cur = opts.find((o) => o.value === String(value))
+  return (
+    <button type="button" className={`popup ${className ?? ''}`} style={style} disabled={disabled} title={title} aria-label={ariaLabel} aria-haspopup="menu"
+      onClick={(e) => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+        void (window as any).izlix.popupMenu(opts.map((o) => ({ label: o.label, checked: o.value === String(value), enabled: !o.disabled })), r.left, r.bottom + 2).then((i: number | null) => { if (i != null && opts[i]) onChange({ target: { value: opts[i].value } }) })
+      }}>
+      <span className="popup-l">{cur?.label ?? ''}</span>
+      <svg width="9" height="12" viewBox="0 0 9 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M2 4.5 4.5 2 7 4.5M2 7.5 4.5 10 7 7.5" /></svg>
+    </button>
+  )
 }

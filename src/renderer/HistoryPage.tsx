@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { originKey } from '../shared/favicon'
 import { useStore, useT, toast } from './store'
-import { Kbd } from './ui'
+import { Kbd, Select } from './ui'
 
 interface V { url: string; title: string; ts: number }
 const dayKey = (ts: number): string => new Date(ts).toDateString()
@@ -41,7 +41,7 @@ export function HistoryPage({ onClose }: { onClose(): void }) {
         {clearing && (
           <div className="hist-clear">
             <div className="hrow"><span>{t('hist.range')}</span>
-              <select value={range} onChange={(e) => setRange(e.target.value as typeof range)}><option value="hour">{t('hist.r.hour')}</option><option value="day">{t('hist.r.day')}</option><option value="week">{t('hist.r.week')}</option><option value="all">{t('hist.r.all')}</option></select></div>
+              <Select value={range} onChange={(e) => setRange(e.target.value as typeof range)}><option value="hour">{t('hist.r.hour')}</option><option value="day">{t('hist.r.day')}</option><option value="week">{t('hist.r.week')}</option><option value="all">{t('hist.r.all')}</option></Select></div>
             <label><input type="checkbox" checked={opt.history} onChange={(e) => setOpt({ ...opt, history: e.target.checked })} />{t('hist.o.history')}</label>
             <label><input type="checkbox" checked={opt.cookies} onChange={(e) => setOpt({ ...opt, cookies: e.target.checked })} />{t('hist.o.cookies')}</label>
             <label><input type="checkbox" checked={opt.cache} onChange={(e) => setOpt({ ...opt, cache: e.target.checked })} />{t('hist.o.cache')}</label>

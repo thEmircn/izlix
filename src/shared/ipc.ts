@@ -71,6 +71,7 @@ export const schemas = {
     column: z.number().int().positive().optional(),
     editor: z.enum(['vscode', 'cursor', 'webstorm']).optional()
   }),
+  popupMenu: z.object({ items: z.array(z.object({ label: z.string().max(200), checked: z.boolean().optional(), enabled: z.boolean().optional() })).max(300), x: z.number(), y: z.number() }),
   layoutSet: z.object({
     dock: z.enum(['right', 'bottom', 'off']),
     panelRatio: z.number().min(0).max(0.8), // 0 = yan panel kapali (sayfa tam genislik)
