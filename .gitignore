@@ -8,3 +8,4 @@ packages/extension/dist
 packages/extension/*.zip
 packages/ui/gallery/dist
 _site
+tests/testapps/*/node_modules

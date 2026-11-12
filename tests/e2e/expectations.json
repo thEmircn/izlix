@@ -4883,5 +4883,42 @@
       "lt",
       0.004
     ]
+  ],
+  "vue": [
+    [
+      "rendered",
+      "eq",
+      true
+    ],
+    [
+      "list",
+      "eq",
+      3
+    ],
+    [
+      "vueCommits",
+      "gte",
+      1
+    ],
+    [
+      "names",
+      "contains",
+      "Row"
+    ],
+    [
+      "inputToRequest",
+      "eq",
+      true
+    ],
+    [
+      "requestToResponse",
+      "eq",
+      true
+    ],
+    [
+      "responseToRender",
+      "eq",
+      true
+    ]
   ]
 }

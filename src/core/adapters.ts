@@ -1,5 +1,6 @@
 import { BINDING, BRIDGE_SOURCE } from './react-bridge'
 import { VITALS_SOURCE } from './vitals-bridge'
+import { VUE_SOURCE } from './vue-bridge'
 
 /**
  * Framework adaptoru (plan K-05): her framework icin sayfaya enjekte edilen bir kopru betigi.
@@ -21,5 +22,6 @@ export const reactAdapter: FrameworkAdapter = { id: 'react', label: 'React 18/19
 
 /** Etkin adaptorler; tumu her sayfaya enjekte edilir (her biri kendi framework'unu yoksa sessiz kalir). */
 export const vitalsAdapter: FrameworkAdapter = { id: 'vitals', label: 'Web Vitals', script: VITALS_SOURCE }
-export const ADAPTERS: FrameworkAdapter[] = [reactAdapter, vitalsAdapter]
+export const vueAdapter: FrameworkAdapter = { id: 'vue', label: 'Vue 3', script: VUE_SOURCE }
+export const ADAPTERS: FrameworkAdapter[] = [reactAdapter, vueAdapter, vitalsAdapter]
 export { BINDING }

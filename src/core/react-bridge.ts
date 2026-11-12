@@ -5,16 +5,19 @@ export const BINDING = '__izlix_emit'
 
 export const BRIDGE_SOURCE = String.raw`(() => {
   if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || window.__IZLIX_BRIDGE__) return;
-  window.__IZLIX_BRIDGE__ = true;
+  // diger adaptorler (Vue...) ayni olay hattini ve girdi baglamini kullanir
+  const B = window.__IZLIX_BRIDGE__ = {};
   const wall = () => performance.timeOrigin + performance.now();
   const emit = (type, data) => {
     try { window.${BINDING}(JSON.stringify(Object.assign({ type: type, wall: wall() }, data))); } catch (e) {}
   };
+  B.emit = emit;
 
   // ---- girdi olaylari ----
   // activeInput: girdi olayinin islendigi gorev (task) boyunca dolu. React 18/19 ayrik olaylari
   // ayni gorevin microtask'inda commit eder; bu yuzden commit'te dolu ise baglanti KESIN'dir.
   let inputSeq = 0, activeInput = null;
+  B.input = () => activeInput;
   ['click', 'input', 'keydown', 'submit', 'change'].forEach((name) => {
     addEventListener(name, (ev) => {
       const t = ev.target;

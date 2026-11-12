@@ -21,7 +21,7 @@ jobs:
       - run: npm run build
       - name: Install and start the test apps (React 19 on 5173, React 18 on 5174)
         run: |
-          for app in vite-react19 vite-react18; do (cd tests/testapps/$app && npm install --no-audit --no-fund --silent); done
+          for app in vite-react19 vite-react18 vue; do (cd tests/testapps/$app && npm install --no-audit --no-fund --silent); done
           (cd tests/testapps/vite-react19 && nohup npx vite --port 5173 --strictPort > /tmp/v19.log 2>&1 &)
           (cd tests/testapps/vite-react18 && nohup npx vite --port 5174 --strictPort > /tmp/v18.log 2>&1 &)
           for p in 5173 5174; do for i in $(seq 1 40); do curl -sf "http://localhost:$p" >/dev/null && break; sleep 1; done; done

@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Vue test app</title>
+<script type="importmap">{ "imports": { "vue": "./node_modules/vue/dist/vue.esm-browser.js" } }</script></head>
+<body><div id="app"></div>
+<script type="module">
+import { createApp, ref, h, defineComponent } from 'vue'
+const Row = defineComponent({ name: 'Row', props: { item: Object }, setup(p) { return () => h('li', p.item.name) } })
+const ItemList = defineComponent({ name: 'ItemList', props: { items: Array }, setup(p) { return () => h('ul', p.items.map((i) => h(Row, { item: i, key: i.id }))) } })
+const App = defineComponent({
+  name: 'App',
+  setup() {
+    const items = ref([]), loading = ref(false)
+    const load = async () => { loading.value = true; const r = await fetch('/api/items'); items.value = await r.json(); loading.value = false }
+    return () => h('div', [h('button', { id: 'load', onClick: load }, loading.value ? 'Loading' : 'Load'), h(ItemList, { items: items.value })])
+  }
+})
+createApp(App).mount('#app')
+</script></body></html>
