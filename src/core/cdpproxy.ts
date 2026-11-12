@@ -1,4 +1,4 @@
-import type { WebContents } from 'electron'
+import type { CdpClient } from './cdp-client'
 
 /**
  * Elements ve Storage panelleri icin CDP koprusu. Yalnizca izin listesindeki yontemler cagrilabilir; alanlar (DOM/CSS/Overlay/DOMStorage)
@@ -45,17 +45,17 @@ export const REACT_CHAIN_FN = `function () {
 
 export class CdpProxy {
   private active = new Map<string, Set<Feature>>()
-  private listeners = new Map<string, (_e: unknown, method: string, params: any) => void>()
+  private listeners = new Map<string, () => void>() // abonelik kapatici
 
-  constructor(private getWc: (tabId: string) => WebContents | null, private emit: (tabId: string, method: string, params: unknown) => void) {}
+  constructor(private getClient: (tabId: string) => CdpClient | null, private emit: (tabId: string, method: string, params: unknown) => void) {}
 
-  private wc(tabId: string): WebContents | null { const w = this.getWc(tabId); return w && !w.isDestroyed() ? w : null }
+  private wc(tabId: string): CdpClient | null { return this.getClient(tabId) }
 
   async call(tabId: string, method: string, params?: object): Promise<unknown> {
     if (!isAllowedMethod(method)) throw new Error(`izinli olmayan CDP yontemi: ${method}`)
     const w = this.wc(tabId)
     if (!w) return null
-    return w.debugger.sendCommand(method, params ?? {})
+    return w.send(method, params ?? {})
   }
 
   async enable(tabId: string, f: Feature): Promise<void> {
@@ -65,10 +65,9 @@ export class CdpProxy {
     if (set.has(f)) return
     set.add(f); this.active.set(tabId, set)
     if (!this.listeners.has(tabId)) {
-      const l = (_e: unknown, method: string, params: any): void => { if (FORWARDED_EVENTS.test(method)) this.emit(tabId, method, params) }
-      this.listeners.set(tabId, l); w.debugger.on('message', l)
+      this.listeners.set(tabId, w.onEvent((method, params) => { if (FORWARDED_EVENTS.test(method)) this.emit(tabId, method, params) }))
     }
-    for (const m of ENABLE[f]) await w.debugger.sendCommand(m).catch(() => {})
+    for (const m of ENABLE[f]) await w.send(m).catch(() => {})
   }
 
   async disable(tabId: string, f: Feature): Promise<void> {
@@ -76,13 +75,12 @@ export class CdpProxy {
     if (!set?.has(f)) return
     set.delete(f)
     const w = this.wc(tabId)
-    if (w) for (const m of DISABLE[f]) await w.debugger.sendCommand(m, m === 'Overlay.setInspectMode' ? { mode: 'none', highlightConfig: {} } : {}).catch(() => {})
+    if (w) for (const m of DISABLE[f]) await w.send(m, m === 'Overlay.setInspectMode' ? { mode: 'none', highlightConfig: {} } : {}).catch(() => {})
     if (!set.size) this.release(tabId)
   }
 
   private release(tabId: string): void {
-    const l = this.listeners.get(tabId); const w = this.wc(tabId)
-    if (l && w) w.debugger.removeListener('message', l)
+    this.listeners.get(tabId)?.()
     this.listeners.delete(tabId); this.active.delete(tabId)
   }
 
@@ -94,11 +92,11 @@ export class CdpProxy {
     const w = this.wc(tabId)
     if (!w) return null
     try {
-      const r: any = await w.debugger.sendCommand('DOM.resolveNode', { nodeId })
+      const r: any = await w.send('DOM.resolveNode', { nodeId })
       const objectId = r.object?.objectId
       if (!objectId) return null
-      const res: any = await w.debugger.sendCommand('Runtime.callFunctionOn', { objectId, functionDeclaration: 'function () { return window.__IZLIX_INDEX_OF__ ? window.__IZLIX_INDEX_OF__(this) : null }', returnByValue: true })
-      void w.debugger.sendCommand('Runtime.releaseObject', { objectId }).catch(() => {})
+      const res: any = await w.send('Runtime.callFunctionOn', { objectId, functionDeclaration: 'function () { return window.__IZLIX_INDEX_OF__ ? window.__IZLIX_INDEX_OF__(this) : null }', returnByValue: true })
+      void w.send('Runtime.releaseObject', { objectId }).catch(() => {})
       return res.result?.value ?? null
     } catch { return null }
   }
@@ -108,11 +106,11 @@ export class CdpProxy {
     const w = this.wc(tabId)
     if (!w) return null
     try {
-      const r: any = await w.debugger.sendCommand('DOM.resolveNode', { nodeId })
+      const r: any = await w.send('DOM.resolveNode', { nodeId })
       const objectId = r.object?.objectId
       if (!objectId) return null
-      const res: any = await w.debugger.sendCommand('Runtime.callFunctionOn', { objectId, functionDeclaration: REACT_CHAIN_FN, returnByValue: true })
-      void w.debugger.sendCommand('Runtime.releaseObject', { objectId }).catch(() => {})
+      const res: any = await w.send('Runtime.callFunctionOn', { objectId, functionDeclaration: REACT_CHAIN_FN, returnByValue: true })
+      void w.send('Runtime.releaseObject', { objectId }).catch(() => {})
       return res.result?.value ?? null
     } catch { return null }
   }

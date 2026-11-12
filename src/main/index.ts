@@ -70,7 +70,8 @@ import { restoreWindowState, trackWindowState } from './window-state'
 import { loadSnapshot, saveSnapshot } from './snapshot'
 import { buildHar } from './report-data'
 import { maskDeep } from '../shared/mask'
-import { CdpProxy } from './cdpproxy'
+import { CdpProxy } from '../core/cdpproxy'
+import { electronCdp } from './electron-cdp'
 import { DevServers } from './devserver'
 import { DebuggerService } from './debugger'
 import { A11Y_AUDIT } from './a11y-audit'
@@ -1259,7 +1260,7 @@ async function createWindow(): Promise<void> {
   installMenu((cmd) => send(Ch.cmd, cmd), settings.get().language)
   dbg = new DebuggerService((id) => { const e = tabs.get(id); return e ? { wc: e.view.webContents, resolver: e.cdp?.resolver } : null }, (id, ev) => send(Ch.dbgEvent, { id, ...ev }))
   servers = new DevServers((e) => send(Ch.srvEvent, e), (wsId, url) => { void tabs.create({ url, workspaceId: wsId, activate: wsId === activeWorkspaceId }) })
-  proxy = new CdpProxy((id) => tabs.get(id)?.view.webContents ?? null, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
+  proxy = new CdpProxy((id) => { const wc = tabs.get(id)?.view.webContents; return wc && !wc.isDestroyed() ? electronCdp(wc, false) : null }, (id, method, params) => send(Ch.dtEvent, { id, method, params }))
   registerIpc()
   setInterval(() => bus.compact(), 10_000).unref()
   bus.subscribe((ev, change) => send(change === 'new' ? Ch.evNew : Ch.evUpdate, ev))

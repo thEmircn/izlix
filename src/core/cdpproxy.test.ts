@@ -8,7 +8,7 @@ describe('cdpproxy izin listesi', () => {
   })
   it('call izinsiz yontemde reddeder ve sendCommand cagirmaz', async () => {
     const send = vi.fn()
-    const p = new CdpProxy(() => ({ isDestroyed: () => false, debugger: { sendCommand: send, on() {}, removeListener() {} } }) as any, () => {})
+    const p = new CdpProxy(() => ({ send, onEvent: () => () => {}, detach() {} }) as any, () => {})
     await expect(p.call('t', 'Runtime.evaluate', { expression: '1' })).rejects.toThrow()
     expect(send).not.toHaveBeenCalled()
     await p.call('t', 'DOM.getDocument', { depth: 1 })
@@ -17,12 +17,12 @@ describe('cdpproxy izin listesi', () => {
   it('olay suzgeci ve enable/disable yasam dongusu', async () => {
     expect(FORWARDED_EVENTS.test('DOM.documentUpdated')).toBe(true); expect(FORWARDED_EVENTS.test('Network.requestWillBeSent')).toBe(false)
     const cmds: string[] = []; let listener: any = null; let removed = false
-    const wc: any = { isDestroyed: () => false, debugger: { sendCommand: async (m: string) => { cmds.push(m) }, on: (_: string, l: any) => { listener = l }, removeListener: () => { removed = true } } }
+    const wc: any = { send: async (m: string) => { cmds.push(m) }, onEvent: (l: any) => { listener = l; return () => { removed = true } }, detach: () => {} }
     const events: string[] = []
     const p = new CdpProxy(() => wc, (_t, m) => events.push(m))
     await p.enable('t', 'elements'); await p.enable('t', 'elements')
     expect(cmds).toEqual(['DOM.enable', 'CSS.enable', 'Overlay.enable'])
-    listener(null, 'DOM.documentUpdated', {}); listener(null, 'Network.requestWillBeSent', {})
+    listener('DOM.documentUpdated', {}); listener('Network.requestWillBeSent', {})
     expect(events).toEqual(['DOM.documentUpdated'])
     await p.disable('t', 'elements')
     expect(cmds.slice(3)).toContain('DOM.disable'); expect(removed).toBe(true)
