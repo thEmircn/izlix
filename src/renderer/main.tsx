@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import './styles.css'
 import './native.css'
+import './macos.css'
 import { App } from './App'
 import { ErrorBoundary } from './ErrorBoundary'
 import { IS_MAC } from './platform'

@@ -1,15 +1,15 @@
 .overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(var(--c-scrim),.55); backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px) saturate(1.1); animation: fadeIn var(--dur-med) var(--ease-out) both; }
 .overlay[data-state="closed"] { animation: fadeOut var(--dur-fast) var(--ease-out) both; pointer-events: none; }
-.panel { display: flex; flex-direction: column; max-height: 86vh; width: min(var(--dlg-w, 520px), 94vw); border-radius: 16px; border: 1px solid var(--g-brd2); background: var(--panel); box-shadow: var(--shadow-l), var(--g-hi); color: var(--fg); animation: pop var(--dur-slow) var(--spring) both; }
+.panel { display: flex; flex-direction: column; max-height: 86vh; width: min(var(--dlg-w, 520px), 94vw); border-radius: 12px; border: var(--hairline) solid rgba(var(--ov),.18); background: var(--panel); box-shadow: var(--shadow-l), var(--g-hi); color: var(--fg); animation: pop var(--dur-slow) var(--spring) both; }
 .overlay[data-state="closed"] .panel { animation: popOut var(--dur-fast) var(--ease-out) both; }
-.head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
-.title { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -.01em; flex: 1; }
-.close { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--spring); }
+.head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 4px; border-bottom: 0; }
+.title { margin: 0; font-size: 13px; font-weight: 600; flex: 1; }
+.close { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--dim); cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--spring); }
 .close:hover { background: var(--g2); color: var(--fg); }
 .close:active { transform: scale(.9); }
 .close:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
-.body { padding: 16px; overflow: auto; }
-.foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.body { padding: 10px 18px 16px; overflow: auto; }
+.foot { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 18px 16px; border-top: 0; }
 @keyframes fadeIn { from { opacity: 0 } }
 @keyframes fadeOut { to { opacity: 0 } }
 @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.96) } }

@@ -1310,6 +1310,8 @@ async function createWindow(): Promise<void> {
       click: async (selector: string): Promise<void> => {
         const wc = tabs.active()!.view.webContents
         const [x, y] = await wc.executeJavaScript(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return [Math.round(r.x+r.width/2),Math.round(r.y+r.height/2)]})()`)
+        wc.focus() // gizli/odaksiz pencerede (harici ekran, uyku) girdi olaylari yutulmasin
+        wc.sendInputEvent({ type: 'mouseMove', x, y })
         wc.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 })
         wc.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
       }

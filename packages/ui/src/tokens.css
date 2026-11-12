@@ -21,6 +21,16 @@
   --panel: rgba(22,22,26,.92); --card: rgba(var(--ov),.04); --line: rgba(var(--ov),.08); --raise: rgba(var(--ov),.08); --bg2: rgba(0,0,0,.22);
 }
 
+/* -- macOS (HIG) kontrol olculeri ve yuzeyleri -- */
+:root {
+  --ctl-h: 22px; --ctl-r: 6px; --hairline: .5px; --focus-ring: color-mix(in srgb, var(--ac) 45%, transparent);
+  --ctl-bg: rgba(var(--ov),.10); --ctl-bg-hover: rgba(var(--ov),.15); --ctl-bg-active: rgba(var(--ov),.06); --ctl-brd: rgba(var(--ov),.13);
+  --ctl-shadow: 0 .5px 1px rgba(0,0,0,.28);
+  --field-bg: rgba(var(--ov),.07); --switch-off: rgba(var(--ov),.22);
+  --seg-track: rgba(var(--ov),.10); --seg-thumb: rgba(var(--ov),.22);
+  --sel-bg: var(--ac); --sel-fg: #fff;
+}
+
 /* -- hareket sureleri ve egriler (yeni bilesenler icin; mevcut --ease/--spring ile uyumlu) -- */
 :root {
   --dur-fast: 120ms; --dur-med: 220ms; --dur-slow: 420ms;
@@ -30,7 +40,7 @@
 /* -- acik tema: sistem acik (ya da Ayarlar > Gorunum = Acik) iken; main nativeTheme.themeSource ayni kaynagi surer -- */
 @media (prefers-color-scheme: light) {
   :root {
-    color-scheme: light; --ov: 0,0,0; --ov-inv: 255,255,255; --fg2: #3f3f46; --code-bg: #f1f1f4; --c-body: 245,245,247; --c-surf: 255,255,255; --c-toast: 255,255,255; --c-ring: 245,245,247; --c-scrim: 30,30,40; --c-dlg: 255,255,255; --c-dock: 255,255,255; --ln-input: #71717a; --ln-hmr: #0f9d8e; --ln-request: #27272a; --ln-response: #5f9a0a; --ln-render: #e07b00; --ln-console: #52525b; --ln-error: #d92d20; --dk: 0,0,0; --dka: .2;
+    color-scheme: light; --ov: 0,0,0; --ov-inv: 255,255,255; --fg2: #3f3f46; --ctl-bg: #fff; --ctl-bg-hover: #f5f5f7; --ctl-bg-active: #e9e9ed; --ctl-brd: rgba(0,0,0,.14); --ctl-shadow: 0 .5px 1px rgba(0,0,0,.12); --field-bg: #fff; --switch-off: rgba(0,0,0,.16); --seg-track: rgba(0,0,0,.07); --seg-thumb: #fff; --code-bg: #f1f1f4; --c-body: 245,245,247; --c-surf: 255,255,255; --c-toast: 255,255,255; --c-ring: 245,245,247; --c-scrim: 30,30,40; --c-dlg: 255,255,255; --c-dock: 255,255,255; --ln-input: #71717a; --ln-hmr: #0f9d8e; --ln-request: #27272a; --ln-response: #5f9a0a; --ln-render: #e07b00; --ln-console: #52525b; --ln-error: #d92d20; --dk: 0,0,0; --dka: .2;
     --t-red: #b42318; --t-red2: #d92d20; --t-lime: #4d7c0f; --t-green: #15803d; --t-amber: #a16207; --t-orange: #c2410c; --t-blue: #1d6fb8; --t-purple: #7e3ff2; --t-teal: #0f766e; --t-tan: #8a5a2b;
     --bg: #f5f5f7; --bg2: rgba(0,0,0,.035); --panel: rgba(250,250,252,.92); --card: rgba(0,0,0,.03); --raise: rgba(0,0,0,.06); --hover: rgba(0,0,0,.06);
     --line: rgba(0,0,0,.09); --line2: rgba(0,0,0,.16);

@@ -1,0 +1,61 @@
+/* macOS (Apple HIG) gorunumu: kontrol olculeri, alanlar, secim vurgusu, yazi olcekleri. native.css'ten sonra yuklenir. */
+html, body { font: 13px/1.4 -apple-system, 'SF Pro Text', system-ui, sans-serif; letter-spacing: -.003em; }
+/* metin alanlari ve acilir menuler (NSTextField / NSPopUpButton) */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), textarea, select {
+  height: var(--ctl-h); padding: 0 7px; border-radius: 5px; border: var(--hairline) solid var(--ctl-brd); background-color: var(--field-bg); color: var(--fg); font: inherit; font-size: 13px; outline: none;
+  box-shadow: inset 0 .5px 1px rgba(0,0,0,.18); transition: box-shadow .12s var(--ease-out), border-color .12s;
+}
+textarea { height: auto; padding: 4px 7px; }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):focus, textarea:focus { border-color: var(--ac); box-shadow: 0 0 0 3px var(--focus-ring); }
+select { background-color: var(--ctl-bg); box-shadow: var(--ctl-shadow); padding-right: 22px !important; border-radius: var(--ctl-r); }
+select:hover { background-color: var(--ctl-bg-hover); }
+select:focus-visible { box-shadow: var(--ctl-shadow), 0 0 0 3px var(--focus-ring); outline: none; }
+::placeholder { color: var(--dim); opacity: .8; }
+/* onay kutusu (NSButton checkbox) */
+input[type=checkbox] { width: 14px; height: 14px; border-radius: 4px; border: var(--hairline) solid var(--ctl-brd); background: var(--field-bg); box-shadow: 0 .5px 1px rgba(0,0,0,.25); }
+input[type=checkbox]:checked { background: var(--ac); border-color: transparent; }
+input[type=checkbox]:checked::after { border-color: #fff; }
+input[type=checkbox]:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+/* kisayol etiketi (macOS menusundeki gibi: ince, kutusuz) */
+.kbd, kbd { font: 11px -apple-system, 'SF Pro Text', system-ui, sans-serif; letter-spacing: .02em; padding: 0 5px; min-width: 18px; height: 16px; display: inline-grid; place-items: center; border-radius: 4px; border: var(--hairline) solid var(--ctl-brd); border-bottom-width: var(--hairline); background: var(--ctl-bg); color: var(--dim); box-shadow: none; }
+/* liste / satir secimi: macOS accent dolgulu yuvarlak satir */
+[role=option][aria-selected=true], .sel, .row.sel, .pal-item.sel, .pal-row.on { background: var(--sel-bg); color: var(--sel-fg); border-radius: 6px; }
+/* gorunur kontrol yazilari 13 px */
+button { font-size: 13px; }
+/* kaydirma cubugu: ince, yari saydam, uzerine gelince belirginlesir (overlay scroller) */
+::-webkit-scrollbar { width: 11px; height: 11px; } ::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(var(--ov),.22); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--ov),.4); background-clip: content-box; border: 3px solid transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* bolum etiketleri: BUYUK HARFLI monospace yerine macOS'un ikincil etiketi (sidebar basligi gibi: kucuk, yari kalin, normal harf) */
+.stat span,
+.kv h4,
+.bx > label,
+h4.sec,
+.scope .sh,
+.mlabel,
+.pill,
+.act em,
+.hud small,
+.live-legend,
+.score small,
+.tbl th,
+.lab-sec h5,
+.lb-t,
+.evgroup small,
+.sp-greet,
+.hub-block h4,
+.sug-tag,
+.hist-body h4,
+.wcard h5,
+.bcell span,
+.svc-state,
+.lane-name,
+.ptitle .psub { text-transform: none !important; letter-spacing: 0 !important; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif !important; font-weight: 600; }
+
+/* adres cubugu: Safari gibi yuvarlak, hafif, ortali yazi; odakta sistem halkasi */
+input.addr { height: 28px; padding: 0 14px; border-radius: 8px; border: var(--hairline) solid var(--ctl-brd); background: var(--field-bg); box-shadow: none; backdrop-filter: none; font-size: 13px; text-align: center; }
+input.addr:focus { text-align: left; border-color: var(--ac); box-shadow: 0 0 0 3px var(--focus-ring); }
+.toolbar select { height: 26px; line-height: 24px; padding-top: 0; padding-bottom: 0; }
+select { line-height: calc(var(--ctl-h) - 2px); padding-top: 0 !important; padding-bottom: 0 !important; }
