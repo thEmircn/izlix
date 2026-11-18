@@ -38,7 +38,7 @@ jobs:
           mkdir -p out-artifacts
           for f in dist/*.dmg dist/*.zip dist/*.AppImage dist/*.tar.gz; do [ -f "$f" ] && cp "$f" out-artifacts/; done
           cd out-artifacts && for f in *; do [ -f "$f" ] && (shasum -a 256 "$f" > "$f.sha256" 2>/dev/null || sha256sum "$f" > "$f.sha256"); done; ls -la
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: 'izlix-desktop-${{ matrix.label }}', path: out-artifacts/* }
 
   release:

@@ -49,7 +49,7 @@ jobs:
         run: |
           name="izlix-browser-${UC_VERSION}-linux-x64"
           mv "$BUNDLE_DIR" "work/$name" && tar czf "$name.tar.gz" -C work "$name" && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: izlix-browser-linux, path: 'izlix-browser-*' }
 
   windows:
@@ -81,7 +81,7 @@ jobs:
         run: |
           name="izlix-browser-${UC_VERSION}-windows-x64"
           mv "$BUNDLE_DIR" "work/$name" && (cd work && 7z a -tzip -mx=5 "../$name.zip" "$name" >/dev/null) && sha256sum "$name.zip" > "$name.zip.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: izlix-browser-windows, path: 'izlix-browser-*' }
 
   macos:
@@ -127,7 +127,7 @@ jobs:
         run: |
           name="izlix-browser-${UC_VERSION}-macos-arm64"
           ditto -c -k --keepParent work/Izlix.app "$name.zip" && shasum -a 256 "$name.zip" > "$name.zip.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: izlix-browser-macos, path: 'izlix-browser-*' }
 
   release:

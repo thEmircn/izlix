@@ -65,7 +65,7 @@ jobs:
         run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py hub sync ext threat permissions history bookmarks groups tracking sites notes netexport statepanel vue
       - name: Capture screens for review (Linux)
         run: xvfb-run -a env ELECTRON_DISABLE_SANDBOX=1 python3 tests/e2e/suite.py visual
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: screens-linux, path: tests/visual/baseline/linux }
 
   desktop-smoke-native:
@@ -95,6 +95,6 @@ jobs:
         shell: bash
         env: { PYTHONUTF8: '1' }
         run: python tests/e2e/suite.py visual
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: runner.os == 'Windows'
         with: { name: screens-windows, path: tests/visual/baseline/win32 }
